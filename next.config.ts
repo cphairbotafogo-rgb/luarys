@@ -10,6 +10,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
   async headers() {
     return [
       {
