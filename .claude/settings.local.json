@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(dir \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\modules\\\\portal\\\\\" /b)",
+      "Bash(powershell -command ' *)",
+      "Skill(code-review)",
+      "Skill(code-review:*)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\references\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\conce\\\\Downloads\\\\files8_extract\\\\SKILL.md\" \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\luarys-seguranca-dados.md\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\conce\\\\Downloads\\\\files8_extract\\\\auth_salao_id.md\" \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\references\\\\auth_salao_id.md\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\conce\\\\Downloads\\\\files8_extract\\\\portal_padroes.md\" \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\references\\\\portal_padroes.md\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\conce\\\\Downloads\\\\files8_extract\\\\checklist_revisao_rls.md\" \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\references\\\\checklist_revisao_rls.md\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\conce\\\\Downloads\\\\files8_extract\\\\view_publica.md\" \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\.claude\\\\commands\\\\references\\\\view_publica.md\")",
+      "Read(//c/Users/conce/AppData/Local/Temp/**)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\('next:', p.dependencies?.next || p.devDependencies?.next\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(grep -oP \"boxShadow: [\\\\\"'][^'\\\\\"]{10,}[\\\\\"']\")",
+      "Read(//c/Users/conce/OneDrive/Área deAtalho/meu-sistema-eleva/src/modules/agenda/modals/**)",
+      "Bash(xargs grep -l \"notas_fiscais\\\\|notasFiscais\")",
+      "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\app\\\\api\\\\nfse\\\\emitir\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\app\\\\api\\\\nfse\\\\consultar\\\\[referencia]\")",
+      "Bash(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\app\\\\api\\\\nfse\\\\cancelar\\\\[referencia]\")",
+      "PowerShell($base = \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\app\\\\api\\\\nfse\"; New-Item -ItemType Directory -Force \"$base\\\\emitir\" | Out-Null; New-Item -ItemType Directory -Force \"$base\\\\consultar\\\\[referencia]\" | Out-Null; New-Item -ItemType Directory -Force \"$base\\\\cancelar\\\\[referencia]\" | Out-Null; Write-Output \"ok\")",
+      "PowerShell($base = \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\app\\\\api\\\\nfce\"; New-Item -ItemType Directory -Force \"$base\\\\emitir\" | Out-Null; New-Item -ItemType Directory -Force \"$base\\\\upload-certificado\" | Out-Null; New-Item -ItemType Directory -Force \"$base\\\\consultar\\\\[referencia]\" | Out-Null; Write-Output \"ok\")",
+      "Bash(ls -la \"c:\\\\Users\\\\conce\\\\OneDrive\\\\Área de Trabalho\\\\meu-sistema-eleva\\\\src\\\\modules\\\\clientes\\\\\\\\\")",
+      "Read(//c/Users/conce/.claude/projects/c--Users-conce-OneDrive--rea-de-Trabalho-meu-sistema-eleva/**)",
+      "Bash(python3 -c \"import sys,json; [print\\(json.loads\\(l\\).get\\('content',''\\)[:300] if isinstance\\(json.loads\\(l\\).get\\('content',''\\),str\\) else ''\\) for l in sys.stdin]\")",
+      "Bash(npx next *)",
+      "Bash(awk '{print \"  \" $0}')",
+      "Read(//c/Users/conce/Downloads/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\conce\\OneDrive\\Área de Trabalho\\meu-sistema-eleva\\.claude\\commands",
+      "c:\\Users\\conce\\AppData\\Local\\Temp",
+      "c:\\Users\\conce\\OneDrive\\�rea de Trabalho\\meu-sistema-eleva\\public",
+      "c:\\Users\\conce\\.claude\\projects\\c--Users-conce-OneDrive--rea-de-Trabalho-meu-sistema-eleva\\memory"
+    ]
+  }
+}

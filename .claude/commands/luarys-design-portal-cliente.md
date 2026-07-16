@@ -1,0 +1,28 @@
+﻿---
+name: luarys-design-portal-cliente
+description: Padrão visual "premium" oficial do Portal do Cliente do Luarys (telas em src/modules/portal/ e src/app/portal/ — seleção de salão, login, cadastro, dashboard e modais que o cliente final, sem login de lojista, acessa). USE SEMPRE que for criar uma tela nova dentro do Portal do Cliente, redesenhar/"deixar premium"/melhorar a aparência de qualquer tela existente do Portal, mexer no tamanho ou posição da logo no Portal, ou portar um componente do painel do lojista (admin) para o Portal. Define o tamanho padrão da logo (124px em telas de autenticação cheias, 48px no cabeçalho do dashboard), a paleta/gradiente ardósia + filete dourado, a tipografia oficial (Montserrat/DM Sans, nunca Poppins) e o arquivo central `estiloPortal.ts` que toda tela do Portal deve importar. Consultar ANTES de escrever JSX novo no Portal ou de tocar em estilo inline de uma tela já existente do Portal — inclusive quando o pedido do usuário só menciona "portal do cliente" sem citar "design" ou "visual" explicitamente.
+---
+
+# Design do Portal do Cliente — padrão "premium" Luarys
+
+Esta skill documenta o acabamento visual aplicado ao Portal do Cliente (a parte do Luarys que o **cliente final do salão** acessa, sem login de lojista — `src/modules/portal/` e a rota espelho `src/app/portal/page.tsx`). Nasceu de uma sessão de redesign (jun/2026) que levou o Portal ao mesmo nível de acabamento da tela de login do lojista (`src/app/login/page.tsx`), que é a referência de "padrão premium" do sistema.
+
+**Esta skill é só de aparência.** Ela nunca define ou altera lógica de negócio, queries Supabase, props ou handlers — isso é coberto por `luarys-padroes` (estrutura/organização) e `luarys-seguranca-dados` (RLS/segurança). As três podem — e costumam — se aplicar na mesma tarefa.
+
+## Quando consultar o arquivo de referência
+
+- **`references/tokens-e-padroes.md`** — leia ANTES de escrever ou editar qualquer JSX com estilo dentro do Portal. Lista os tokens disponíveis em `estiloPortal.ts`, os tamanhos padrão de logo, e trechos de código reais (cabeçalho do dashboard, hero, cartão de auth, modal) prontos para copiar/adaptar.
+
+## Resumo rápido (memorize isto, leia os detalhes quando precisar)
+
+1. **Toda tela do Portal importa de `src/modules/portal/estiloPortal.ts`.** Esse arquivo é a fonte única de verdade do padrão visual do Portal — tamanho de logo, gradiente, sombras, tipografia, cartão premium, botão, input, label. Nunca redeclare esses valores soltos numa tela nova; importe de lá. Se faltar um token, adicione em `estiloPortal.ts`, não hardcode na tela.
+2. **Tamanho de logo é padronizado, nunca "no olho".** `LOGO_ALTURA` (124px) para telas de autenticação em tela cheia (seleção de salão, login, cadastro, telas de mensagem/sucesso). `LOGO_ALTURA_HEADER` (48px) para o cabeçalho fixo do dashboard. Antes desta skill existir, cada tela tinha um valor diferente (161/100/100/40px) — isso é o problema que ela resolve. Sempre `<img src={C.logoUrl} ... style={{ height: LOGO_ALTURA, ... }} />`, nunca um src hardcoded tipo `/logo_luarys_vertical.svg`.
+3. **Tipografia: `var(--font-title)` (Montserrat) para títulos/eyebrows/labels, `var(--font-body)` (DM Sans) para corpo de texto.** Nunca `'Poppins', 'Segoe UI', system-ui, sans-serif` — essa fonte não está carregada no projeto (ver `src/app/layout.tsx`) e cai silenciosamente em fallback. Se encontrar `Poppins` numa tela do Portal já existente, é dívida visual antiga — trocar pela fonte oficial faz parte do trabalho de "deixar premium", mesmo que o pedido não peça isso explicitamente.
+4. **Assinatura visual premium = ardósia (`C.sidebarBg`) + toque dourado (`C.douradoLuarys`).** Nunca dourado em área grande (vira longe de elegante) — sempre como detalhe: filete fino sob a logo, borda superior de 3-4px em cards/modais/cabeçalho, anel fino num avatar. O gradiente ardósia (`GRADIENTE_SLATE` em `estiloPortal.ts`) é reservado para o hero principal do dashboard e o painel de apresentação de telas de auth — não usar em todo card, ou perde o impacto.
+5. **Cartões com cantos suaves (16-18px), sombra premium em vez de borda pesada, leve elevação no hover** (`hover:-translate-y-0.5 hover:shadow-md` via className Tailwind, que já está disponível no projeto). Ver `cardPremium` e `cardConteudo` em `estiloPortal.ts`.
+6. **Mudança de aparência nunca toca lógica.** Ao aplicar este padrão a uma tela existente, mude apenas `style`/`className`/imports de estilo — não decisões de fluxo (`if`, `useState`, chamadas Supabase, props passados a componentes filhos). Se notar um bug de lógica enquanto mexe na aparência (ex: erro não tratado, nome de campo errado), **não corrija automaticamente** — avise o usuário separadamente e pergunte se quer que você resolva também, já que isso sai do escopo de "só visual" que ele pediu.
+7. **Outras telas do Luarys (painel do lojista/admin) NÃO seguem necessariamente este padrão.** Esta skill é específica do Portal do Cliente. A tela de login do lojista (`src/app/login/page.tsx`) é a *inspiração* original (foi ela que definiu o gradiente ardósia e a logo generosa), mas already tem seu próprio estilo inline e não precisa ser migrada para `estiloPortal.ts`.
+
+## Onde este padrão já foi aplicado
+
+`src/modules/portal/page.tsx` (tela de seleção de salão), `PortalLogin.tsx`, `PortalCadastro.tsx`, `PortalDashboard.tsx`, `ModalPerfil.tsx`, `ModalHistorico.tsx`, `ModalAnamnese.tsx`, `ModalCancelamento.tsx`, `PortalPagamentoReserva.tsx`, e a rota espelho `src/app/portal/page.tsx`. Qualquer tela nova do Portal (ex: uma futura "Meus Pontos de Fidelidade" ou tela de avaliação pós-atendimento) deve seguir o mesmo padrão desde a primeira versão, não como retrofit depois.

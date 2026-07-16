@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  /* Fundo Pérola Soft da área principal */
+  --background: #F8F9FA; 
+  /* Texto principal em Cinza Chumbo/Ardósia escuro */
+  --foreground: #27272A; 
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+/* Remove spinners/setas dos inputs type=number em todo o sistema */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ── Conteúdo legal editável via Admin (dangerouslySetInnerHTML) ── */
+.legal-content h2 {
+  font-size: 15px; font-weight: 700; color: #2C3643;
+  margin: 36px 0 10px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.legal-content p { color: #52525B; font-size: 14px; line-height: 1.75; margin: 0 0 12px; }
+.legal-content ul { color: #52525B; font-size: 14px; line-height: 1.75; padding-left: 20px; margin: 0 0 12px; }
+.legal-content li { margin-bottom: 4px; }
+.legal-content a { color: #2C3643; font-weight: 600; }
+.legal-content strong { color: inherit; }
+.legal-content .box {
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
+  padding: 16px 20px; margin: 16px 0;
+}
+.legal-content .tag {
+  display: inline-block; background: #2C3643; color: #D4AF37;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+  margin-right: 6px; letter-spacing: 0.3px;
+}

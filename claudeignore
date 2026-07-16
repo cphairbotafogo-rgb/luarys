@@ -1,0 +1,43 @@
+# Dependências
+node_modules/
+
+# Build e cache Next.js
+.next/
+out/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.suo
+*.user
+
+# Logs
+*.log
+npm-debug.log*
+
+# Arquivos grandes que não precisam de contexto
+public/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+
+# Migrações antigas já aplicadas (manter só as recentes)
+supabase/migrations/*.sql

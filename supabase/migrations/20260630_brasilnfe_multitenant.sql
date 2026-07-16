@@ -1,0 +1,32 @@
+-- ============================================================
+-- Brasil NFe — Modelo Multi-Tenant (Luarys como master)
+-- ============================================================
+-- Nenhuma coluna nova necessária: saloes.config_fiscal (JSONB)
+-- já aceita chaves arbitrárias.
+--
+-- Chaves adicionadas dinamicamente via /api/admin/brasilnfe/cadastrar:
+--
+--   saloes.config_fiscal.brasilnfe_company_token  TEXT
+--     CompanyToken exclusivo por CNPJ, obtido pela Luarys
+--     ao registrar o salão via UserToken master.
+--
+--   saloes.config_fiscal.brasilnfe_company_id  TEXT (opcional)
+--     ID interno do salão na Brasil NFe para operações de gestão.
+--
+--   saloes.config_fiscal.brasilnfe_cadastrado_em  TIMESTAMPTZ
+--     Timestamp do registro na Brasil NFe.
+--
+-- UserToken da Luarys (master):
+--   Salvo em plataforma_nfse_config.token_brasilnfe (admin panel).
+--   Alternativa: env var BRASIL_NFE_USER_TOKEN (mais seguro).
+--
+-- Fluxo:
+--  1. Admin acessa Admin → NFS-e → seleciona Brasil NFe
+--  2. Cola o UserToken da conta Luarys
+--  3. Seleciona o salão e clica "Cadastrar CNPJ"
+--  4. API registra o CNPJ na Brasil NFe → recebe CompanyToken
+--  5. CompanyToken salvo em saloes.config_fiscal.brasilnfe_company_token
+--  6. A partir daí, o salão pode emitir NFS-e diretamente
+
+-- Não há DDL para executar — apenas referência documental.
+SELECT 'brasilnfe_multitenant_ok' AS status;
