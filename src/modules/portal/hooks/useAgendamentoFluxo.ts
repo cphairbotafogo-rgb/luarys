@@ -89,10 +89,10 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     } catch { configHorarios = horariosPadrao; }
     if (!configHorarios?.length) configHorarios = horariosPadrao;
 
-    const { data: diaExc } = await supabase
-      .from('dias_excepcionais').select('tipo, hora_abertura, hora_fechamento')
-      .eq('salao_id', salaoSelecionado.id).eq('data', dataStr).maybeSingle()
-      .then(r => r).catch(() => ({ data: null, error: null }));
+    const { data: diaExc } = await Promise.resolve(
+      supabase.from('dias_excepcionais').select('tipo, hora_abertura, hora_fechamento')
+        .eq('salao_id', salaoSelecionado.id).eq('data', dataStr).maybeSingle()
+    ).catch(() => ({ data: null, error: null }));
 
     if (diaExc?.tipo === 'fechado') { setHorariosDisponiveis([]); setBuscandoAgenda(false); return; }
 
