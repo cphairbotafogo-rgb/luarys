@@ -4,17 +4,18 @@ import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { useToast } from "@/components/Toast";
 import {
-  LOGO_ALTURA, FONTE_CORPO, cardPremium, eyebrow,
+  FONTE_CORPO, cardPremium, eyebrow,
   fileteDourado, tituloSecao, botaoPrimario, inputPadrao, labelPadrao,
 } from "./estiloPortal";
+import { AnimacaoLogo } from '@/app/AnimacaoLogo';
 import { RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
 
 function TelaMensagem({ titulo, texto, corBotao = C.sidebarBg, textoBotao, onBotao }: any) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: FONTE_CORPO }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA, objectFit: "contain", display: "block", margin: "0 auto" }} />
-        <div style={fileteDourado} />
+        <AnimacaoLogo compacto />
+        <div style={{ ...fileteDourado, marginTop: 14 }} />
       </div>
       <div style={{ ...cardPremium, width: "100%", maxWidth: 440, padding: "40px 32px", textAlign: "center" }}>
         <h1 style={{ ...tituloSecao, margin: "0 0 12px" }}>{titulo}</h1>
@@ -118,8 +119,8 @@ export function PortalCadastro({ onCadastroConcluido, irParaLogin }: any) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: FONTE_CORPO }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA, objectFit: "contain", display: "block", margin: "0 auto" }} />
-        <div style={fileteDourado} />
+        <AnimacaoLogo compacto />
+        <div style={{ ...fileteDourado, marginTop: 14 }} />
       </div>
 
       <div style={{ ...cardPremium, width: "100%", maxWidth: 440, padding: "40px 32px" }}>
@@ -194,7 +195,7 @@ export function PortalCadastro({ onCadastroConcluido, irParaLogin }: any) {
         </p>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 12, color: C.textLight, letterSpacing: "0.3px" }}>Desenvolvido por <span style={{ color: C.douradoEleva, fontWeight: 700 }}>Eleva</span></p>
+      <p style={{ marginTop: 24, fontSize: 12, color: C.textLight, letterSpacing: "0.3px" }}>Desenvolvido por <span style={{ color: C.douradoEleva, fontWeight: 700 }}>Luarys</span></p>
     </div>
   );
 }

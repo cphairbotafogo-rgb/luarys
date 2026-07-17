@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { verificarPinGerente } from "@/lib/verificarPinGerente";
 import type { Transacao } from "../tipos";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,10 +18,9 @@ interface Resultado {
 }
 
 async function verificarPin(salaoId: string, pin: string): Promise<string | null> {
-  const { data: sl, error } = await supabase.from('saloes').select('pin_gerente').eq('id', salaoId).maybeSingle();
-  if (error || !sl) return 'Não foi possível verificar o PIN. Tente novamente.';
-  if (!sl.pin_gerente) return 'PIN de gerente não configurado. Acesse Configurações → Segurança.';
-  if (pin !== sl.pin_gerente) return 'PIN incorreto.';
+  const { valido, erro } = await verificarPinGerente(salaoId, pin);
+  if (erro) return erro;
+  if (!valido) return 'PIN incorreto.';
   return null;
 }
 

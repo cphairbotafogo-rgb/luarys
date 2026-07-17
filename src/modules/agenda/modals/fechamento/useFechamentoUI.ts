@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { gerarDetalhamentoParcelas, gerarHtmlCupom } from "./tipos";
 import { temPermissao } from "@/lib/permissoes";
 import { useFechamentoItens } from "./useFechamentoItens";
+import { verificarPinGerente } from "@/lib/verificarPinGerente";
 
 export function useFechamentoUI({
   perfil,
@@ -187,14 +188,9 @@ export function useFechamentoUI({
   };
 
   const validarSenha = async () => {
-    const { data, error } = await supabase
-      .from('saloes').select('pin_gerente').eq('id', perfil?.salao_id).maybeSingle();
-    if (error || !data) { toast.erro('Erro ao validar PIN. Tente novamente.'); return; }
-    if (!data.pin_gerente) {
-      toast.erro('PIN de gerente não configurado. Acesse Configurações → Segurança para definir um PIN.');
-      return;
-    }
-    if (senhaDesconto === data.pin_gerente) {
+    const { valido, erro } = await verificarPinGerente(perfil?.salao_id, senhaDesconto);
+    if (erro) { toast.erro(erro); return; }
+    if (valido) {
       setDescontoLiberado(true);
       setPrecoLiberado(true);
       toast.sucesso('Descontos e alteração de preço liberados por este atendimento.');

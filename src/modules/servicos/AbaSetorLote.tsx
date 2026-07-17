@@ -1,26 +1,30 @@
 'use client'
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { RAIO_MD, RAIO_SM, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiSave, FiUsers } from 'react-icons/fi';
+import { ModalGerenciarSetores } from './modals/ModalGerenciarSetores';
 
 interface Props {
+  perfil: any;
   setorLote: any[];
   setSetorLote: (fn: (prev: any[]) => any[]) => void;
   salvandoSetores: boolean;
   salvarTodosSetores: () => void;
 }
 
-export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarTodosSetores }: Props) {
-  const [listaFuncoes, setListaFuncoes] = useState<any[]>([]);
+export function AbaSetorLote({ perfil, setorLote, setSetorLote, salvandoSetores, salvarTodosSetores }: Props) {
+  const [setores, setSetores] = useState<any[]>([]);
   const [setorAplicar, setSetorAplicar] = useState<Record<string, string>>({});
+  const [modalSetoresAberto, setModalSetoresAberto] = useState(false);
 
-  useEffect(() => {
-    supabase.from('funcoes').select('id, nome').order('nome').then(({ data }) => {
-      if (data) setListaFuncoes(data);
-    });
-  }, []);
+  async function carregarSetores() {
+    const { data } = await supabase.from('setores_salao').select('id, nome').eq('ativo', true).order('nome');
+    if (data) setSetores(data);
+  }
+
+  useEffect(() => { carregarSetores(); }, []);
 
   function alterarSetor(id: string, valor: string) {
     setSetorLote(prev => prev.map(s => s.id === id ? { ...s, setor: valor } : s));
@@ -32,7 +36,6 @@ export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarT
     setSetorAplicar(prev => ({ ...prev, [categoria]: '' }));
   }
 
-  // Agrupar por categoria
   const porCategoria = setorLote.reduce((acc: any, s: any) => {
     const cat = s.categoria || 'Sem Categoria';
     if (!acc[cat]) acc[cat] = [];
@@ -43,16 +46,15 @@ export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarT
 
   const inputSt: React.CSSProperties = {
     padding: '8px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`,
-    fontSize: 12, color: C.textMain, background: C.bgCard, width: '100%', boxSizing: 'border-box',
-    outlineColor: C.sidebarBg,
+    fontSize: 12, color: C.textMain, background: C.bgCard, width: '100%',
+    boxSizing: 'border-box', outlineColor: C.sidebarBg, cursor: 'pointer',
   };
 
-  return (
-    <div style={{ animation: 'fadeIn 0.2s ease-out', background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+  const optionVazia = <option value="">— Selecionar —</option>;
 
-      <datalist id="funcoes-lista-setor">
-        {listaFuncoes.map(f => <option key={f.id} value={f.nome} />)}
-      </datalist>
+  return (
+    <>
+    <div style={{ animation: 'fadeIn 0.2s ease-out', background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
 
       <div style={{ padding: '24px 32px', borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -63,13 +65,21 @@ export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarT
             Defina qual profissional é responsável por cada serviço. Use "Aplicar" para preencher uma categoria inteira de uma vez.
           </p>
         </div>
-        <button
-          onClick={salvarTodosSetores}
-          disabled={salvandoSetores}
-          style={{ background: C.success, color: '#fff', border: 'none', padding: '12px 24px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: salvandoSetores ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-          <FiSave size={16} /> {salvandoSetores ? 'Salvando...' : 'Salvar Todos'}
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => setModalSetoresAberto(true)}
+            style={{ background: 'transparent', color: C.sidebarBg, border: `1px solid ${C.sidebarBg}`, padding: '8px 16px', borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+          >
+            Gerenciar Setores
+          </button>
+          <button
+            onClick={salvarTodosSetores}
+            disabled={salvandoSetores}
+            style={{ background: C.success, color: '#fff', border: 'none', padding: '12px 24px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: salvandoSetores ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <FiSave size={16} /> {salvandoSetores ? 'Salvando...' : 'Salvar Todos'}
+          </button>
+        </div>
       </div>
 
       <div style={{ overflowX: 'auto', maxHeight: '60vh' }}>
@@ -86,27 +96,25 @@ export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarT
               const semSetor = servicos.filter((s: any) => !s.setor).length;
               const aplicarVal = setorAplicar[categoria] ?? '';
               return (
-                <>
-                  {/* Linha de cabeçalho da categoria com aplicação em lote */}
-                  <tr key={`cat-${categoria}`} style={{ background: '#EFF3F8', borderTop: `2px solid ${C.sidebarBg}` }}>
+                <React.Fragment key={`cat-${categoria}`}>
+                  <tr style={{ background: '#EFF3F8', borderTop: `2px solid ${C.sidebarBg}` }}>
                     <td style={{ padding: '10px 24px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 800, color: C.sidebarBg, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{categoria}</span>
                         <span style={{ background: C.sidebarBg, color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>{servicos.length}</span>
-                        {semSetor > 0 && (
-                          <span style={{ fontSize: 10, color: '#B45309', fontWeight: 700 }}>{semSetor} sem setor</span>
-                        )}
+                        {semSetor > 0 && <span style={{ fontSize: 10, color: '#B45309', fontWeight: 700 }}>{semSetor} sem setor</span>}
                       </div>
                     </td>
                     <td style={{ padding: '8px 24px' }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input
-                          list="funcoes-lista-setor"
-                          placeholder={`Aplicar setor aos ${servicos.length} serviços…`}
+                        <select
                           value={aplicarVal}
                           onChange={e => setSetorAplicar(prev => ({ ...prev, [categoria]: e.target.value }))}
                           style={{ ...inputSt, background: aplicarVal ? '#EFF6FF' : C.bg, maxWidth: 300 }}
-                        />
+                        >
+                          {optionVazia}
+                          {setores.map(s => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                        </select>
                         <button
                           onClick={() => aplicarSetorNaCategoria(categoria, aplicarVal)}
                           disabled={!aplicarVal.trim()}
@@ -123,29 +131,42 @@ export function AbaSetorLote({ setorLote, setSetorLote, salvandoSetores, salvarT
                     </td>
                   </tr>
 
-                  {/* Linhas individuais dos serviços */}
-                  {servicos.map((s: any, idx: number) => (
-                    <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}`, background: idx % 2 === 0 ? C.bg : C.bgCard }}>
-                      <td style={{ padding: '12px 24px 12px 36px' }}>
-                        <strong style={{ fontSize: 13, color: C.textMain }}>{s.nome_servico}</strong>
-                      </td>
-                      <td style={{ padding: '12px 24px' }}>
-                        <input
-                          list="funcoes-lista-setor"
-                          value={s.setor}
-                          onChange={e => alterarSetor(s.id, e.target.value)}
-                          placeholder="Ex: Cabeleireiro, Manicure…"
-                          style={{ ...inputSt, maxWidth: 320, borderColor: s.setor ? undefined : C.borderMid }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </>
+                  {servicos.map((s: any, idx: number) => {
+                    const setorLegado = s.setor && !setores.some((st: any) => st.nome === s.setor);
+                    return (
+                      <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}`, background: idx % 2 === 0 ? C.bg : C.bgCard }}>
+                        <td style={{ padding: '12px 24px 12px 36px' }}>
+                          <strong style={{ fontSize: 13, color: C.textMain }}>{s.nome_servico}</strong>
+                        </td>
+                        <td style={{ padding: '12px 24px' }}>
+                          <select
+                            value={s.setor}
+                            onChange={e => alterarSetor(s.id, e.target.value)}
+                            style={{ ...inputSt, maxWidth: 320, borderColor: s.setor ? undefined : C.borderMid }}
+                          >
+                            {optionVazia}
+                            {setores.map(st => <option key={st.id} value={st.nome}>{st.nome}</option>)}
+                            {setorLegado && <option value={s.setor}>{s.setor} (legado)</option>}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
       </div>
     </div>
+
+    {modalSetoresAberto && (
+      <ModalGerenciarSetores
+        perfil={perfil}
+        onClose={() => setModalSetoresAberto(false)}
+        onAtualizar={carregarSetores}
+      />
+    )}
+    </>
   );
 }

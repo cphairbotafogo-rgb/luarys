@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
+import { encryptarSegredo } from '@/lib/cripto';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,14 +78,14 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 5. Atualizar salão ───────────────────────────────────────────────────────
-  // A senha é armazenada em texto (por enquanto) — marcar como débito técnico
-  // para criptografar com chave de servidor antes de ir a produção.
+  // C6: senha do A1 criptografada em repouso (AES-256-GCM) via SEGREDO_ENCRYPTION_KEY.
+  // O certificado A1 dá poder de emitir nota em nome do salão — nunca em texto puro.
   const { error: updateErr } = await supabaseAdmin
     .from('saloes')
     .update({
       status_fiscal: 'pendente_a1',
       a1_path: caminho,
-      a1_senha_enc: senha,        // TODO: encrypt with server-side key before production
+      a1_senha_enc: encryptarSegredo(senha),
       a1_enviado_em: new Date().toISOString(),
     })
     .eq('id', salaoId);

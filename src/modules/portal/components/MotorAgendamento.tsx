@@ -86,27 +86,25 @@ export function MotorAgendamento({ ag }: Props) {
                       <h4 style={{ margin: "0 0 8px", color: C.textMain, fontWeight: 800 }}>Fechado neste dia</h4>
                       <p style={{ margin: 0, fontSize: 13 }}>O estabelecimento não atende nesta data. Escolha outro dia!</p>
                     </div>
+                  ) : ag.horariosLivres.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 40, color: C.textMuted, background: C.bg, borderRadius: RAIO_XL, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><FiCalendar size={40} color={C.textLight} /></div>
+                      <h4 style={{ margin: "0 0 8px", color: C.textMain, fontWeight: 800 }}>Sem horários disponíveis</h4>
+                      <p style={{ margin: 0, fontSize: 13 }}>Todos os horários estão ocupados ou já passaram. Tente outra data.</p>
+                    </div>
                   ) : (
                     <>
                       <p style={{ margin: "0 0 4px", fontSize: 12, color: C.textLight }}>
                         Horários para <strong>{ag.servicoEscolhido?.nome_servico}</strong> ({ag.servicoEscolhido?.duracao_minutos} min).
                       </p>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-                        {ag.horariosDisponiveis.map((h: string) => {
-                          const esgotado = ag.isHorarioEsgotado(h);
-                          return (
-                            <button key={h} disabled={esgotado} onClick={() => { ag.setHoraEscolhida(h); ag.setProfissionalEscolhido(null); ag.setPasso(4); }}
-                              style={{ padding: "12px 0", borderRadius: RAIO_MD, border: ag.horaEscolhida === h ? `2px solid ${C.sidebarBg}` : `1px solid ${C.borderMid}`, background: esgotado ? C.bg : ag.horaEscolhida === h ? C.border : C.bgCard, color: esgotado ? C.textLight : ag.horaEscolhida === h ? C.sidebarBg : C.textMuted, fontWeight: 800, fontSize: 14, cursor: esgotado ? "not-allowed" : "pointer", textDecoration: esgotado ? "line-through" : "none" }}>
-                              {h}
-                            </button>
-                          );
-                        })}
+                        {ag.horariosLivres.map((h: string) => (
+                          <button key={h} onClick={() => { ag.setHoraEscolhida(h); ag.setProfissionalEscolhido(null); ag.setPasso(4); }}
+                            style={{ padding: "12px 0", borderRadius: RAIO_MD, border: ag.horaEscolhida === h ? `2px solid ${C.sidebarBg}` : `1px solid ${C.borderMid}`, background: ag.horaEscolhida === h ? C.border : C.bgCard, color: ag.horaEscolhida === h ? C.sidebarBg : C.textMuted, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                            {h}
+                          </button>
+                        ))}
                       </div>
-                      {ag.horariosDisponiveis.every((h: string) => ag.isHorarioEsgotado(h)) && (
-                        <p style={{ margin: "12px 0 0", fontSize: 12, color: C.textMuted, textAlign: "center" }}>
-                          Nenhum horário disponível. Tente outra data ou outro serviço.
-                        </p>
-                      )}
                     </>
                   )}
                 </>

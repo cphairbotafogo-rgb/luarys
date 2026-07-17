@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { C, brl } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, RAIO_SM, FONTE_TITULO, SOMBRA_SUAVE } from "@/lib/estiloGlobal";
 import { FiScissors, FiPlus, FiEdit2, FiTrash2, FiCheckSquare, FiPercent, FiArrowUpRight, FiArrowDownRight, FiTrendingUp, FiList, FiShield, FiSave, FiCopy, FiSearch, FiX, FiAlertTriangle, FiUsers } from "react-icons/fi";
@@ -349,8 +349,8 @@ export function AbaServicos({ perfil }: any) {
                   const temIncompleto = tributos.some((t: any) => !t.nbs);
                   const grupoAtivo = !!(g.nbs || g.codigo_municipio || g.aliquota_iss);
                   return (
-                    <>
-                      <tr key={`setor-${setor}`} style={{ background: '#EFF3F8', borderTop: `2px solid ${C.sidebarBg}` }}>
+                    <React.Fragment key={`setor-${setor}`}>
+                      <tr style={{ background: '#EFF3F8', borderTop: `2px solid ${C.sidebarBg}` }}>
                         <td style={{ padding: "10px 24px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontSize: 12, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "0.5px" }}>{setor}</span>
@@ -384,7 +384,7 @@ export function AbaServicos({ perfil }: any) {
                           <td style={{ padding: "12px 24px", textAlign: "center" }}><button onClick={() => replicarTributacaoCategoria(t.id, t.categoria)} title="Copiar tributação para toda a categoria" style={{ background: C.bg, color: C.sidebarBg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_SM, padding: "6px 8px", cursor: "pointer" }}><FiCopy size={14} /></button></td>
                         </tr>
                       ))}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -396,6 +396,7 @@ export function AbaServicos({ perfil }: any) {
       {/* ================= ABA 4: SETOR EM LOTE ================= */}
       {subAba === 'setor' && (
         <AbaSetorLote
+          perfil={perfil}
           setorLote={setorLote}
           setSetorLote={setSetorLote}
           salvandoSetores={salvandoSetores}

@@ -77,7 +77,7 @@ export function AbaCrescimento({ perfil }: any) {
     return <div style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 13 }}>Carregando indicadores...</div>;
   }
 
-  const { fieis, emRisco, perdidos, novos, taxaRetencao } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes);
+  const { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes, periodo);
   const celulasHorario = calcularHorariosOciosos(dados.agendamentos, dados.horariosFuncionamento, periodo);
   const desempenhoEquipe = calcularDesempenhoProfissionais(dados.agendamentos, dados.profissionais, dados.servicos, periodo);
 
@@ -105,6 +105,8 @@ export function AbaCrescimento({ perfil }: any) {
         novos={novos}
         taxaRetencao={taxaRetencao}
         mensagemTemplate={dados.mensagemTemplate}
+        limFiel={limFiel}
+        limRisco={limRisco}
       />
 
       <PainelHorarios celulas={celulasHorario} />

@@ -4,8 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { C, brl } from "@/lib/constants";
 import { RAIO_SM, RAIO_MD, RAIO_XL, RAIO_2XL, SOMBRA_MODAL, overlayModal, containerModal } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
-import { FiScissors, FiX, FiPackage, FiShield, FiPercent } from "react-icons/fi";
+import { FiScissors, FiX, FiPackage, FiShield, FiPercent, FiSettings } from "react-icons/fi";
 import { IconeAjuda } from "@/components/IconeAjuda";
+import { ModalGerenciarSetores } from "./ModalGerenciarSetores";
 
 const TABELA_TRIBUTACAO_SALAO = [
   { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '06.01' },
@@ -29,19 +30,16 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
   const [insumos, setInsumos] = useState<any[]>([]);
   const [novoInsumo, setNovoInsumo] = useState({ produto_id: '', quantidade: '' });
   const [salvando, setSalvando] = useState(false);
-  const [listaFuncoes, setListaFuncoes] = useState<any[]>([]);
+  const [setoresAtivos, setSetoresAtivos] = useState<any[]>([]);
+  const [modalSetoresAberto, setModalSetoresAberto] = useState(false);
 
-  // Setor = mesmo catálogo de "Função Corporativa" usado em Minha Equipe
-  // (tabela "funcoes", compartilhada entre todos os salões — mesmo padrão
-  // já usado em AbaEquipe.tsx). Qualquer função nova cadastrada lá já
-  // aparece aqui automaticamente, sem precisar alterar código.
-  useEffect(() => {
-    async function carregarFuncoes() {
-      const { data } = await supabase.from('funcoes').select('*').order('nome', { ascending: true });
-      if (data) setListaFuncoes(data);
-    }
-    carregarFuncoes();
-  }, []);
+  async function carregarSetores() {
+    const { data } = await supabase
+      .from('setores_salao').select('id, nome').eq('ativo', true).order('nome');
+    if (data) setSetoresAtivos(data);
+  }
+
+  useEffect(() => { carregarSetores(); }, []);
 
   useEffect(() => {
     async function carregarServico() {
@@ -162,9 +160,17 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>
                   Setor (profissional responsável)
                   <IconeAjuda texto={"Qual profissão executa este serviço?\nEx: Cabeleireiro, Manicure, Estética.\nUsado para agrupar serviços na ficha do profissional."} posicao="baixo" />
+                  <button type="button" onClick={() => setModalSetoresAberto(true)} title="Gerenciar Setores" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, display: 'flex', padding: 2 }}>
+                    <FiSettings size={12} />
+                  </button>
                 </label>
-                <input style={inputStyle} value={form.setor} onChange={e => setForm({...form, setor: e.target.value})} placeholder="Ex: Cabeleireiro" list="setores-lista" />
-                <datalist id="setores-lista">{listaFuncoes.map((f: any) => <option key={f.id} value={f.nome} />)}</datalist>
+                <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.setor} onChange={e => setForm({ ...form, setor: e.target.value })}>
+                  <option value="">— Selecionar setor —</option>
+                  {setoresAtivos.map((s: any) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                  {form.setor && !setoresAtivos.some((s: any) => s.nome === form.setor) && (
+                    <option value={form.setor}>{form.setor} (legado)</option>
+                  )}
+                </select>
               </div>
               <div>
                 <label style={labelStyle}>Categoria</label>
@@ -368,6 +374,14 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
         </div>
 
       </div>
+
+      {modalSetoresAberto && (
+        <ModalGerenciarSetores
+          perfil={perfil}
+          onClose={() => setModalSetoresAberto(false)}
+          onAtualizar={carregarSetores}
+        />
+      )}
     </div>
   );
 }

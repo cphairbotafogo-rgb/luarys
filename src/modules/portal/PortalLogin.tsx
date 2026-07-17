@@ -1,9 +1,10 @@
 'use client'
 import { C } from "@/lib/constants";
 import {
-  LOGO_ALTURA, FONTE_CORPO, cardPremium, eyebrow,
+  FONTE_CORPO, cardPremium, eyebrow,
   fileteDourado, tituloSecao, botaoPrimario, inputPadrao, labelPadrao,
 } from "./estiloPortal";
+import { AnimacaoLogo } from '@/app/AnimacaoLogo';
 import { RAIO_LG } from "@/lib/estiloGlobal";
 
 export function PortalLogin({ credencial, setCredencial, senha, setSenha, fazerLogin, carregando, erro, salaoSelecionado, trocarDeSalao, irParaCadastro }: any) {
@@ -12,8 +13,8 @@ export function PortalLogin({ credencial, setCredencial, senha, setSenha, fazerL
 
       {/* Branding premium */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA, objectFit: "contain", display: "block", margin: "0 auto" }} />
-        <div style={fileteDourado} />
+        <AnimacaoLogo compacto />
+        <div style={{ ...fileteDourado, marginTop: 14 }} />
       </div>
 
       <div style={{ ...cardPremium, width: "100%", maxWidth: 440, padding: "40px 32px" }}>
@@ -52,7 +53,7 @@ export function PortalLogin({ credencial, setCredencial, senha, setSenha, fazerL
         </p>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 12, color: C.textLight, letterSpacing: "0.3px" }}>Desenvolvido por <span style={{ color: C.douradoEleva, fontWeight: 700 }}>Eleva</span></p>
+      <p style={{ marginTop: 24, fontSize: 12, color: C.textLight, letterSpacing: "0.3px" }}>Desenvolvido por <span style={{ color: C.douradoEleva, fontWeight: 700 }}>Luarys</span></p>
     </div>
   );
 }

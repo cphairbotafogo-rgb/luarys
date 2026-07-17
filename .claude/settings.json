@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep -l \"planos\\\\|modulos_catalogo\")"
+      "Bash(xargs grep -l \"planos\\\\|modulos_catalogo\")",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node -e \"const {createClient} = require\\('@supabase/supabase-js'\\); const s = createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yojtfrgoosapnsvyzgpw.supabase.co', process.env.SUPABASE_SERVICE_ROLE_KEY || ''\\); s.from\\('saloes'\\).select\\('gateway_pagamento, token_pagamento'\\).eq\\('id', '2746822d-fcbf-4d03-9f1a-cc66f94adbf2'\\).single\\(\\).then\\(r => console.log\\(JSON.stringify\\(r\\)\\)\\)\")",
+      "Bash(npm install *)"
     ]
   }
 }

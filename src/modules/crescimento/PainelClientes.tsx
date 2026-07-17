@@ -22,9 +22,11 @@ interface Props {
   novos: ClienteRisco[];
   taxaRetencao: number;
   mensagemTemplate?: string;
+  limFiel?: number;
+  limRisco?: number;
 }
 
-export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, mensagemTemplate }: Props) {
+export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, mensagemTemplate, limFiel = 45, limRisco = 90 }: Props) {
   const [enviados, setEnviados] = useState<Set<string>>(new Set());
   const [aba, setAba] = useState<AbaCliente>('risco');
   const [templateLocal, setTemplateLocal] = useState(mensagemTemplate || MENSAGEM_RECUPERACAO_PADRAO);
@@ -71,19 +73,19 @@ export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, 
       {/* Cards de resumo — clicáveis */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
         <CardMetrica
-          valor={fieis.length} label="Fiéis" sublabel="≤ 45 dias"
+          valor={fieis.length} label="Fiéis" sublabel={`≤ ${limFiel} dias`}
           bg="#F0FDF4" cor="#16A34A" icone={<FiUsers size={16} color="#16A34A" />}
           ativo={aba === 'fieis'} onClick={() => setAba('fieis')}
         />
         <CardMetrica
-          valor={emRisco.length} label="Em Risco" sublabel="46–90 dias"
+          valor={emRisco.length} label="Em Risco" sublabel={`${limFiel + 1}–${limRisco} dias`}
           bg={emRisco.length > 0 ? "#FFFBEB" : "#F8FAFC"}
           cor={emRisco.length > 0 ? "#D97706" : "#64748B"}
           icone={<FiAlertTriangle size={16} color={emRisco.length > 0 ? "#D97706" : "#64748B"} />}
           ativo={aba === 'risco'} onClick={() => setAba('risco')}
         />
         <CardMetrica
-          valor={perdidos.length} label="Perdidos" sublabel="+90 dias"
+          valor={perdidos.length} label="Perdidos" sublabel={`+${limRisco} dias`}
           bg="#FEF2F2" cor="#EF4444" icone={<FiUserX size={16} color="#EF4444" />}
           ativo={aba === 'perdidos'} onClick={() => setAba('perdidos')}
         />

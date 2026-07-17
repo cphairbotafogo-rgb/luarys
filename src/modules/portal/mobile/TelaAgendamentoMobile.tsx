@@ -37,6 +37,7 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [horarios, setHorarios] = useState<string[]>([]);
   const [idCriado, setIdCriado] = useState<number | null>(null);
+  const [setoresAtivos, setSetoresAtivos] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -48,6 +49,7 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
         setProfissionais((payload.profissionais ?? []).filter((p: any) =>
           p.ativo !== false && p.produtivo !== false && p.perfil_avancado?.exibir_na_agenda !== false
         ));
+        setSetoresAtivos((payload.setores ?? []).map((s: any) => s.nome as string));
         if (payload.salao) setSalaoFresh(payload.salao);
       } catch (e: any) {
         setErro('Não foi possível carregar os serviços. Tente novamente.');
@@ -63,7 +65,7 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
     setDataEscolhida(data); setHoraEscolhida('');
     if (!data) return;
     setBuscandoAgenda(true);
-    const { data: diaExc } = await supabase.from('dias_excepcionais').select('tipo,hora_abertura,hora_fechamento').eq('salao_id', salaoSelecionado.id).eq('data', data).maybeSingle();
+    const { data: diaExc } = await supabase.from('dias_excepcionais').select('tipo,hora_abertura,hora_fechamento').eq('salao_id', salaoSelecionado.id).eq('data', data).maybeSingle().then(r => r).catch(() => ({ data: null, error: null }));
     if (diaExc?.tipo === 'fechado') { setHorarios([]); setBuscandoAgenda(false); return; }
     const diaDaSemana = new Date(data + 'T12:00:00').getDay();
     const padroes = [{ id: 1, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 2, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 3, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 4, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 5, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 6, ativo: true, inicio: '09:00', fim: '18:00' }, { id: 0, ativo: false, inicio: '10:00', fim: '15:00' }];
@@ -77,7 +79,11 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
       while (t <= fim) { hs.push(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`); t += 30; }
     }
     setHorarios(hs);
-    const { data: ags } = await supabase.from('agendamentos').select('profissional_id,inicio,duracao_min,status').eq('salao_id', salaoSelecionado.id).eq('data', data).neq('status', 'Cancelado');
+    // SECURITY DEFINER: bypassa RLS para ver ocupação de todos os clientes
+    const { data: ags } = await supabase.rpc('horarios_ocupados_salao', {
+      p_salao_id: salaoSelecionado.id,
+      p_data: data,
+    });
     if (ags) setAgendamentosDoDia(ags);
     setBuscandoAgenda(false);
   }
@@ -85,7 +91,12 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
   function isEsgotado(hora: string) {
     if (!profissionais.length) return false;
     const ini = toMin(hora); const dur = servicoEscolhido?.duracao_minutos || 30; const fim = ini + dur;
-    return profissionais.every(p => agendamentosDoDia.some(ag => { if (ag.profissional_id !== p.id) return false; const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return ini < af && fim > ai; }));
+    const algumTemServicos = profissionais.some((p: any) => p?.servicos_ids?.length > 0);
+    const candidatos = (algumTemServicos && servicoEscolhido?.id)
+      ? profissionais.filter((p: any) => p?.servicos_ids?.includes(servicoEscolhido.id))
+      : profissionais;
+    if (!candidatos.length) return true;
+    return candidatos.every((p: any) => agendamentosDoDia.some((ag: any) => { if (ag.profissional_id !== p.id) return false; const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return ini < af && fim > ai; }));
   }
 
   async function confirmar(statusForcado: string | null = null, profParam?: any) {
@@ -93,25 +104,47 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
     if (!dataEscolhida || !horaEscolhida || !servicoEscolhido?.id || !prof?.id) return null;
     setSalvando(true);
     if (idCriado && statusForcado === 'Confirmado') {
-      await supabase.from('agendamentos').update({ status: 'Confirmado' }).eq('id', idCriado);
+      await fetch('/api/portal/inserir-agendamento', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idCriado, salao_id: salaoSelecionado.id, status: 'Confirmado' }),
+      });
       setSalvando(false); setPasso(6); return idCriado;
     }
     const cobrar = salaoFresh?.cobrar_sinal;
     const dur = servicoEscolhido?.duracao_minutos || 30;
     const iniMin = toMin(horaEscolhida); const fimMin = iniMin + dur;
-    const { data: agsDia } = await supabase.from('agendamentos').select('inicio,duracao_min').eq('salao_id', salaoSelecionado.id).eq('profissional_id', prof.id).eq('data', dataEscolhida).neq('status', 'Cancelado');
-    const conflito = (agsDia || []).some((ag: any) => { const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return iniMin < af && fimMin > ai; });
+    // SECURITY DEFINER: re-checa conflito real antes do INSERT (RLS não mascara aqui)
+    const { data: todosDia } = await supabase.rpc('horarios_ocupados_salao', { p_salao_id: salaoSelecionado.id, p_data: dataEscolhida });
+    const agsDia = (todosDia || []).filter((ag: any) => ag.profissional_id === prof.id);
+    const conflito = agsDia.some((ag: any) => { const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return iniMin < af && fimMin > ai; });
     if (conflito) { toast.aviso('Este horário foi reservado. Escolha outro.'); setSalvando(false); setPasso(3); return null; }
     const status = statusForcado || (cobrar ? 'Aguardando' : 'Confirmado');
-    const { data, error } = await supabase.from('agendamentos').insert([{ salao_id: salaoSelecionado.id, cliente_id: clienteFresh.id, profissional_id: prof.id, servico_id: servicoEscolhido.id, data: dataEscolhida, inicio: horaEscolhida, duracao_min: dur, status, cliente_nome: clienteFresh.nome_completo || 'Cliente', observacao: '[Portal do Cliente Mobile]', valor_sinal: cobrar ? (servicoEscolhido?.preco_padrao || 0) * ((salaoFresh?.porcentagem_sinal || 0) / 100) : 0 }]).select('id');
+    // INSERT via API (service role) — clientes do portal não têm sessão Supabase Auth
+    const res = await fetch('/api/portal/inserir-agendamento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ salao_id: salaoSelecionado.id, cliente_id: clienteFresh.id, profissional_id: prof.id, servico_id: servicoEscolhido.id, data: dataEscolhida, inicio: horaEscolhida, duracao_min: dur, status, cliente_nome: clienteFresh.nome_completo || 'Cliente', observacao: '[Portal do Cliente Mobile]', valor_sinal: cobrar ? (servicoEscolhido?.preco_padrao || 0) * ((salaoFresh?.porcentagem_sinal || 0) / 100) : 0 }),
+    });
     setSalvando(false);
-    if (!error && data) { setIdCriado(data[0].id); if (!cobrar || status === 'Confirmado') setPasso(6); return data[0].id; }
-    toast.erro('Erro ao agendar: ' + error?.message); return null;
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && j.id) { setIdCriado(j.id); if (!cobrar || status === 'Confirmado') setPasso(6); return j.id; }
+    if (res.status === 409) { toast.aviso('Este horário foi reservado. Escolha outro.'); setPasso(3); return null; }
+    toast.erro(j.erro || 'Erro ao agendar. Tente novamente.'); return null;
   }
 
-  const setoresUnicos = [...new Set(servicos.map((s: any) => s?.setor).filter(Boolean))].sort() as string[];
-  const servicosFiltrados = servicos.filter(s => (!termoBusca || s?.nome_servico?.toLowerCase().includes(termoBusca.toLowerCase())) && (!setorFiltro || s?.setor === setorFiltro));
-  const profsDisponiveis = profissionais.filter(p => { const ini = toMin(horaEscolhida); const dur = servicoEscolhido?.duracao_minutos || 30; const fim = ini + dur; const ocupado = agendamentosDoDia.some(ag => { if (ag.profissional_id !== p.id) return false; const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return ini < af && fim > ai; }); return !ocupado && (p?.servicos_habilitados ? p.servicos_habilitados.includes(servicoEscolhido?.id) : true); });
+  const setoresUnicos = setoresAtivos.length > 0
+    ? setoresAtivos
+    : [...new Set(servicos.map((s: any) => s?.setor).filter(Boolean))].sort() as string[];
+  const servicosFiltrados = servicos.filter((s: any) => (!termoBusca || s?.nome_servico?.toLowerCase().includes(termoBusca.toLowerCase())) && (!setorFiltro || s?.setor === setorFiltro));
+  const algumProfMobileTemServicos = profissionais.some((p: any) => p?.servicos_ids?.length > 0);
+  const profsDisponiveis = profissionais.filter((p: any) => {
+    const ini = toMin(horaEscolhida); const dur = servicoEscolhido?.duracao_minutos || 30; const fim = ini + dur;
+    const ocupado = agendamentosDoDia.some((ag: any) => { if (ag.profissional_id !== p.id) return false; const ai = toMin(ag.inicio); const af = ai + (ag.duracao_min || 30); return ini < af && fim > ai; });
+    if (ocupado) return false;
+    if (algumProfMobileTemServicos && servicoEscolhido?.id && !p.servicos_ids?.includes(servicoEscolhido.id)) return false;
+    return true;
+  });
 
   const btnFooter = { width: '100%', padding: '0 24px', height: 56, background: C.sidebarBg, color: '#fff', border: 'none', borderRadius: RAIO_LG, fontFamily: FONTE_TITULO, fontSize: 15, fontWeight: 700, cursor: 'pointer' } as const;
 
@@ -154,7 +187,13 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
         )}
 
         {!carregando && !erro && passo === 3 && (() => {
-          const horariosLivres = horarios.filter(h => !isEsgotado(h));
+          const agora = new Date();
+          const minAgora = agora.getHours() * 60 + agora.getMinutes();
+          const ehHoje = dataEscolhida === getDataHojeLocal();
+          const horariosLivres = horarios.filter(h => {
+            if (ehHoje) { const [hh, mm] = h.split(':').map(Number); if (hh * 60 + mm <= minAgora) return false; }
+            return !isEsgotado(h);
+          });
           if (horarios.length === 0) return (
             <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>
               <FiCalendar size={40} color={C.borderMid} />

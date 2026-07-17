@@ -39,6 +39,7 @@ import { AbaMigracao } from "@/modules/configuracoes/migracao/AbaMigracao";
 import { AbaComunicacao } from "@/modules/configuracoes/AbaComunicacao";
 import { ConfiguracaoNFSe } from "@/modules/configuracoes/nfse";
 import { ModalAceiteContrato } from "@/components/ModalAceiteContrato";
+import { LandingPage } from "./LandingPage";
 
 // ─── O SEGURANÇA DA PORTA ──────────────────────────────────────────
 export default function AppWrapper() {
@@ -90,7 +91,7 @@ export default function AppWrapper() {
     </div>
   );
 
-  if (!sessao) return <Login />;
+  if (!sessao) return <LandingPage />;
   if (!perfil) return <div style={{height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, color: C.deepPurple, fontWeight: "bold"}}>Preparando sua mesa de trabalho...</div>;
 
   return (

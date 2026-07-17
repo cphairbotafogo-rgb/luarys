@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { verificarPinGerente } from '@/lib/verificarPinGerente';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_LG, RAIO_XL, RAIO_SM, overlayModal, containerModal, inputAdmin, labelPadrao } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
@@ -96,14 +97,9 @@ export function ModalDetalhesFinalizado({ agendamento, perfil, onClose, onAtuali
   }, [agendamento?.id]);
 
   async function verificarPin() {
-    const { data: pinConf, error } = await supabase
-      .from('saloes')
-      .select('pin_gerente')
-      .eq('id', perfil.salao_id)
-      .maybeSingle();
-    if (error || !pinConf) { toast.erro('Não foi possível verificar permissão. Tente novamente.'); return false; }
-    if (!pinConf.pin_gerente) { toast.aviso('PIN de gerente não configurado.'); return false; }
-    if (pin !== String(pinConf.pin_gerente)) { toast.erro('PIN incorreto.'); return false; }
+    const { valido, erro } = await verificarPinGerente(perfil.salao_id, pin);
+    if (erro) { toast.erro(erro); return false; }
+    if (!valido) { toast.erro('PIN incorreto.'); return false; }
     return true;
   }
 

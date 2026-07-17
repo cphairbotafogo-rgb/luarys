@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimitExcedido, obterIp } from '@/lib/rateLimiter';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,6 +22,12 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  // A4: 10 agendamentos por IP a cada 10 minutos
+  const ip = obterIp(request as any);
+  if (rateLimitExcedido(`criar-agendamento:${ip}`, 10, 600)) {
+    return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
+  }
+
   try {
     // ── Autenticação ──────────────────────────────────────────────────────────
     const bearer = request.headers.get('authorization')?.replace('Bearer ', '').trim();

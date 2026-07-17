@@ -31,6 +31,8 @@ export interface ClassificacaoClientes {
   perdidos: ClienteRisco[];
   novos: ClienteRisco[];
   taxaRetencao: number;
+  limFiel: number;
+  limRisco: number;
 }
 
 export interface CelulaHorario {
@@ -78,8 +80,11 @@ const DIAS_FUNCIONAMENTO_NOME = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Qu
 export function classificarClientes(
   agendamentos: any[],
   clientes: any[],
-  crmClientes: any[]
+  crmClientes: any[],
+  diasPeriodo: number = 90
 ): ClassificacaoClientes {
+  const limFiel = Math.floor(diasPeriodo / 2);
+  const limRisco = diasPeriodo;
   const ultimaVisitaPorCliente: Record<string, string> = {};
   const visitasPorCliente: Record<string, number> = {};
 
@@ -120,8 +125,8 @@ export function classificarClientes(
     };
 
     if (visitas === 1) novos.push(item);
-    else if (dias <= 45) fieis.push(item);
-    else if (dias <= 90) emRisco.push(item);
+    else if (dias <= limFiel) fieis.push(item);
+    else if (dias <= limRisco) emRisco.push(item);
     else perdidos.push(item);
   });
 
@@ -131,7 +136,7 @@ export function classificarClientes(
   const totalClassificado = fieis.length + emRisco.length + perdidos.length + novos.length;
   const taxaRetencao = totalClassificado > 0 ? Math.round((fieis.length / totalClassificado) * 100) : 0;
 
-  return { fieis, emRisco, perdidos, novos, taxaRetencao };
+  return { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco };
 }
 
 // ─── 2. HORÁRIOS OCIOSOS ───────────────────────────────────────────────────────

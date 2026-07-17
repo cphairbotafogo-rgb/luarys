@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { registrarPagamentoAssinatura } from '@/lib/assinaturas';
+import { tokenValido } from '@/lib/webhookHmac';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,6 +45,19 @@ async function confirmarPagamentoCielo(
 
 export async function POST(request: NextRequest) {
   try {
+    // C5: token estático opcional — configure CIELO_WEBHOOK_TOKEN na Vercel
+    // e no painel Cielo (campo "Chave de Segurança do Webhook").
+    const cieloToken = process.env.CIELO_WEBHOOK_TOKEN;
+    if (cieloToken) {
+      const recebido = request.headers.get('x-cielo-hmac-sha512') ||
+                       request.headers.get('authorization') ||
+                       request.headers.get('x-webhook-token') || '';
+      if (!tokenValido(recebido.replace(/^Bearer\s+/i, '').trim(), cieloToken)) {
+        console.warn('[webhook/cielo] Token inválido — requisição rejeitada.');
+        return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+      }
+    }
+
     // Cielo pode enviar form-encoded ou JSON
     const contentType = request.headers.get('content-type') || '';
     let campos: Record<string, string> = {};
@@ -109,8 +123,10 @@ export async function POST(request: NextRequest) {
         if (confirmacao.valor > 0) valorConfirmado = confirmacao.valor;
       }
     } else {
-      // Sem ID interno, usa payment_status da notificação como fallback
-      aprovado = paymentStatusRaw === '2';
+      // C5: sem ID interno da Cielo não é possível confirmar via API.
+      // Rejeita silenciosamente — nunca aprovar baseado só no corpo da notificação.
+      console.warn('[webhook/cielo] checkout_cielo_order_number ausente — não é possível confirmar. Ignorando.');
+      return NextResponse.json({ recebido: true, confirmado: false });
     }
 
     const resultado = await registrarPagamentoAssinatura({

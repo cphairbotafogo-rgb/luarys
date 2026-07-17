@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const [resServicos, resProfissionais, resSalao] = await Promise.all([
+    const [resServicos, resProfissionais, resSalao, resSetores] = await Promise.all([
       // Serviços: apenas os habilitados para exibição online.
       // NÃO incluir: custo_operacional, comissao_padrao (estratégia financeira interna),
       // salao_id (desnecessário no payload do portal).
@@ -60,28 +60,39 @@ export async function GET(request: NextRequest) {
         .order('nome_servico'),
 
       // Profissionais: apenas ativos e produtivos.
-      // NÃO incluir: perfil_avancado (configuração interna), salao_id (desnecessário),
-      // servicos_comissoes (dado de remuneração interna do salão).
+      // servicos_comissoes é lido INTERNAMENTE para extrair apenas os IDs dos serviços
+      // (sem expor percentuais de comissão). O campo retornado ao portal é `servicos_ids`.
+      // NÃO incluir: perfil_avancado (configuração interna), salao_id (desnecessário).
       supabaseAdmin
         .from('profissionais')
-        .select('id, nome, foto_url, ativo, produtivo')
+        .select('id, nome, foto_url, ativo, produtivo, servicos_comissoes')
         .eq('salao_id', salaoId)
         .eq('ativo', true)
         .eq('produtivo', true)
         .order('nome'),
 
-      // Salão: apenas campos de exibição pública.
-      // NÃO incluir: cobrar_sinal, porcentagem_sinal (estratégia financeira interna).
-      // telefone: mantido — é o contato público para o cliente que precisa falar com o salão.
+      // Salão: campos de exibição pública + campos necessários para o fluxo do portal.
+      // cobrar_sinal / porcentagem_sinal / prazo_sinal_minutos: o cliente precisa saber
+      // se há sinal obrigatório, quanto pagar e em quanto tempo — não é dado interno.
+      // NÃO incluir: token_pagamento, gateway_pagamento, config financeira interna.
       supabaseAdmin
         .from('saloes')
         .select(
           'id, slug, nome_fantasia, telefone, horarios_funcionamento, ' +
           'logradouro, numero, complemento, bairro, cidade, estado, cep, ' +
-          'sobre_nos, politica_cancelamento, instagram, site'
+          'sobre_nos, politica_cancelamento, instagram, site, ' +
+          'cobrar_sinal, porcentagem_sinal, prazo_sinal_minutos'
         )
         .eq('id', salaoId)
         .single(),
+
+      // Setores ativos definidos pelo salão — usados como filtros no portal
+      supabaseAdmin
+        .from('setores_salao')
+        .select('nome')
+        .eq('salao_id', salaoId)
+        .eq('ativo', true)
+        .order('nome'),
     ])
 
     // Verificar se o salão existe antes de retornar dados
@@ -92,11 +103,31 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Profissionais: strip servicos_comissoes, expõe apenas IDs dos serviços
+    // servicos_comissoes é salvo como objeto { "uuid": percentual } pelo admin
+    const profissionais = (resProfissionais.data ?? []).map((p: any) => {
+      let parsed: any = null;
+      try {
+        parsed = typeof p.servicos_comissoes === 'string'
+          ? JSON.parse(p.servicos_comissoes)
+          : p.servicos_comissoes;
+      } catch { /* mantém null */ }
+      let servicos_ids: string[] = [];
+      if (parsed && typeof parsed === 'object') {
+        // Formato objeto: { "uuid-servico": percentual } — chaves são os IDs
+        servicos_ids = Array.isArray(parsed)
+          ? parsed.map((c: any) => c?.servico_id).filter(Boolean)
+          : Object.keys(parsed).filter(Boolean);
+      }
+      return { id: p.id, nome: p.nome, foto_url: p.foto_url, ativo: p.ativo, produtivo: p.produtivo, servicos_ids };
+    });
+
     return NextResponse.json(
       {
         servicos: resServicos.data ?? [],
-        profissionais: resProfissionais.data ?? [],
+        profissionais,
         salao: resSalao.data,
+        setores: resSetores.data ?? [],
       },
       {
         headers: {

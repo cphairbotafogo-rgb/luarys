@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { salao_id, gateway, id_transacao, order_nsu, transaction_nsu, slug } = body;
+    const { salao_id, gateway, id_transacao, agendamento_id } = body;
 
     if (!salao_id || !gateway) {
       return NextResponse.json({ erro: 'Dados insuficientes para verificar o pagamento.' }, { status: 400 });
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     const { data: salao, error } = await supabaseAdmin
       .from('saloes')
-      .select('token_pagamento')
+      .select('token_pagamento, gateway_pagamento')
       .eq('id', salao_id)
       .single();
 
@@ -57,12 +57,32 @@ export async function POST(request: Request) {
     }
 
     // ─── INFINITEPAY ───
+    // C2: order_nsu e slug derivados server-side — nunca vindos do cliente
+    // Isso impede que um usuário mal-intencionado substitua o order_nsu por
+    // um de uma transação real de outra pessoa e confirme sem pagar.
     if (gateway === 'infinitepay') {
+      if (!agendamento_id || !UUID_REGEX.test(agendamento_id)) {
+        return NextResponse.json({ erro: 'agendamento_id obrigatório para InfinitePay.' }, { status: 400 });
+      }
+
+      // Confirma que o agendamento pertence ao salão informado
+      const { data: ag } = await supabaseAdmin
+        .from('agendamentos')
+        .select('salao_id')
+        .eq('id', agendamento_id)
+        .maybeSingle();
+
+      if (!ag || ag.salao_id !== salao_id) {
+        return NextResponse.json({ erro: 'Agendamento não pertence a este salão.' }, { status: 403 });
+      }
+
       const handle = token.replace('@', '').replace('$', '').trim();
+      const orderNsu = `reserva_${agendamento_id}`;
+
       const checkRes = await fetch('https://api.checkout.infinitepay.io/payment_check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle, order_nsu, transaction_nsu, slug }),
+        body: JSON.stringify({ handle, order_nsu: orderNsu, slug: handle }),
       });
       if (!checkRes.ok) {
         return NextResponse.json({ erro: 'Falha ao consultar InfinitePay.' }, { status: 400 });

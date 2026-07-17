@@ -56,8 +56,8 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
       const body: any = { salao_id: salaoSelecionado.id, gateway: dados.gateway };
 
       if (dados.gateway === 'infinitepay') {
-        body.order_nsu = dados.orderNsu;
-        body.slug = dados.slug;
+        // C2: envia agendamento_id — o servidor deriva order_nsu/slug para evitar spoofing
+        body.agendamento_id = agId;
       } else if (dados.gateway === 'mercadopago') {
         body.id_transacao = dados.idTransacao;
       } else if (dados.gateway === 'simulador') {
@@ -108,9 +108,14 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
     setErro('');
     setCarregandoPagamento(true);
 
+    // Pré-abre aba em branco ANTES de qualquer await — única forma de escapar
+    // do popup blocker, que bloqueia window.open chamado após await
+    const popupIP = window.open('about:blank', '_blank');
+
     // 1. Cria o agendamento com status 'Aguardando'
     const agId = await confirmarAgendamento(null);
     if (!agId) {
+      popupIP?.close();
       setCarregandoPagamento(false);
       return;
     }
@@ -132,14 +137,43 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
       const dados = await res.json();
 
       if (res.ok && dados.sucesso) {
+        // InfinitePay sem checkoutUrl = impossível pagar — trata como falha
+        if (dados.gateway === 'infinitepay' && !dados.checkoutUrl) {
+          popupIP?.close();
+          await fetch('/api/portal/inserir-agendamento', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: agId, salao_id: salaoSelecionado.id, status: 'Cancelado' }),
+          }).catch(() => {});
+          setErro('O link de pagamento não foi gerado. Tente novamente.');
+          setCarregandoPagamento(false);
+          return;
+        }
+
+        // Navega a aba pré-aberta para o checkout da InfinitePay
+        // (o botão na tela seguinte serve de fallback se o popup foi bloqueado)
+        if (dados.gateway === 'infinitepay' && dados.checkoutUrl && popupIP) {
+          popupIP.location.href = dados.checkoutUrl;
+        } else {
+          popupIP?.close();
+        }
+
         setDadosPagamento(dados);
         setEtapa('aguardando');
         iniciarPolling(dados, agId);
       } else {
+        popupIP?.close();
+        // Cancela o agendamento criado para não deixar preso em 'Aguardando'
+        await fetch('/api/portal/inserir-agendamento', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: agId, salao_id: salaoSelecionado.id, status: 'Cancelado' }),
+        }).catch(() => {});
         setErro(dados.erro || 'Não foi possível gerar o pagamento. Tente novamente.');
         setCarregandoPagamento(false);
       }
     } catch {
+      popupIP?.close();
       setErro('Erro de conexão. Verifique sua internet e tente novamente.');
       setCarregandoPagamento(false);
     }
@@ -182,8 +216,9 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
               Reserva criada!
             </h4>
             <p style={{ margin: "0 0 16px", fontSize: 13, color: C.textMain, lineHeight: 1.5 }}>
-              Para confirmar o agendamento, pague o sinal de{" "}
-              <strong style={{ color: C.success }}>{brl(valorSinal)}</strong> via InfinitePay.
+              A tela de pagamento foi aberta em uma nova aba. Se ela não apareceu,
+              use o botão abaixo para pagar o sinal de{" "}
+              <strong style={{ color: C.success }}>{brl(valorSinal)}</strong>.
             </p>
             <a
               href={dadosPagamento.checkoutUrl}

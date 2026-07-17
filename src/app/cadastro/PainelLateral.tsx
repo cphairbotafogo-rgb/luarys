@@ -15,7 +15,7 @@ export function PainelLateral({ passo }: { passo: Passo }) {
       }}
     >
       <div style={{ position: 'relative', zIndex: 10, maxWidth: 400 }}>
-        <img src={C.logoUrl} alt="Luarys" style={{ height: 64, marginBottom: 48 }} />
+        <img src={C.logoUrl} alt="Luarys" style={{ height: 256, marginBottom: 48 }} />
 
         <h1 className="font-title" style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 20 }}>
           Comece a gerir o<br />seu salão hoje.

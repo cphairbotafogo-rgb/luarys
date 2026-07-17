@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { registrarPagamentoAssinatura, parseReferencia } from '@/lib/assinaturas';
+import { tokenValido, verificarHmacSha256 } from '@/lib/webhookHmac';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +26,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
 
     // Conta ativa — usada para token de validação e para o payment_check
     const { data: contaAtiva } = await supabaseAdmin
@@ -39,17 +40,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ recebido: true });
     }
 
-    // Validação de token — obrigatória. Se não configurado, rejeitamos toda requisição.
+    // C5: Prefere HMAC-SHA256 se INFINITEPAY_WEBHOOK_SECRET configurado;
+    // senão cai no token estático (timingSafeEqual). Um dos dois deve existir.
+    const hmacSecret   = process.env.INFINITEPAY_WEBHOOK_SECRET;
     const webhookToken = contaAtiva?.infinitepay_webhook_token || process.env.INFINITEPAY_WEBHOOK_TOKEN;
-    if (!webhookToken) {
-      console.warn('Webhook InfinitePay recebido mas INFINITEPAY_WEBHOOK_TOKEN não está configurado — rejeitando.');
+
+    if (hmacSecret) {
+      const sig = request.headers.get('x-infinitepay-signature') ||
+                  request.headers.get('x-signature') || '';
+      if (!verificarHmacSha256(rawBody, sig, hmacSecret)) {
+        return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+      }
+    } else if (webhookToken) {
+      const authHeader   = request.headers.get('authorization') || request.headers.get('x-webhook-token') || '';
+      const tokenRecebido = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (!tokenValido(tokenRecebido, webhookToken)) {
+        return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+      }
+    } else {
+      console.warn('Webhook InfinitePay recebido sem INFINITEPAY_WEBHOOK_SECRET nem INFINITEPAY_WEBHOOK_TOKEN — rejeitando.');
       return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
     }
-    const authHeader = request.headers.get('authorization') || request.headers.get('x-webhook-token') || '';
-    const tokenRecebido = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (tokenRecebido !== webhookToken) {
-      return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
-    }
+
+    const body = JSON.parse(rawBody);
 
     // order_nsu é o que enviamos como "salaoId::moduloChave" ao criar o link
     const orderNsu: string | undefined = body.order_nsu;

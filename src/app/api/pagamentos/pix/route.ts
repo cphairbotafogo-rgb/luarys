@@ -73,13 +73,20 @@ export async function POST(request: NextRequest) {
     if (gateway === 'infinitepay') {
       const valorEmCentavos = Math.round(Number(valor) * 100);
       const handleLojista = token.replace('@', '').replace('$', '').trim();
-      const orderNsuGerado = agendamento_id ? `reserva_${agendamento_id}` : `reserva_${Date.now()}`;
+      // order_nsu deve ser "reserva_<uuid>" — formato esperado pelo webhook e pelo verificar
+      const orderNsu = agendamento_id ? `reserva_${agendamento_id}` : `reserva_${Date.now()}`;
+
+      const webhookBase = process.env.NEXT_PUBLIC_APP_URL || 'https://luarys.com.br';
 
       const bodyInfinitePay = {
         handle: handleLojista,
-        // 🟢 AQUI ESTÁ A CORREÇÃO MÁGICA: items em vez de itens
-        items: [{ quantity: 1, price: valorEmCentavos, description: `Sinal: ${servico_nome} (${cliente_nome || 'Cliente'})` }],
-        order_nsu: orderNsuGerado
+        items: [{
+          quantity: 1,
+          price: valorEmCentavos,
+          description: `Sinal: ${(servico_nome || 'Servico').substring(0, 50)}`,
+        }],
+        order_nsu: orderNsu,
+        webhook_url: `${webhookBase}/api/webhooks/sinal/infinitepay`,
       };
 
       const ipResponse = await fetch('https://api.checkout.infinitepay.io/links', {
@@ -95,14 +102,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ erro: `A InfinitePay recusou. Motivo: ${motivo}` }, { status: 400 });
       }
 
-      // FIX: order_nsu e slug (handle) precisam voltar para o frontend —
-      // sem eles, /api/pagamentos/verificar nunca consegue checar o status
-      // real do pagamento na InfinitePay (payment_check exige esses dados).
+      const urlCheckout = ipData.url || ipData.link;
+      if (!urlCheckout) {
+        console.error('[pix] InfinitePay 200 sem url de checkout:', JSON.stringify(ipData));
+        return NextResponse.json({ erro: 'A InfinitePay não retornou o link de pagamento. Tente novamente.' }, { status: 502 });
+      }
+
       return NextResponse.json({
         sucesso: true,
         gateway: 'infinitepay',
-        checkoutUrl: ipData.url || ipData.link,
-        orderNsu: orderNsuGerado,
+        checkoutUrl: urlCheckout,
+        orderNsu: orderNsu,
         slug: handleLojista,
       });
     }

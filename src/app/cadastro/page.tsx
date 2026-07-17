@@ -6,6 +6,7 @@ import { C } from '@/lib/constants';
 import { RAIO_XS, RAIO_MD } from '@/lib/estiloGlobal';
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheckCircle, FiLoader } from 'react-icons/fi';
 import { type Passo, TITULOS, SUBTITULOS, slugify, limpaCNPJ, validarCNPJ } from './helpers';
+import { senhaVazada } from '@/lib/hibp';
 import { PainelLateral } from './PainelLateral';
 import { FormPasso1 } from './FormPasso1';
 import { FormPasso2 } from './FormPasso2';
@@ -77,10 +78,22 @@ export default function PaginaCadastro() {
     return '';
   }
 
-  function avancar() {
+  async function avancar() {
     setErro('');
+    if (passo === 1) {
+      const erroValidacao = validarPasso1();
+      if (erroValidacao) { setErro(erroValidacao); return; }
+      setSalvando(true);
+      const vazada = await senhaVazada(senha);
+      setSalvando(false);
+      if (vazada) {
+        setErro('Esta senha foi encontrada em vazamentos de dados. Escolha uma senha diferente e mais segura.');
+        return;
+      }
+      setPasso(2);
+      return;
+    }
     let erroValidacao = '';
-    if (passo === 1) erroValidacao = validarPasso1();
     if (passo === 2) erroValidacao = validarPasso2();
     if (passo === 3) erroValidacao = validarPasso3();
     if (erroValidacao) { setErro(erroValidacao); return; }

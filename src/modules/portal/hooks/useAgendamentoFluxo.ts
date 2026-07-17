@@ -15,6 +15,7 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
 
   const [servicos, setServicos] = useState<any[]>([]);
   const [profissionais, setProfissionais] = useState<any[]>([]);
+  const [setoresAtivos, setSetoresAtivos] = useState<string[]>([]);
   const [salaoFresh, setSalaoFresh] = useState<any>(salaoSelecionado);
 
   const [dataEscolhida, setDataEscolhida] = useState("");
@@ -52,6 +53,7 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     setProfissionais((payload.profissionais ?? []).filter((p: any) =>
       p.ativo !== false && p.produtivo !== false && p.perfil_avancado?.exibir_na_agenda !== false
     ));
+    setSetoresAtivos((payload.setores ?? []).map((s: any) => s.nome as string));
     if (payload.salao) setSalaoFresh(payload.salao);
     setDataEscolhida(""); setHoraEscolhida(""); setServicoEscolhido(null);
     setProfissionalEscolhido(null); setTermoBusca(""); setSetorFiltro("");
@@ -89,7 +91,8 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
 
     const { data: diaExc } = await supabase
       .from('dias_excepcionais').select('tipo, hora_abertura, hora_fechamento')
-      .eq('salao_id', salaoSelecionado.id).eq('data', dataStr).maybeSingle();
+      .eq('salao_id', salaoSelecionado.id).eq('data', dataStr).maybeSingle()
+      .then(r => r).catch(() => ({ data: null, error: null }));
 
     if (diaExc?.tipo === 'fechado') { setHorariosDisponiveis([]); setBuscandoAgenda(false); return; }
 
@@ -110,10 +113,11 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     }
     setHorariosDisponiveis(horariosGerados);
 
-    const { data } = await supabase.from('agendamentos')
-      .select('profissional_id, inicio, duracao_minutos, status')
-      .eq('salao_id', salaoSelecionado.id).eq('data', dataStr)
-      .not('status', 'in', '("Cancelado","Faltou")');
+    // SECURITY DEFINER: bypassa RLS para ver ocupação de todos os clientes
+    const { data } = await supabase.rpc('horarios_ocupados_salao', {
+      p_salao_id: salaoSelecionado.id,
+      p_data: dataStr,
+    });
     if (data) setAgendamentosDoDia(data);
     setBuscandoAgenda(false);
   }
@@ -123,11 +127,17 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     const inicio = converterParaMinutos(hora);
     const duracao = servicoEscolhido?.duracao_minutos || 30;
     const fim = inicio + duracao;
-    const profsLivres = profissionais.filter((p: any) => {
+    // Considera apenas profissionais que realizam o serviço selecionado
+    const algumTemServicos = profissionais.some((p: any) => p?.servicos_ids?.length > 0);
+    const candidatos = (algumTemServicos && servicoEscolhido?.id)
+      ? profissionais.filter((p: any) => p?.servicos_ids?.includes(servicoEscolhido.id))
+      : profissionais;
+    if (!candidatos.length) return true;
+    const profsLivres = candidatos.filter((p: any) => {
       const temConflito = agendamentosDoDia.some((ag: any) => {
         if (ag?.profissional_id !== p.id) return false;
         const agI = converterParaMinutos(ag.inicio);
-        const agF = agI + (ag.duracao_minutos || 30);
+        const agF = agI + (ag.duracao_min || 30);
         return inicio < agF && fim > agI;
       });
       if (temConflito) return false;
@@ -161,23 +171,30 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     const valorSinal = (servicoEscolhido?.preco_padrao || 0) * ((salaoFresh?.porcentagem_sinal || 0) / 100);
     const textoObs = cobrarSinal ? `[Portal do Cliente] Aceitou Termos de Reserva (CC 418). Taxa: ${brl(valorSinal)}.` : '[Portal do Cliente]';
 
+    // Confirmar agendamento já criado (etapa de pagamento concluída)
     if (idAgendamentoCriado && statusForcado === 'Confirmado') {
-      const { error } = await supabase.from('agendamentos').update({ status: 'Confirmado' }).eq('id', idAgendamentoCriado);
+      const res = await fetch('/api/portal/inserir-agendamento', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idAgendamentoCriado, salao_id: salaoSelecionado.id, status: 'Confirmado' }),
+      });
       setSalvando(false);
-      if (!error) setPasso(6);
+      if (res.ok) setPasso(6);
       return idAgendamentoCriado;
     }
 
     const duracao = servicoEscolhido?.duracao_minutos || 30;
     const iniMin = converterParaMinutos(horaEscolhida);
     const fimMin = iniMin + duracao;
-    const { data: agsDia } = await supabase.from('agendamentos')
-      .select('inicio, duracao_minutos').eq('salao_id', salaoSelecionado.id)
-      .eq('profissional_id', profFinal.id).eq('data', dataEscolhida)
-      .not('status', 'in', '("Cancelado","Faltou")');
-    const temConflito = (agsDia || []).some((ag: any) => {
+    // SECURITY DEFINER: re-checa ocupação real antes do INSERT (RLS não mascara aqui)
+    const { data: todosDia } = await supabase.rpc('horarios_ocupados_salao', {
+      p_salao_id: salaoSelecionado.id,
+      p_data: dataEscolhida,
+    });
+    const agsDia = (todosDia || []).filter((ag: any) => ag.profissional_id === profFinal.id);
+    const temConflito = agsDia.some((ag: any) => {
       const ai = converterParaMinutos(ag.inicio);
-      const af = ai + (ag.duracao_minutos || 30);
+      const af = ai + (ag.duracao_min || 30);
       return iniMin < af && fimMin > ai;
     });
     if (temConflito) {
@@ -191,44 +208,51 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     }
 
     const statusFinal = statusForcado || (cobrarSinal ? 'Aguardando' : 'Confirmado');
-    const { data, error } = await supabase.from('agendamentos').insert([{
-      salao_id: salaoSelecionado.id, cliente_id: clienteFresh.id, profissional_id: profFinal.id,
-      servico_id: servicoEscolhido.id, data: dataEscolhida, inicio: horaEscolhida,
-      duracao_minutos: duracao, status: statusFinal,
-      cliente_nome: clienteFresh.nome_completo || 'Cliente',
-      observacao: textoObs, valor_sinal: cobrarSinal ? valorSinal : 0,
-    }]).select('id');
+
+    // INSERT via API (service role) — portal clients não têm sessão Supabase Auth
+    const res = await fetch('/api/portal/inserir-agendamento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        salao_id: salaoSelecionado.id, cliente_id: clienteFresh.id,
+        profissional_id: profFinal.id, servico_id: servicoEscolhido.id,
+        data: dataEscolhida, inicio: horaEscolhida, duracao_min: duracao,
+        status: statusFinal, cliente_nome: clienteFresh.nome_completo || 'Cliente',
+        observacao: textoObs, valor_sinal: cobrarSinal ? valorSinal : 0,
+      }),
+    });
     setSalvando(false);
-    if (!error && data) {
-      const novoId = data[0].id;
+    const resJson = await res.json().catch(() => ({}));
+
+    if (res.ok && resJson.id) {
+      const novoId = resJson.id;
       setIdAgendamentoCriado(novoId);
-      await supabase.from('notificacoes').insert([{
-        salao_id: salaoSelecionado.id,
-        titulo: 'Novo Agendamento Online!',
-        mensagem: `${clienteFresh.nome_completo.split(' ')[0]} agendou ${servicoEscolhido.nome_servico} para ${dataEscolhida.split('-').reverse().join('/')} às ${horaEscolhida}. Status: ${statusFinal}.`,
-      }]);
       if (!cobrarSinal || statusFinal === 'Confirmado') setPasso(6);
       return novoId;
     } else {
-      if ((error as any)?.code === '23505') {
+      if (res.status === 409) {
         toast.aviso('Este horário foi reservado agora por outro cliente. Escolha outro horário.');
         setPasso(3);
         const d = dataEscolhida;
         setDataEscolhida('');
         setTimeout(() => setDataEscolhida(d), 50);
       } else {
-        toast.erro('Erro ao agendar. Tente novamente.');
+        toast.erro(resJson.erro || 'Erro ao agendar. Tente novamente.');
       }
       return null;
     }
   }
 
-  const setoresUnicos = [...new Set(servicos.map((s: any) => s?.setor).filter(Boolean))].sort() as string[];
+  const setoresUnicos = setoresAtivos.length > 0
+    ? setoresAtivos
+    : [...new Set(servicos.map((s: any) => s?.setor).filter(Boolean))].sort() as string[];
   const servicosFiltrados = servicos.filter(s => {
     const matchNome = s?.nome_servico?.toLowerCase().includes((termoBusca || "").toLowerCase());
     const matchSetor = !setorFiltro || s?.setor === setorFiltro;
     return matchNome && matchSetor;
   });
+  // Se algum profissional tem serviços configurados, aplica filtro estrito para todos
+  const algumProfTemServicos = profissionais.some((p: any) => p?.servicos_ids?.length > 0);
   const profissionaisDisponiveis = profissionais.filter((p: any) => {
     if (!p?.id) return false;
     const duracao = servicoEscolhido?.duracao_minutos || 30;
@@ -237,11 +261,11 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     const ocupado = agendamentosDoDia.some((ag: any) => {
       if (ag?.profissional_id !== p.id) return false;
       const ai = converterParaMinutos(ag.inicio);
-      const af = ai + (ag.duracao_minutos || 30);
+      const af = ai + (ag.duracao_min || 30);
       return ini < af && fim > ai;
     });
     if (ocupado) return false;
-    if (p?.servicos_habilitados && !p.servicos_habilitados.includes(servicoEscolhido?.id)) return false;
+    if (algumProfTemServicos && servicoEscolhido?.id && !p.servicos_ids?.includes(servicoEscolhido.id)) return false;
     const cfg = p?.horarios_funcionamento || p?.perfil_avancado?.horarios || salaoFresh?.horarios_funcionamento;
     if (!cfg) return true;
     try {
@@ -261,6 +285,19 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     return true;
   });
 
+  const horariosLivres = (() => {
+    const ehHoje = dataEscolhida === getDataHojeLocal();
+    const agora = new Date();
+    const minAgora = agora.getHours() * 60 + agora.getMinutes();
+    return horariosDisponiveis.filter(h => {
+      if (ehHoje) {
+        const [hh, mm] = h.split(':').map(Number);
+        if (hh * 60 + mm <= minAgora) return false;
+      }
+      return !isHorarioEsgotado(h);
+    });
+  })();
+
   return {
     modalAberto, setModalAberto,
     passo, setPasso,
@@ -275,6 +312,7 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
     aceitouTermos, setAceitouTermos,
     horariosDisponiveis,
     setoresUnicos, servicosFiltrados, profissionaisDisponiveis,
+    horariosLivres,
     abrirAgendamento, aoEscolherData, isHorarioEsgotado, confirmarAgendamento,
   };
 }

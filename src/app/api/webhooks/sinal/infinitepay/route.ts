@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { confirmarSinalPago, extrairAgendamentoIdDoSinal } from '@/lib/confirmarSinalPago';
+import { verificarHmacSha256 } from '@/lib/webhookHmac';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +23,22 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+
+    // C5: valida assinatura HMAC se o secret estiver configurado
+    const secret = process.env.INFINITEPAY_WEBHOOK_SECRET;
+    if (secret) {
+      const sig = (request.headers as any).get?.('x-infinitepay-signature') ||
+                  (request.headers as any).get?.('x-signature') || '';
+      if (!verificarHmacSha256(rawBody, sig, secret)) {
+        console.warn('[webhook/sinal/infinitepay] Assinatura HMAC inválida — requisição rejeitada.');
+        return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+      }
+    } else {
+      console.warn('[webhook/sinal/infinitepay] INFINITEPAY_WEBHOOK_SECRET não configurado — validação HMAC desativada.');
+    }
+
+    const body = JSON.parse(rawBody);
     const orderNsu: string | undefined = body.order_nsu;
 
     const agendamentoId = extrairAgendamentoIdDoSinal(orderNsu);

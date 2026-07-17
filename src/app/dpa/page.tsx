@@ -1,3 +1,4 @@
+import sanitizeHtml from 'sanitize-html';
 import { createClient } from '@supabase/supabase-js';
 import { PaginaLegal, SL } from '@/components/PaginaLegal';
 
@@ -35,7 +36,7 @@ export default async function ContratoTratamentoDados() {
     });
     return (
       <PaginaLegal titulo={doc.titulo || 'Contrato de Tratamento de Dados (CTD/DPA)'} atualizadoEm={atualizado}>
-        <div className="legal-content" dangerouslySetInnerHTML={{ __html: doc.conteudo }} />
+        <div className="legal-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(doc.conteudo, { allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'h3', 'img']), allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['style', 'class'] } }) }} />
       </PaginaLegal>
     );
   }
