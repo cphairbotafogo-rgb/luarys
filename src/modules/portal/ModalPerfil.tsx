@@ -8,18 +8,25 @@ import { useToast } from "@/components/Toast";
 import { FiX, FiUser, FiCheck, FiEye, FiEyeOff, FiLock } from "react-icons/fi";
 
 function mascaraTel(v: string): string {
+  const comPlus = v.trimStart().startsWith('+');
   let d = v.replace(/\D/g, '');
-  // Remove DDI +55 se o número foi salvo com código de país (ex: 552199999999 → 2199999999)
-  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  let prefix = '';
+  // Preserva +55 se o número foi salvo com DDI (>11 dígitos começando com 55)
+  // ou se o usuário digitou explicitamente o "+"
+  if (d.startsWith('55') && (comPlus || d.length > 11)) {
+    prefix = '+55 ';
+    d = d.slice(2);
+  }
   d = d.slice(0, 11);
+  if (!d) return prefix ? '+55' : '';
   if (d.length <= 10) {
     const ddd = d.slice(0, 2);
     const p1  = d.slice(2, 6);
     const p2  = d.slice(6, 10);
-    if (!ddd) return '';
-    return '(' + ddd + (p1 ? ') ' + p1 : '') + (p2 ? '-' + p2 : '');
+    if (!ddd) return prefix ? '+55' : '';
+    return prefix + '(' + ddd + (p1 ? ') ' + p1 : '') + (p2 ? '-' + p2 : '');
   }
-  return d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+  return prefix + d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
 }
 
 function mascaraCpf(v: string): string {

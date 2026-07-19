@@ -11,17 +11,23 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 const D = C.douradoEleva;
 
 function mascaraTel(v: string): string {
+  const comPlus = v.trimStart().startsWith('+');
   let d = v.replace(/\D/g, '');
-  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  let prefix = '';
+  if (d.startsWith('55') && (comPlus || d.length > 11)) {
+    prefix = '+55 ';
+    d = d.slice(2);
+  }
   d = d.slice(0, 11);
+  if (!d) return prefix ? '+55' : '';
   if (d.length <= 10) {
     const ddd = d.slice(0, 2);
     const p1  = d.slice(2, 6);
     const p2  = d.slice(6, 10);
-    if (!ddd) return '';
-    return '(' + ddd + (p1 ? ') ' + p1 : '') + (p2 ? '-' + p2 : '');
+    if (!ddd) return prefix ? '+55' : '';
+    return prefix + '(' + ddd + (p1 ? ') ' + p1 : '') + (p2 ? '-' + p2 : '');
   }
-  return d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+  return prefix + d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
 }
 
 const inputBase = {
