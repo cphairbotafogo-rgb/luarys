@@ -34,6 +34,8 @@ export default function PortalPage() {
   const [restaurando, setRestaurando]       = useState(true);
 
   const [clienteRecemCadastradoId, setClienteRecemCadastradoId] = useState<string | null>(null);
+  // ID do usuário autenticado — persiste entre trocas de salão (trocarDeSalao não faz signOut)
+  const [usuarioPortalId, setUsuarioPortalId] = useState<string | null>(null);
 
   const [credencial, setCredencial] = useState('');
   const [senha, setSenha] = useState('');
@@ -59,6 +61,7 @@ export default function PortalPage() {
           .maybeSingle();
 
         if (vinculo) {
+          setUsuarioPortalId(session.user.id);
           setSalaoSelecionado(salao);
           setClienteLogado(vinculo);
           setFase('dashboard');
@@ -119,6 +122,7 @@ export default function PortalPage() {
       .maybeSingle();
 
     if (vinculo) {
+      setUsuarioPortalId(userId);
       setClienteLogado(vinculo);
       setFase('dashboard');
       try { localStorage.setItem('portal_salao', JSON.stringify(salaoSelecionado)); } catch {}
@@ -182,6 +186,7 @@ export default function PortalPage() {
       return;
     }
 
+    setUsuarioPortalId(userId);
     setClienteLogado(novoVinculo);
     setFase('dashboard');
     try { localStorage.setItem('portal_salao', JSON.stringify(salaoSelecionado)); } catch {}
@@ -191,6 +196,7 @@ export default function PortalPage() {
   async function sairDoPortal() {
     await supabase.auth.signOut();
     try { localStorage.removeItem('portal_salao'); } catch {}
+    setUsuarioPortalId(null);
     setClienteLogado(null);
     setCredencial('');
     setSenha('');
@@ -264,6 +270,54 @@ export default function PortalPage() {
         .maybeSingle();
 
       try { sessionStorage.removeItem('eleva_endereco_pendente'); } catch { /* ignora */ }
+      setClienteLogado(novoVinculo);
+      setFase('dashboard');
+      try { localStorage.setItem('portal_salao', JSON.stringify(salao)); } catch {}
+      setCarregandoLogin(false);
+      return;
+    }
+
+    // Usuário já autenticado (ex: trocou de salão) — usuarioPortalId persiste entre trocas
+    if (usuarioPortalId) {
+      setCarregandoLogin(true);
+
+      const { data: vinculo } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('salao_id', salao.id)
+        .eq('usuario_portal_id', usuarioPortalId)
+        .maybeSingle();
+
+      if (vinculo) {
+        setClienteLogado(vinculo);
+        setFase('dashboard');
+        try { localStorage.setItem('portal_salao', JSON.stringify(salao)); } catch {}
+        setCarregandoLogin(false);
+        return;
+      }
+
+      // Sem vínculo com este salão ainda — cria um usando dados do perfil global
+      const { data: dadosPortal } = await supabase
+        .from('usuarios_portal')
+        .select('nome_completo, email, cpf, telefone_whatsapp')
+        .eq('id', usuarioPortalId)
+        .maybeSingle();
+
+      const { data: novoVinculo } = await supabase
+        .from('clientes')
+        .insert([{
+          salao_id: salao.id,
+          usuario_portal_id: usuarioPortalId,
+          nome_completo: dadosPortal?.nome_completo || 'Cliente',
+          email: dadosPortal?.email || '',
+          cpf: dadosPortal?.cpf,
+          telefone_whatsapp: dadosPortal?.telefone_whatsapp || '',
+          total_gasto: 0,
+          total_visitas: 0,
+        }])
+        .select()
+        .maybeSingle();
+
       setClienteLogado(novoVinculo);
       setFase('dashboard');
       try { localStorage.setItem('portal_salao', JSON.stringify(salao)); } catch {}

@@ -19,7 +19,7 @@ export function FormPasso1({ email, setEmail, senha, setSenha, confirma, setConf
           <FiMail size={15} style={{ position: 'absolute', left: 14, top: 15, color: C.textLight }} />
           <input type="email" placeholder="seu@email.com" value={email}
             onChange={e => setEmail(e.target.value)}
-            style={{ ...inputStyle, paddingLeft: 40 }} autoFocus />
+            style={{ ...inputStyle, paddingLeft: 40 }} autoFocus suppressHydrationWarning />
         </div>
       </div>
 
@@ -29,7 +29,7 @@ export function FormPasso1({ email, setEmail, senha, setSenha, confirma, setConf
           <FiLock size={15} style={{ position: 'absolute', left: 14, top: 15, color: C.textLight }} />
           <input type="password" placeholder="Mínimo 6 caracteres" value={senha}
             onChange={e => setSenha(e.target.value)}
-            style={{ ...inputStyle, paddingLeft: 40 }} />
+            style={{ ...inputStyle, paddingLeft: 40 }} suppressHydrationWarning />
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export function FormPasso1({ email, setEmail, senha, setSenha, confirma, setConf
           <input type="password" placeholder="Repita a senha" value={confirma}
             onChange={e => setConfirma(e.target.value)}
             style={{ ...inputStyle, paddingLeft: 40 }}
-            onKeyDown={e => e.key === 'Enter' && onEnter()} />
+            onKeyDown={e => e.key === 'Enter' && onEnter()} suppressHydrationWarning />
         </div>
       </div>
     </div>

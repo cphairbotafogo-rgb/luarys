@@ -7,6 +7,29 @@ import { RAIO_MD, RAIO_XL, RAIO_2XL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
 import { FiX, FiUser, FiCheck, FiEye, FiEyeOff, FiLock } from "react-icons/fi";
 
+function mascaraTel(v: string): string {
+  let d = v.replace(/\D/g, '');
+  // Remove DDI +55 se o número foi salvo com código de país (ex: 552199999999 → 2199999999)
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length <= 10) {
+    const ddd = d.slice(0, 2);
+    const p1  = d.slice(2, 6);
+    const p2  = d.slice(6, 10);
+    if (!ddd) return '';
+    return '(' + ddd + (p1 ? ') ' + p1 : '') + (p2 ? '-' + p2 : '');
+  }
+  return d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+}
+
+function mascaraCpf(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+}
+
 export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fecharModal }: any) {
   const toast = useToast();
   const [salvando, setSalvando] = useState(false);
@@ -15,7 +38,8 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
 
   const [dados, setDados] = useState({
     nome_completo: clienteFresh?.nome_completo || '',
-    telefone_whatsapp: clienteFresh?.telefone_whatsapp || '',
+    telefone_whatsapp: mascaraTel(clienteFresh?.telefone_whatsapp || ''),
+    cpf: clienteFresh?.cpf || '',
     email: clienteFresh?.email || '',
     endereco: clienteFresh?.endereco || '',
     bairro: clienteFresh?.bairro || '',
@@ -30,7 +54,8 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
     if (modalAberto) {
       setDados({
         nome_completo: clienteFresh?.nome_completo || '',
-        telefone_whatsapp: clienteFresh?.telefone_whatsapp || '',
+        telefone_whatsapp: mascaraTel(clienteFresh?.telefone_whatsapp || ''),
+        cpf: clienteFresh?.cpf || '',
         email: clienteFresh?.email || '',
         endereco: clienteFresh?.endereco || '',
         bairro: clienteFresh?.bairro || '',
@@ -116,12 +141,30 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={labelStyle}>WhatsApp</label>
-              <input type="text" value={dados.telefone_whatsapp} onChange={e => setDados({...dados, telefone_whatsapp: e.target.value})} required style={inputStyle} />
+              <input
+                type="tel"
+                value={dados.telefone_whatsapp}
+                onChange={e => setDados({ ...dados, telefone_whatsapp: mascaraTel(e.target.value) })}
+                required
+                placeholder="(11) 99999-9999"
+                style={inputStyle}
+              />
             </div>
             <div>
               <label style={labelStyle}>E-mail</label>
               <input type="email" value={dados.email} onChange={e => setDados({...dados, email: e.target.value})} style={inputStyle} />
             </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>CPF</label>
+            <input
+              type="text"
+              value={dados.cpf}
+              onChange={e => setDados({ ...dados, cpf: mascaraCpf(e.target.value) })}
+              placeholder="000.000.000-00 (opcional)"
+              style={inputStyle}
+            />
           </div>
 
           <div>

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { RAIO_XS, RAIO_MD } from '@/lib/estiloGlobal';
 import { FiAlertCircle, FiArrowLeft, FiArrowRight, FiCheckCircle, FiLoader } from 'react-icons/fi';
-import { type Passo, TITULOS, SUBTITULOS, slugify, limpaCNPJ, validarCNPJ } from './helpers';
+import { type Passo, TITULOS, SUBTITULOS, slugify, limpaCNPJ, validarCNPJ, validarCPF } from './helpers';
 import { senhaVazada } from '@/lib/hibp';
 import { PainelLateral } from './PainelLateral';
 import { FormPasso1 } from './FormPasso1';
@@ -73,8 +73,8 @@ export default function PaginaCadastro() {
     if (!validarCNPJ(cnpj)) return 'CNPJ inválido. Verifique o número digitado.';
     if (!razaoSocial.trim()) return 'Razão Social é obrigatória.';
     if (!responsavelNome.trim()) return 'Informe o nome completo do responsável.';
-    if (!responsavelCpf.trim() || responsavelCpf.replace(/\D/g, '').length !== 11)
-      return 'CPF do responsável é obrigatório (11 dígitos).';
+    if (!responsavelCpf.trim() || !validarCPF(responsavelCpf))
+      return 'CPF do responsável inválido. Verifique o número digitado.';
     return '';
   }
 
@@ -218,7 +218,7 @@ export default function PaginaCadastro() {
                 </button>
               )}
               <button
-                onClick={avancar} disabled={salvando}
+                onClick={avancar} disabled={salvando} suppressHydrationWarning
                 style={{ flex: 2, padding: '14px', borderRadius: RAIO_MD, border: 'none', background: salvando ? C.borderMid : C.sidebarBg, color: '#fff', fontSize: 14, fontWeight: 700, cursor: salvando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
               >
                 {salvando
