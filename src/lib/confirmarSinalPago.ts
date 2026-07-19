@@ -50,12 +50,13 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
     agendamento_id: ag.id,
   });
 
-  // Busca usuario_portal_id do cliente para notificá-lo também
-  const { data: cliente } = await supabaseAdmin
-    .from('clientes')
-    .select('usuario_portal_id')
-    .eq('id', ag.cliente_id)
-    .maybeSingle();
+  // Busca nome do salão e usuario_portal_id do cliente em paralelo
+  const [{ data: salao }, { data: cliente }] = await Promise.all([
+    supabaseAdmin.from('saloes').select('nome_fantasia').eq('id', ag.salao_id).maybeSingle(),
+    supabaseAdmin.from('clientes').select('usuario_portal_id').eq('id', ag.cliente_id).maybeSingle(),
+  ]);
+
+  const nomeSalao = salao?.nome_fantasia || 'Salão';
 
   if (cliente?.usuario_portal_id) {
     await supabaseAdmin.from('notificacoes').insert({
@@ -68,9 +69,9 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       agendamento_id: ag.id,
     });
 
-    // Web Push para o cliente — dispara em todos os dispositivos registrados
+    // Web Push — título com nome do salão para o cliente identificar de qual estabelecimento é
     await enviarPushPortal(cliente.usuario_portal_id, {
-      titulo: '✅ Reserva confirmada!',
+      titulo: `✅ ${nomeSalao} — Reserva confirmada!`,
       corpo: `${ag.servico} em ${dataFormatada} às ${ag.inicio}. Sinal recebido com sucesso.`,
       tag: `sinal-${ag.id}`,
       url: '/portal',
