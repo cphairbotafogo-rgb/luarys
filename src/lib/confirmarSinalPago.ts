@@ -3,6 +3,7 @@
  * Ao confirmar pagamento de sinal, atualiza o agendamento e notifica o salão.
  */
 import { createClient } from '@supabase/supabase-js';
+import { enviarPushPortal } from './webPush';
 
 export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: boolean; erro?: string }> {
   const supabaseAdmin = createClient(
@@ -66,6 +67,14 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       mensagem: `Seu pagamento foi recebido. Agendamento de ${ag.servico} em ${dataFormatada} às ${ag.inicio} está confirmado.`,
       agendamento_id: ag.id,
     });
+
+    // Web Push para o cliente — dispara em todos os dispositivos registrados
+    await enviarPushPortal(cliente.usuario_portal_id, {
+      titulo: '✅ Reserva confirmada!',
+      corpo: `${ag.servico} em ${dataFormatada} às ${ag.inicio}. Sinal recebido com sucesso.`,
+      tag: `sinal-${ag.id}`,
+      url: '/portal',
+    }).catch(() => {/* falha no push não deve derrubar o fluxo principal */});
   }
 
   return { ok: true };

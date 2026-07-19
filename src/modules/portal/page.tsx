@@ -26,6 +26,39 @@ import { TelaSelecaoSalao } from '@/modules/portal/TelaSelecaoSalao';
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 type Fase = 'cadastro' | 'selecionar_salao' | 'login' | 'dashboard';
 
+// Registra o Service Worker e salva a assinatura push do dispositivo.
+// Silencioso: erros ou recusa de permissão não afetam o fluxo principal.
+async function registrarPushPortal(usuarioId: string) {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublic) return;
+
+    const registro = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    const permissao = await Notification.requestPermission();
+    if (permissao !== 'granted') return;
+
+    // Converte a chave VAPID pública de base64url para Uint8Array
+    const chave = Uint8Array.from(
+      atob(vapidPublic.replace(/-/g, '+').replace(/_/g, '/')),
+      c => c.charCodeAt(0)
+    );
+
+    const subscription = await registro.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: chave,
+    });
+
+    await fetch('/api/portal/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: usuarioId, subscription: subscription.toJSON() }),
+    });
+  } catch { /* permissão negada ou SW não suportado — ignora silenciosamente */ }
+}
+
 // ─── ORQUESTRADOR PRINCIPAL (export default obrigatório para Next.js) ─────────
 export default function PortalPage() {
   const [fase, setFase]                     = useState<Fase>('selecionar_salao');
@@ -41,6 +74,12 @@ export default function PortalPage() {
   const [senha, setSenha] = useState('');
   const [carregandoLogin, setCarregandoLogin] = useState(false);
   const [erroLogin, setErroLogin] = useState('');
+
+  // Registra Web Push assim que o usuário faz login
+  useEffect(() => {
+    if (!usuarioPortalId) return;
+    registrarPushPortal(usuarioPortalId);
+  }, [usuarioPortalId]);
 
   // Restaura sessão ativa após reload sem exigir novo login
   useEffect(() => {

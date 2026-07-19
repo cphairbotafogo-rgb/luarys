@@ -369,9 +369,13 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
             </p>
           </div>
           <div style={{ padding: "14px 16px", background: "#FFFBEB" }}>
-            <p style={{ margin: "0 0 14px", fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-              O sinal de reserva garante o seu horário. <strong>Caso opte por cartão de crédito, o pagamento deve ser feito à vista (1x).</strong> Pagamentos parcelados não são aceitos para sinal de reserva — se for efetuado parcelamento, o estabelecimento poderá <strong>cancelar o horário</strong> e <strong>solicitar o estorno</strong> junto à operadora do cartão.
-            </p>
+            <ul style={{ margin: "0 0 14px", paddingLeft: 18, fontSize: 12, color: "#78350F", lineHeight: 1.8 }}>
+              <li>O sinal garante exclusividade do horário e é <strong>cobrado no momento da reserva</strong>.</li>
+              <li><strong>Se pagar com cartão de crédito, utilize a opção à vista (1x).</strong> O estabelecimento não aceita parcelamento para sinal de reserva.</li>
+              <li>Caso o pagamento seja feito parcelado, o estabelecimento poderá <strong>cancelar o horário</strong> e <strong>solicitar o estorno</strong> junto à operadora do cartão.</li>
+              <li>O sinal será <strong>descontado do valor final</strong> no dia do atendimento.</li>
+              <li>Cancelamentos com <strong>menos de 24 horas</strong> de antecedência: o sinal poderá ser retido como taxa de no-show (art. 418, Código Civil).</li>
+            </ul>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <input
                 type="checkbox"
@@ -381,7 +385,7 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
                 style={{ marginTop: 2, width: 16, height: 16, accentColor: "#92400E", cursor: "pointer", flexShrink: 0 }}
               />
               <label htmlFor="termos-pagamento" style={{ fontSize: 12, color: "#78350F", lineHeight: 1.5, cursor: "pointer", fontWeight: 600 }}>
-                Estou ciente e aceito as regras acima referentes ao pagamento do sinal.
+                Li e aceito as regras de pagamento e cancelamento acima.
               </label>
             </div>
           </div>
@@ -398,7 +402,7 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
             style={{ marginTop: 2, width: 16, height: 16, accentColor: C.sidebarBg, cursor: "pointer", flexShrink: 0 }}
           />
           <label htmlFor="termos-reserva" style={{ fontSize: 12, color: C.textMain, lineHeight: 1.5, cursor: "pointer" }}>
-            Estou ciente que ao reservar, um sinal de <strong>{brl(valorSinal)}</strong> será cobrado para garantir o horário. Em caso de cancelamento com menos de 24h, o sinal poderá ser retido (Art. 418, CC).
+            Estou ciente de que um sinal de <strong>{brl(valorSinal)}</strong> será cobrado agora para garantir meu horário, e que esse valor será descontado do total no dia do atendimento.
           </label>
         </div>
       )}
