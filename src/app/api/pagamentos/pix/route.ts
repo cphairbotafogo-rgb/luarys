@@ -87,8 +87,6 @@ export async function POST(request: NextRequest) {
         }],
         order_nsu: orderNsu,
         webhook_url: `${webhookBase}/api/webhooks/sinal/infinitepay`,
-        // Sinal de reserva deve ser sempre à vista — parcelamento não permitido
-        max_installments: 1,
       };
 
       const ipResponse = await fetch('https://api.checkout.infinitepay.io/links', {

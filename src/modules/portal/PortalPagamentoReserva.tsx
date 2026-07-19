@@ -14,6 +14,7 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
   const [etapa, setEtapa] = useState<'resumo' | 'aguardando' | 'expirado'>('resumo');
   const [copiado, setCopiado] = useState(false);
   const [erro, setErro] = useState('');
+  const [aceitouTermosPagamento, setAceitouTermosPagamento] = useState(false);
   const [carregandoPagamento, setCarregandoPagamento] = useState(false);
   const [dadosPagamento, setDadosPagamento] = useState<any>(null);
   const [agendamentoId, setAgendamentoId] = useState<string | null>(null);
@@ -360,6 +361,34 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
       )}
 
       {cobrarSinal && (
+        <div style={{ borderRadius: RAIO_MD, border: "1px solid #F59E0B", overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", background: "#FEF3C7", borderBottom: "1px solid #F59E0B", display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: "#92400E", fontFamily: FONTE_TITULO, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Regras de Pagamento do Sinal
+            </p>
+          </div>
+          <div style={{ padding: "14px 16px", background: "#FFFBEB" }}>
+            <p style={{ margin: "0 0 14px", fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+              O sinal de reserva garante o seu horário. <strong>Caso opte por cartão de crédito, o pagamento deve ser feito à vista (1x).</strong> Pagamentos parcelados não são aceitos para sinal de reserva — se for efetuado parcelamento, o estabelecimento poderá <strong>cancelar o horário</strong> e <strong>solicitar o estorno</strong> junto à operadora do cartão.
+            </p>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <input
+                type="checkbox"
+                id="termos-pagamento"
+                checked={aceitouTermosPagamento}
+                onChange={e => setAceitouTermosPagamento(e.target.checked)}
+                style={{ marginTop: 2, width: 16, height: 16, accentColor: "#92400E", cursor: "pointer", flexShrink: 0 }}
+              />
+              <label htmlFor="termos-pagamento" style={{ fontSize: 12, color: "#78350F", lineHeight: 1.5, cursor: "pointer", fontWeight: 600 }}>
+                Estou ciente e aceito as regras acima referentes ao pagamento do sinal.
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cobrarSinal && (
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "16px", background: C.bgCard, borderRadius: RAIO_MD, border: `1px solid ${C.border}` }}>
           <input
             type="checkbox"
@@ -382,13 +411,13 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
 
       <button
         onClick={cobrarSinal ? handleReservar : () => confirmarAgendamento('Confirmado')}
-        disabled={salvando || carregandoPagamento || (cobrarSinal && !aceitouTermos)}
+        disabled={salvando || carregandoPagamento || (cobrarSinal && (!aceitouTermos || !aceitouTermosPagamento))}
         style={{
           width: "100%", padding: "14px 20px",
-          background: (salvando || carregandoPagamento || (cobrarSinal && !aceitouTermos)) ? C.borderMid : C.sidebarBg,
+          background: (salvando || carregandoPagamento || (cobrarSinal && (!aceitouTermos || !aceitouTermosPagamento))) ? C.borderMid : C.sidebarBg,
           color: "#fff", border: "none", borderRadius: RAIO_MD,
           fontWeight: 700, fontSize: 14,
-          cursor: (salvando || carregandoPagamento || (cobrarSinal && !aceitouTermos)) ? "not-allowed" : "pointer",
+          cursor: (salvando || carregandoPagamento || (cobrarSinal && (!aceitouTermos || !aceitouTermosPagamento))) ? "not-allowed" : "pointer",
           fontFamily: FONTE_TITULO
         }}
       >
