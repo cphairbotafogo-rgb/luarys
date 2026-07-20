@@ -7,6 +7,12 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+const supabaseAnon = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
 export async function POST(request: NextRequest) {
   try {
     const { usuario_id, subscription } = await request.json();
@@ -15,7 +21,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erro: 'Dados incompletos.' }, { status: 400 });
     }
 
-    // Upsert: atualiza se o mesmo endpoint já existir para este usuário
+    // Valida que o chamador é o dono do usuario_id — impede registro de push para outro usuário
+    const bearerToken = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!bearerToken) {
+      return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+    }
+    const { data: { user } } = await supabaseAnon.auth.getUser(bearerToken);
+    if (!user || user.id !== usuario_id) {
+      return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+    }
+
     const { error } = await supabaseAdmin
       .from('portal_push_subscriptions')
       .upsert({

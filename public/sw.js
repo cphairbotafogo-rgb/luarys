@@ -27,14 +27,18 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   const url = event.notification.data?.url || '/portal';
+  const targetUrl = new URL(url, self.location.origin).href;
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (lista) {
       for (const cliente of lista) {
-        if (cliente.url.includes('/portal') && 'focus' in cliente) {
-          return cliente.focus();
-        }
+        // Valida origem para não focar aba de outro domínio
+        try {
+          if (new URL(cliente.url).origin === self.location.origin && 'focus' in cliente) {
+            return cliente.focus();
+          }
+        } catch { /* URL inválida — ignora */ }
       }
-      if (clients.openWindow) return clients.openWindow(url);
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });

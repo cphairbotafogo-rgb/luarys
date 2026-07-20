@@ -34,28 +34,37 @@ async function registrarPushPortal(usuarioId: string) {
     const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublic) return;
 
-    const registro = await navigator.serviceWorker.register('/sw.js');
-    await navigator.serviceWorker.ready;
+    // Evita re-registro a cada reload — só tenta uma vez por sessão de browser
+    const flagKey = `push_registrado_${usuarioId}`;
+    if (sessionStorage.getItem(flagKey)) return;
+
+    await navigator.serviceWorker.register('/sw.js');
+    // Usa o registro retornado por .ready (garante SW ativo, não instalando)
+    const registroAtivo = await navigator.serviceWorker.ready;
 
     const permissao = await Notification.requestPermission();
     if (permissao !== 'granted') return;
 
-    // Converte a chave VAPID pública de base64url para Uint8Array
     const chave = Uint8Array.from(
       atob(vapidPublic.replace(/-/g, '+').replace(/_/g, '/')),
       c => c.charCodeAt(0)
     );
 
-    const subscription = await registro.pushManager.subscribe({
+    const subscription = await registroAtivo.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: chave,
     });
 
-    await fetch('/api/portal/push-subscribe', {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('/api/portal/push-subscribe', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+      },
       body: JSON.stringify({ usuario_id: usuarioId, subscription: subscription.toJSON() }),
     });
+    if (res.ok) sessionStorage.setItem(flagKey, '1');
   } catch { /* permissão negada ou SW não suportado — ignora silenciosamente */ }
 }
 

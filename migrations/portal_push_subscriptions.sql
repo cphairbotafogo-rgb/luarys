@@ -18,7 +18,9 @@ CREATE INDEX IF NOT EXISTS idx_push_subs_usuario ON portal_push_subscriptions(us
 -- RLS: service role tem acesso total (push é disparado pelo backend)
 ALTER TABLE portal_push_subscriptions ENABLE ROW LEVEL SECURITY;
 
+-- Apenas o service_role (backend) pode ler/escrever — nenhum cliente acessa diretamente
 CREATE POLICY "push_subs_service_role"
   ON portal_push_subscriptions
+  TO service_role
   USING (true)
   WITH CHECK (true);
