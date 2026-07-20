@@ -31,10 +31,10 @@ self.addEventListener('notificationclick', function (event) {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (lista) {
       for (const cliente of lista) {
-        // Valida origem para não focar aba de outro domínio
+        // Valida origem para não focar aba de outro domínio, e navega para a URL correta
         try {
           if (new URL(cliente.url).origin === self.location.origin && 'focus' in cliente) {
-            return cliente.focus();
+            return cliente.navigate ? cliente.navigate(targetUrl) : cliente.focus();
           }
         } catch { /* URL inválida — ignora */ }
       }

@@ -23,6 +23,17 @@ function validarSlug(slug: string) {
   return /^[a-z0-9-]{3,40}$/.test(slug);
 }
 
+function validarCPF(cpf: string): boolean {
+  const n = cpf.replace(/\D/g, '');
+  if (n.length !== 11 || /^(\d)\1{10}$/.test(n)) return false;
+  const calc = (base: string, len: number) => {
+    const soma = base.split('').reduce((acc, d, i) => acc + Number(d) * (len + 1 - i), 0);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(n, 9) === Number(n[9]) && calc(n.slice(0, 10), 10) === Number(n[10]);
+}
+
 function slugify(texto: string): string {
   return texto
     .toLowerCase()
@@ -119,6 +130,11 @@ export async function POST(request: NextRequest) {
 
     if (!cnpj || cnpj.replace(/[.\-\/\s]/g, '').length !== 14) {
       return NextResponse.json({ erro: 'CNPJ inválido.' }, { status: 400 });
+    }
+
+    // H3: validação de CPF por dígito verificador (server-side)
+    if (responsavelCpf && !validarCPF(responsavelCpf)) {
+      return NextResponse.json({ erro: 'CPF do responsável inválido.' }, { status: 400 });
     }
 
     if (!razaoSocial?.trim()) {

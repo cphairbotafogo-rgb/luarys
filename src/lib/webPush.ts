@@ -7,6 +7,12 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
 interface PayloadPush {
   titulo: string;
   corpo: string;
@@ -23,12 +29,6 @@ export async function enviarPushPortal(usuarioId: string, payload: PayloadPush):
     console.warn('[webPush] Chaves VAPID não configuradas — Web Push desativado.');
     return;
   }
-
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
 
   const { data: subscriptions } = await supabaseAdmin
     .from('portal_push_subscriptions')

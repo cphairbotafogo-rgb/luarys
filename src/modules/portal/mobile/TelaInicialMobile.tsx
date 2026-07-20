@@ -29,8 +29,9 @@ interface Props {
 export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPortal, trocarDeSalao }: Props) {
   const toast = useToast();
   const [clienteFresh, setClienteFresh] = useState<any>(clienteLogado);
-  const [proximoAg, setProximoAg] = useState<any>(null);
+  const [proximosAgs, setProximosAgs] = useState<any[]>([]);
   const [carregandoProximo, setCarregandoProximo] = useState(true);
+  const [agParaCancelar, setAgParaCancelar] = useState<any>(null);
   const [vitrineConfig, setVitrineConfig] = useState<any>(null);
   const [vitrineLiberada, setVitrineLiberada] = useState(false);
   const [carrinho, setCarrinho] = useState<any[]>([]);
@@ -82,25 +83,25 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
   async function buscarProximaVisita() {
     if (!clienteFresh?.id || !salaoSelecionado?.id) return;
     setCarregandoProximo(true);
-    const { data } = await supabase.from('agendamentos').select('id,data,inicio,status,created_at,observacao,profissionais(nome),servicos(nome_servico)').eq('cliente_id', clienteFresh.id).eq('salao_id', salaoSelecionado.id).gte('data', getDataHojeLocal()).neq('status', 'Cancelado').order('data', { ascending: true }).order('inicio', { ascending: true }).limit(1);
-    setProximoAg(data && data.length > 0 ? data[0] : null);
+    const { data } = await supabase.from('agendamentos').select('id,data,inicio,status,created_at,observacao,profissionais(nome),servicos(nome_servico)').eq('cliente_id', clienteFresh.id).eq('salao_id', salaoSelecionado.id).gte('data', getDataHojeLocal()).neq('status', 'Cancelado').order('data', { ascending: true }).order('inicio', { ascending: true }).limit(10);
+    setProximosAgs(data ?? []);
     setCarregandoProximo(false);
   }
 
   let permiteCancelamento = false, motivoLegal = '';
-  if (proximoAg?.data && proximoAg?.inicio) {
-    const falta = new Date(`${proximoAg.data}T${proximoAg.inicio}`).getTime() - Date.now();
-    const desde = Date.now() - new Date(proximoAg.created_at || new Date()).getTime();
+  if (agParaCancelar?.data && agParaCancelar?.inicio) {
+    const falta = new Date(`${agParaCancelar.data}T${agParaCancelar.inicio}`).getTime() - Date.now();
+    const desde = Date.now() - new Date(agParaCancelar.created_at || new Date()).getTime();
     if (falta >= 86400000) { permiteCancelamento = true; motivoLegal = ' | Cancelado dentro do prazo (> 24h).'; }
     else if (desde <= 900000) { permiteCancelamento = true; motivoLegal = ' | Cancelado dentro dos 15 min de tolerância.'; }
     else { motivoLegal = ' | Fora do prazo. Retenção de sinal aplicada (Art. 418 CC).'; }
   }
 
   async function cancelarAgendamento() {
-    if (!proximoAg?.id) return;
+    if (!agParaCancelar?.id) return;
     setCancelando(true);
-    const { error } = await supabase.from('agendamentos').update({ status: 'Cancelado', observacao: (proximoAg.observacao || '') + motivoLegal }).eq('id', proximoAg.id);
-    if (!error) { toast.sucesso('Agendamento cancelado.'); setModalCancelamentoAberto(false); await buscarProximaVisita(); }
+    const { error } = await supabase.from('agendamentos').update({ status: 'Cancelado', observacao: (agParaCancelar.observacao || '') + motivoLegal }).eq('id', agParaCancelar.id);
+    if (!error) { toast.sucesso('Agendamento cancelado.'); setModalCancelamentoAberto(false); setAgParaCancelar(null); await buscarProximaVisita(); }
     else toast.erro('Erro ao cancelar: ' + error.message);
     setCancelando(false);
   }
@@ -173,17 +174,33 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
         )}
 
         <div style={{ ...cardConteudo, padding: 20, marginTop: 16 }}>
-          <h3 style={{ fontFamily: FONTE_TITULO, margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: C.textMain }}>Próximo Agendamento</h3>
-          {carregandoProximo ? <p style={{ textAlign: 'center', color: C.textLight, fontSize: 13, margin: 0 }}>Consultando...</p> : proximoAg ? (
-            <div style={{ background: C.bg, borderRadius: RAIO_XL, padding: 14, border: `1px solid ${C.border}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div><h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>{proximoAg?.servicos?.nome_servico}</h4><p style={{ margin: '4px 0 0', fontSize: 12, color: C.textMain, display: 'flex', alignItems: 'center', gap: 4 }}><FiUser size={11} /> {proximoAg?.profissionais?.nome}</p><p style={{ margin: '2px 0 0', fontSize: 11, color: C.textLight, display: 'flex', alignItems: 'center', gap: 4 }}><FiCalendar size={11} /> {proximoAg?.data?.split('-').reverse().join('/')} às {proximoAg?.inicio?.substring(0, 5)}</p></div>
-                <span style={{ background: proximoAg?.status === 'Confirmado' ? C.success : proximoAg?.status === 'Aguardando' ? C.warning : C.danger, color: '#fff', padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 800 }}>{proximoAg?.status}</span>
-              </div>
-              {['Confirmado', 'Aguardando'].includes(proximoAg?.status) && <button onClick={() => { setCienteCancelamento(false); setModalCancelamentoAberto(true); }} style={{ marginTop: 12, background: 'none', border: `1px solid ${C.danger}`, color: C.danger, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Cancelar Agendamento</button>}
-              {proximoAg?.status === 'Finalizado' && <button onClick={() => setAgParaAvaliar({ id: proximoAg.id, servico: proximoAg?.servicos?.nome_servico, profissional: proximoAg?.profissionais?.nome, id_prof: proximoAg?.profissional_id, data: proximoAg?.data, inicio: proximoAg?.inicio })} style={{ marginTop: 12, background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><FiStar size={13} /> Avaliar atendimento</button>}
+          <h3 style={{ fontFamily: FONTE_TITULO, margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: C.textMain }}>Meus Agendamentos</h3>
+          {carregandoProximo ? (
+            <p style={{ textAlign: 'center', color: C.textLight, fontSize: 13, margin: 0 }}>Consultando...</p>
+          ) : proximosAgs.length === 0 ? (
+            <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', margin: 0 }}>Nenhum agendamento futuro.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {proximosAgs.map((a: any) => (
+                <div key={a.id} style={{ background: C.bg, borderRadius: RAIO_XL, padding: 14, border: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>{a.servicos?.nome_servico}</h4>
+                      <p style={{ margin: '4px 0 0', fontSize: 12, color: C.textMain, display: 'flex', alignItems: 'center', gap: 4 }}><FiUser size={11} /> {a.profissionais?.nome}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textLight, display: 'flex', alignItems: 'center', gap: 4 }}><FiCalendar size={11} /> {a.data?.split('-').reverse().join('/')} às {a.inicio?.substring(0, 5)}</p>
+                    </div>
+                    <span style={{ background: a.status === 'Confirmado' ? C.success : a.status === 'Aguardando' ? C.warning : C.danger, color: '#fff', padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 800 }}>{a.status}</span>
+                  </div>
+                  {['Confirmado', 'Aguardando'].includes(a.status) && (
+                    <button onClick={() => { setAgParaCancelar(a); setCienteCancelamento(false); setModalCancelamentoAberto(true); }} style={{ marginTop: 12, background: 'none', border: `1px solid ${C.danger}`, color: C.danger, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Cancelar Agendamento</button>
+                  )}
+                  {a.status === 'Finalizado' && (
+                    <button onClick={() => setAgParaAvaliar({ id: a.id, servico: a.servicos?.nome_servico, profissional: a.profissionais?.nome, id_prof: a.profissional_id, data: a.data, inicio: a.inicio })} style={{ marginTop: 12, background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><FiStar size={13} /> Avaliar atendimento</button>
+                  )}
+                </div>
+              ))}
             </div>
-          ) : <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', margin: 0 }}>Nenhum agendamento futuro.</p>}
+          )}
         </div>
 
         <div style={{ ...cardConteudo, padding: 20, marginTop: 16 }}>

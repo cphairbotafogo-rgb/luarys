@@ -7,12 +7,6 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const supabaseAnon = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
-
 export async function POST(request: NextRequest) {
   try {
     const { usuario_id, subscription } = await request.json();
@@ -26,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!bearerToken) {
       return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
     }
-    const { data: { user } } = await supabaseAnon.auth.getUser(bearerToken);
+    const { data: { user } } = await supabaseAdmin.auth.getUser(bearerToken);
     if (!user || user.id !== usuario_id) {
       return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
     }

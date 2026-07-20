@@ -244,6 +244,10 @@ export default function PortalPage() {
   async function sairDoPortal() {
     await supabase.auth.signOut();
     try { localStorage.removeItem('portal_salao'); } catch {}
+    // Limpa flag de push para que o próximo login re-registre a assinatura
+    if (usuarioPortalId) {
+      try { sessionStorage.removeItem(`push_registrado_${usuarioPortalId}`); } catch {}
+    }
     setUsuarioPortalId(null);
     setClienteLogado(null);
     setCredencial('');

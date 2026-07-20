@@ -11,6 +11,7 @@ import { BloqueioModulo } from "@/components/BloqueioModulo";
 import { MSG_ANIVERSARIO_PADRAO } from "@/lib/aniversarios";
 import { MSG_ZAP_PADRAO } from "@/lib/mensagensPadrao";
 import { PainelWhatsapp } from "@/modules/whatsapp/PainelWhatsapp";
+import { PainelCreditosMarketing } from "@/modules/comunicacao/PainelCreditosMarketing";
 
 export function AbaComunicacao({ perfil }: any) {
   const toast = useToast();
@@ -27,20 +28,32 @@ export function AbaComunicacao({ perfil }: any) {
   const [msgZapAniversario, setMsgZapAniversario] = useState(MSG_ANIVERSARIO_PADRAO);
   const [salvandoConfig, setSalvandoConfig] = useState(false);
 
+  // Créditos de marketing
+  const [saldoMarketing, setSaldoMarketing] = useState<number | null>(null);
+
+  async function carregarSaldoMarketing() {
+    const { data } = await supabase.rpc('obter_saldo_whatsapp');
+    const linha = Array.isArray(data) ? data[0] : data;
+    setSaldoMarketing(linha?.saldo_campanha ?? 0);
+  }
+
   useEffect(() => {
     async function carregar() {
       if (!perfil?.salao_id) return;
       setCarregando(true);
-      const { data } = await supabase
-        .from('saloes')
-        .select('msg_whatsapp, msg_email, msg_whatsapp_aniversario')
-        .eq('id', perfil.salao_id)
-        .maybeSingle();
+      const [textos] = await Promise.all([
+        supabase
+          .from('saloes')
+          .select('msg_whatsapp, msg_email, msg_whatsapp_aniversario')
+          .eq('id', perfil.salao_id)
+          .maybeSingle(),
+        carregarSaldoMarketing(),
+      ]);
 
-      if (data) {
-        if (data.msg_whatsapp) setMsgZap(data.msg_whatsapp);
-        if (data.msg_email) setMsgEmail(data.msg_email);
-        if (data.msg_whatsapp_aniversario) setMsgZapAniversario(data.msg_whatsapp_aniversario);
+      if (textos.data) {
+        if (textos.data.msg_whatsapp) setMsgZap(textos.data.msg_whatsapp);
+        if (textos.data.msg_email) setMsgEmail(textos.data.msg_email);
+        if (textos.data.msg_whatsapp_aniversario) setMsgZapAniversario(textos.data.msg_whatsapp_aniversario);
       }
       setCarregando(false);
     }
@@ -68,6 +81,10 @@ export function AbaComunicacao({ perfil }: any) {
 
   function handleEnviar() {
     if (!mensagemMarketing) { toast.aviso('Digite uma mensagem antes de enviar.'); return; }
+    if (saldoMarketing !== null && saldoMarketing <= 0) {
+      toast.erro('Créditos de marketing esgotados. Recarregue para continuar.');
+      return;
+    }
     toast.info('Disparo iniciado! A integração processará em segundo plano.');
   }
 
@@ -162,14 +179,24 @@ export function AbaComunicacao({ perfil }: any) {
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
                 onClick={handleEnviar}
-                style={{ padding: "16px 32px", background: C.success, color: "#fff", border: "none", borderRadius: RAIO_MD, fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textTransform: "uppercase" }}
+                disabled={saldoMarketing !== null && saldoMarketing <= 0}
+                title={saldoMarketing !== null && saldoMarketing <= 0 ? 'Créditos esgotados — recarregue para disparar' : undefined}
+                style={{ padding: "16px 32px", background: saldoMarketing !== null && saldoMarketing <= 0 ? C.borderMid : C.success, color: "#fff", border: "none", borderRadius: RAIO_MD, fontSize: 13, fontWeight: 800, cursor: saldoMarketing !== null && saldoMarketing <= 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 12, textTransform: "uppercase", transition: "all 0.2s" }}
               >
-                <FiSend size={18} /> Preparar Disparo
+                {saldoMarketing !== null && saldoMarketing <= 0 ? <FiLock size={18} /> : <FiSend size={18} />}
+                {saldoMarketing !== null && saldoMarketing <= 0 ? 'Sem créditos' : 'Preparar Disparo'}
               </button>
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+            {/* Painel de créditos de marketing */}
+            <PainelCreditosMarketing
+              saldo={saldoMarketing}
+              onCompraFinalizada={carregarSaldoMarketing}
+            />
+
             <div style={{ background: C.bg, padding: 24, borderRadius: RAIO_2XL, border: `1px solid ${C.borderMid}` }}>
               <h4 style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 800, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase" }}><FiFileText size={16} /> Templates Rápidos</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

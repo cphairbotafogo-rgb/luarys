@@ -46,6 +46,17 @@ export function mascaraCPF(v: string): string {
     .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
+export function validarCPF(cpf: string): boolean {
+  const n = cpf.replace(/\D/g, '');
+  if (n.length !== 11 || /^(\d)\1{10}$/.test(n)) return false;
+  const calc = (base: string, len: number) => {
+    const soma = base.split('').reduce((acc, d, i) => acc + Number(d) * (len + 1 - i), 0);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(n, 9) === Number(n[9]) && calc(n.slice(0, 10), 10) === Number(n[10]);
+}
+
 export function limpaCNPJ(cnpj: string): string {
   return cnpj.replace(/[.\-\/\s]/g, '').toUpperCase();
 }

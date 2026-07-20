@@ -283,6 +283,24 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
     if (!somenteProdutos) {
       const descServicos = (dadosCaixa.servicos as any[]).map((s: any) => s.nome).join(', ');
       const nbsPrincipal = (dadosCaixa.servicos as any[]).find((s: any) => s.nbs)?.nbs || null;
+
+      // Dados fiscais do profissional principal (campo gDed na NFS-e).
+      // Quando há múltiplos profissionais, prefere o parceiro_cnpj (dedução real na SEFAZ).
+      // Limitação conhecida: notas com dois parceiros CNPJ gravam apenas o primeiro;
+      // nesses casos o salão deve emitir notas separadas por profissional.
+      const profPrincipalId =
+        calc.comissoes.find(c => {
+          const p = profissionaisDb.find((pd: any) => pd.id === c.profissional_id);
+          return p?.tipo_parceiro === 'parceiro_cnpj';
+        })?.profissional_id
+        || calc.comissoes[0]?.profissional_id
+        || null;
+      const profPrincipalObj = profPrincipalId
+        ? profissionaisDb.find((p: any) => p.id === profPrincipalId)
+        : null;
+      const cnpjProfissional: string | null = profPrincipalObj?.cnpj_mei || null;
+      const tipoParceiro: string | null = profPrincipalObj?.tipo_parceiro || null;
+
       const { data: notaInserida, error: errNota } = await supabase.from('notas_fiscais').insert([{
         salao_id: perfil.salao_id,
         financeiro_id: idLancamentoFinanceiro,
@@ -294,6 +312,9 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
         valor_cota_profissional: valorTotalComissoes,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,
+        cnpj_profissional: cnpjProfissional,
+        tipo_parceiro: tipoParceiro,
+        data_movimentacao: dataMovimento,
         status: 'Não Emitido'
       }]).select('id').single();
       if (errNota && process.env.NODE_ENV === 'development') console.warn('Fechamento: falha ao gravar nota fiscal (não bloqueia a venda):', errNota.message);

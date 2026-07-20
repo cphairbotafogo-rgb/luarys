@@ -41,7 +41,7 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
         // Só os campos usados em agenda, equipe e comissoes
         supabase
           .from('profissionais')
-          .select('id, nome, foto_url, cargo, ativo, permissoes, servicos_comissoes, cor_agenda')
+          .select('id, nome, foto_url, cargo, ativo, permissoes, servicos_comissoes, cor_agenda, cnpj_mei, tipo_parceiro, comissao_produtos')
           .eq('salao_id', perfil.salao_id)
           .eq('ativo', true),
         supabase

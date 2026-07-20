@@ -39,18 +39,22 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
     ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     : '';
 
-  // Notificação do salão — independente do restante
-  await supabaseAdmin.from('notificacoes').insert({
-    salao_id: ag.salao_id,
-    destinatario_tipo: 'salao',
-    destinatario_id: ag.salao_id,
-    tipo: 'sinal_confirmado',
-    titulo: 'Sinal de reserva confirmado',
-    mensagem: `${ag.cliente_nome} pagou o sinal de ${ag.servico} em ${dataFormatada} às ${ag.inicio}.`,
-    agendamento_id: ag.id,
-  });
+  // Notificações — falhas não derrubam o fluxo de confirmação do pagamento
+  try {
+    await supabaseAdmin.from('notificacoes').insert({
+      salao_id: ag.salao_id,
+      destinatario_tipo: 'salao',
+      destinatario_id: ag.salao_id,
+      tipo: 'sinal_confirmado',
+      titulo: 'Sinal de reserva confirmado',
+      mensagem: `${ag.cliente_nome} pagou o sinal de ${ag.servico} em ${dataFormatada} às ${ag.inicio}.`,
+      agendamento_id: ag.id,
+    });
+  } catch (errSalao) {
+    console.error('[confirmarSinalPago] Erro ao notificar salão:', errSalao);
+  }
 
-  // Notificação + Web Push para o cliente — falhas não derrubam o fluxo
+  // Notificação + Web Push para o cliente
   try {
     const [{ data: salao }, { data: cliente }] = await Promise.all([
       supabaseAdmin.from('saloes').select('nome_fantasia').eq('id', ag.salao_id).maybeSingle(),

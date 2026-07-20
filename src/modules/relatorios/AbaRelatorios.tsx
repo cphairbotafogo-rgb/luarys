@@ -32,6 +32,9 @@ import { GavetaDashboard } from "./gavetas/GavetaDashboard";
 import { GavetaRelatorioPrincipais } from "./gavetas/GavetaRelatorioPrincipais";
 import { GavetaComparativo } from "./gavetas/GavetaComparativo";
 import { GavetaBuscaServico } from "./gavetas/GavetaBuscaServico";
+import { GavetaRepasse } from "./gavetas/GavetaRepasse";
+import { GavetaPgdasd } from "./gavetas/GavetaPgdasd";
+import { GavetaEfdReinf } from "./gavetas/GavetaEfdReinf";
 
 export function AbaRelatorios({ perfil }: any) {
   const [relatorioAtivo, setRelatorioAtivo] = useState(() => {
@@ -138,6 +141,9 @@ export function AbaRelatorios({ perfil }: any) {
     'comparativo':           'Comparativo de Períodos',
     'busca_servico':         'Clientes por Serviço Realizado',
     'ticket_medio':          'Ticket Médio do Estabelecimento',
+    'repasse_profissionais': 'Repasse de Profissionais Parceiros',
+    'pgdas_d':               'Apuração PGDAS-D (Simples Nacional)',
+    'efd_reinf':             'EFD-Reinf R-4010 / eSocial S-2300',
   };
 
   if (carregando && dadosBase.financeiro.length === 0) return (
@@ -242,6 +248,15 @@ export function AbaRelatorios({ perfil }: any) {
           <button style={menuBtnStyle(relatorioAtivo === 'fechamento')} onClick={() => setRelatorioAtivo('fechamento')}>
             <FiBookOpen size={16} /> Kit Fechamento Contábil
           </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'repasse_profissionais')} onClick={() => setRelatorioAtivo('repasse_profissionais')}>
+            <FiDollarSign size={16} /> Repasse de Parceiros
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'pgdas_d')} onClick={() => setRelatorioAtivo('pgdas_d')}>
+            <FiPieChart size={16} /> Base PGDAS-D
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'efd_reinf')} onClick={() => setRelatorioAtivo('efd_reinf')}>
+            <FiBookOpen size={16} /> EFD-Reinf / eSocial
+          </button>
           {(perfil?.isDono || temPermissao(perfil, 'auditoria.ver_log_auditoria')) && (
             <button style={menuBtnStyle(relatorioAtivo === 'auditoria')} onClick={() => setRelatorioAtivo('auditoria')}>
               <FiShield size={16} /> Log de Auditoria
@@ -338,6 +353,9 @@ export function AbaRelatorios({ perfil }: any) {
           {relatorioAtivo === 'capacidade' && ((perfil?.isDono || temPermissao(perfil, 'auditoria.ver_extrato_capacidade_equipe') || temPermissao(perfil, 'auditoria.ver_extrato_capacidade_proprio')) ? <GavetaCapacidade dados={dadosBase} perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'busca_servico' && <GavetaBuscaServico dados={dadosBase} perfil={perfil} />}
           {relatorioAtivo === 'ticket_medio' && <GavetaDashboard dados={dadosBase} />}
+          {relatorioAtivo === 'repasse_profissionais' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaRepasse perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
+          {relatorioAtivo === 'pgdas_d' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaPgdasd perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
+          {relatorioAtivo === 'efd_reinf' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaEfdReinf perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
         </div>
 
       </div>

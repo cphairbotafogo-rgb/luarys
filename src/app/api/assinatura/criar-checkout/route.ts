@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // a config simples (plataforma_config) e depois para as env vars.
     const { data: contaAtivaRaw } = await supabaseAdmin
       .from('plataforma_contas_recebimento')
-      .select('gateway, mercadopago_access_token, infinitepay_handle, cielo_merchant_id, cielo_merchant_key')
+      .select('gateway, mercadopago_access_token, infinitepay_handle, cielo_merchant_id, cielo_merchant_key, asaas_api_key, asaas_environment')
       .eq('ativa', true)
       .maybeSingle();
     const contaAtiva = contaAtivaRaw as any;
@@ -256,8 +256,84 @@ export async function POST(request: NextRequest) {
       checkoutUrl        = cieloData.shortUrl;
       pagamentoExternoId = cieloOrderNumber;
 
+    // ─── ASAAS ───
+    } else if (gatewayPlataforma === 'asaas') {
+      const asaasKey = contaAtiva?.asaas_api_key || process.env.ASAAS_API_KEY;
+
+      if (!asaasKey) {
+        return NextResponse.json({ erro: 'Gateway Asaas selecionado, mas ASAAS_API_KEY não está configurado em /admin nem nas variáveis de ambiente.' }, { status: 500 });
+      }
+
+      const asaasEnv = contaAtiva?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production';
+      const asaasBase = asaasEnv === 'sandbox'
+        ? 'https://sandbox.asaas.com/api/v3'
+        : 'https://api.asaas.com/v3';
+
+      // Busca cliente pelo e-mail; cria se não existir
+      let asaasCustomerId: string;
+
+      if (salao.email_contato) {
+        const searchResp = await fetch(`${asaasBase}/customers?email=${encodeURIComponent(salao.email_contato)}`, {
+          headers: { 'access_token': asaasKey },
+        });
+        const searchData = await searchResp.json();
+        asaasCustomerId = searchData.data?.[0]?.id ?? '';
+      } else {
+        asaasCustomerId = '';
+      }
+
+      if (!asaasCustomerId) {
+        const custResp = await fetch(`${asaasBase}/customers`, {
+          method: 'POST',
+          headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name:              salao.nome_fantasia || salao.razao_social || `Salão ${salao_id}`,
+            email:             salao.email_contato || undefined,
+            externalReference: salao_id,
+          }),
+        });
+        const custData = await custResp.json();
+        if (!custResp.ok || !custData.id) {
+          return NextResponse.json({ erro: 'Falha ao criar cliente no Asaas: ' + (custData.errors?.[0]?.description || JSON.stringify(custData)) }, { status: 400 });
+        }
+        asaasCustomerId = custData.id;
+      }
+
+      // Vencimento em 3 dias úteis
+      const venc = new Date();
+      venc.setDate(venc.getDate() + 3);
+      const vencStr = venc.toISOString().split('T')[0];
+
+      // billingType UNDEFINED = cliente escolhe PIX ou cartão na página do Asaas
+      const cobrancaResp = await fetch(`${asaasBase}/payments`, {
+        method: 'POST',
+        headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer:          asaasCustomerId,
+          billingType:       'UNDEFINED',
+          value:             Math.round(precoItem * 100) / 100,
+          dueDate:           vencStr,
+          description:       descricao,
+          externalReference: referencia,
+          installmentCount:  1,
+          callback: {
+            successUrl:  `${appUrl}/#configuracoes`,
+            autoRedirect: true,
+          },
+        }),
+      });
+
+      const cobrancaData = await cobrancaResp.json();
+
+      if (!cobrancaResp.ok || !cobrancaData.id) {
+        return NextResponse.json({ erro: 'Falha ao gerar cobrança no Asaas: ' + (cobrancaData.errors?.[0]?.description || JSON.stringify(cobrancaData)) }, { status: 400 });
+      }
+
+      checkoutUrl        = cobrancaData.invoiceUrl;
+      pagamentoExternoId = cobrancaData.id;
+
     } else {
-      return NextResponse.json({ erro: `PLATFORM_GATEWAY inválido: "${gatewayPlataforma}". Use "mercadopago", "infinitepay" ou "cielo".` }, { status: 500 });
+      return NextResponse.json({ erro: `PLATFORM_GATEWAY inválido: "${gatewayPlataforma}". Use "mercadopago", "infinitepay", "cielo" ou "asaas".` }, { status: 500 });
     }
 
     // 3. Registra a tentativa de pagamento como "pending"

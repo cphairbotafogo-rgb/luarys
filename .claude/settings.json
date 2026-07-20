@@ -6,7 +6,17 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(node -e \"const {createClient} = require\\('@supabase/supabase-js'\\); const s = createClient\\(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yojtfrgoosapnsvyzgpw.supabase.co', process.env.SUPABASE_SERVICE_ROLE_KEY || ''\\); s.from\\('saloes'\\).select\\('gateway_pagamento, token_pagamento'\\).eq\\('id', '2746822d-fcbf-4d03-9f1a-cc66f94adbf2'\\).single\\(\\).then\\(r => console.log\\(JSON.stringify\\(r\\)\\)\\)\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "PowerShell(npx vercel ls --limit 3 2>&1)",
+      "PowerShell(npx vercel inspect https://luarys-a4kt2p4t2-cphairbotafogo-rgbs-projects.vercel.app 2>&1)",
+      "PowerShell(npx vercel whoami 2>&1)",
+      "PowerShell(npx vercel logs https://luarys-a4kt2p4t2-cphairbotafogo-rgbs-projects.vercel.app 2>&1)",
+      "PowerShell(git push origin main 2>&1)",
+      "WebFetch(domain:www.gov.br)",
+      "WebFetch(domain:blog.grancursosonline.com.br)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\conce\\.claude\\projects\\c--Users-conce-OneDrive--rea-de-Trabalho-Luarys\\memory"
     ]
   }
 }

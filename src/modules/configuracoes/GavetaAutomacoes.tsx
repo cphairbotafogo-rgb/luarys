@@ -23,20 +23,9 @@ export function GavetaAutomacoes({ perfil }: any) {
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
   const [msgConfirmacao, setMsgConfirmacao] = useState(MSG_CONFIRMACAO_PADRAO);
   const [salvandoConfirmacao, setSalvandoConfirmacao] = useState(false);
-  const textareaConfRef = useRef<HTMLTextAreaElement>(null);
+  const [antecedenciaHoras, setAntecedenciaHoras] = useState<number>(24);
+  const [salvandoAntecedencia, setSalvandoAntecedencia] = useState(false);
   const textareaAutoRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
-
-  function inserirVariavel(variavel: string) {
-    const el = textareaConfRef.current;
-    if (!el) { setMsgConfirmacao(prev => prev + variavel); return; }
-    const start = el.selectionStart ?? msgConfirmacao.length;
-    const end   = el.selectionEnd   ?? start;
-    setMsgConfirmacao(msgConfirmacao.slice(0, start) + variavel + msgConfirmacao.slice(end));
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + variavel.length, start + variavel.length);
-    });
-  }
 
   function inserirVariavelAutomacao(autoId: string, variavel: string, template: string) {
     const el = textareaAutoRefs.current[autoId];
@@ -61,16 +50,29 @@ export function GavetaAutomacoes({ perfil }: any) {
   }
 
   async function carregarMsgConfirmacao() {
-    const { data } = await supabase.from('saloes').select('msg_confirmacao_agendamento').eq('id', perfil.salao_id).maybeSingle();
+    const { data } = await supabase
+      .from('saloes')
+      .select('msg_confirmacao_agendamento, confirmacao_antecedencia_horas')
+      .eq('id', perfil.salao_id)
+      .maybeSingle();
     if (data?.msg_confirmacao_agendamento) setMsgConfirmacao(data.msg_confirmacao_agendamento);
+    if (data?.confirmacao_antecedencia_horas) setAntecedenciaHoras(data.confirmacao_antecedencia_horas);
   }
 
-  async function salvarMsgConfirmacao() {
+  async function salvarMsgConfirmacao(texto: string) {
     setSalvandoConfirmacao(true);
-    const { error } = await supabase.from('saloes').update({ msg_confirmacao_agendamento: msgConfirmacao }).eq('id', perfil.salao_id);
+    const { error } = await supabase.from('saloes').update({ msg_confirmacao_agendamento: texto }).eq('id', perfil.salao_id);
     setSalvandoConfirmacao(false);
     if (error) toast.erro('Erro ao salvar: ' + error.message);
-    else toast.sucesso('Mensagem de confirmação salva!');
+    else { setMsgConfirmacao(texto); toast.sucesso('Template salvo!'); }
+  }
+
+  async function salvarAntecedencia(horas: number) {
+    setSalvandoAntecedencia(true);
+    const { error } = await supabase.from('saloes').update({ confirmacao_antecedencia_horas: horas }).eq('id', perfil.salao_id);
+    setSalvandoAntecedencia(false);
+    if (error) toast.erro('Erro ao salvar: ' + error.message);
+    else { setAntecedenciaHoras(horas); toast.sucesso(`Lembrete definido para ${horas}h antes!`); }
   }
 
   async function carregarAutomacoes() {
@@ -212,13 +214,12 @@ export function GavetaAutomacoes({ perfil }: any) {
       </div>
 
       <SecaoConfirmacao
-        msgConfirmacao={msgConfirmacao}
-        setMsgConfirmacao={setMsgConfirmacao}
-        textareaRef={textareaConfRef as any}
-        onInserir={inserirVariavel}
+        msgAtual={msgConfirmacao}
+        antecedenciaHoras={antecedenciaHoras}
         salvando={salvandoConfirmacao}
-        onSalvar={salvarMsgConfirmacao}
-        onRestaurar={() => setMsgConfirmacao(MSG_CONFIRMACAO_PADRAO)}
+        salvandoAntecedencia={salvandoAntecedencia}
+        onSalvarTemplate={salvarMsgConfirmacao}
+        onSalvarAntecedencia={salvarAntecedencia}
       />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>

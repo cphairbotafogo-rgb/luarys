@@ -10,6 +10,7 @@ import { RelatorioFaturamento } from './fechamentoContabil/components/RelatorioF
 import { RelatorioComissoes } from './fechamentoContabil/components/RelatorioComissoes';
 import { RelatorioLivroCaixa } from './fechamentoContabil/components/RelatorioLivroCaixa';
 import { RelatorioConciliacao } from './fechamentoContabil/components/RelatorioConciliacao';
+import { RelatorioFiscalParceiros } from './fechamentoContabil/components/RelatorioFiscalParceiros';
 
 export function GavetaFechamentoContabil({ perfil }: any) {
   const {
@@ -39,7 +40,7 @@ export function GavetaFechamentoContabil({ perfil }: any) {
             Kit Fechamento Contábil
           </h2>
           <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 13 }}>
-            4 relatórios prontos para o contador — exportáveis em CSV e PDF.
+            5 relatórios prontos para o contador — exportáveis em CSV e PDF.
           </p>
         </div>
 
@@ -110,6 +111,13 @@ export function GavetaFechamentoContabil({ perfil }: any) {
         onCSV={() => exportarCSV('conciliacao')}
         onPDF={() => exportarPDFRelatorio('conciliacao')}
         gerandoPDF={gerandoPDF}
+      />
+
+      <RelatorioFiscalParceiros
+        perfil={perfil}
+        mes={mes}
+        ano={ano}
+        mesAnoLabel={mesAnoLabel}
       />
 
       <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: RAIO_LG, padding: 16, fontSize: 12, color: '#92400E', lineHeight: 1.6 }}>

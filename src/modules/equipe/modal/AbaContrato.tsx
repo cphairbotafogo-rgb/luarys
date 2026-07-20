@@ -3,9 +3,56 @@
  * src/modules/equipe/modal/AbaContrato.tsx
  * Aba de vínculo de trabalho, dados de admissão e repasse bancário.
  */
+import { FiInfo, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 import { C } from "@/lib/constants";
-import { RAIO_XL } from "@/lib/estiloGlobal";
+import { RAIO_XL, RAIO_MD } from "@/lib/estiloGlobal";
 import { labelStyle, inputStyle } from "./estilosCompartilhados";
+
+function BannerFiscal({ tipo, cnpj }: { tipo: string; cnpj: string }) {
+  const temCnpj = (cnpj || '').replace(/\D/g, '').length === 14;
+
+  if (tipo.includes('Parceiro') && temCnpj) {
+    return (
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: RAIO_MD, padding: '10px 14px' }}>
+        <FiCheckCircle size={14} color="#15803D" style={{ marginTop: 2, flexShrink: 0 }} />
+        <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.6 }}>
+          <strong>Regime ótimo (Lei 13.352/2016 + CNPJ).</strong> A cota-parte deste profissional é excluída da sua receita bruta no Simples Nacional — você tributa apenas a parte do salão. O profissional deve emitir NFS-e ao salão pelo valor da cota mensal.
+        </p>
+      </div>
+    );
+  }
+
+  if (tipo.includes('Parceiro') && !temCnpj) {
+    return (
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: RAIO_MD, padding: '10px 14px' }}>
+        <FiAlertTriangle size={14} color="#B45309" style={{ marginTop: 2, flexShrink: 0 }} />
+        <p style={{ margin: 0, fontSize: 12, color: '#92400E', lineHeight: 1.6 }}>
+          <strong>Parceiro sem CNPJ —</strong> o salão tributa o valor <em>total</em> como receita bruta, sem dedução da cota do profissional. Preencha o CNPJ/MEI do parceiro para ativar a dedução (Resolução CGSN 140/2018). Sem CNPJ, também é necessário emitir RPA e reter INSS 11% sobre cada repasse.
+        </p>
+      </div>
+    );
+  }
+
+  if (tipo === 'CLT') {
+    return (
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: RAIO_MD, padding: '10px 14px' }}>
+        <FiInfo size={14} color="#1D4ED8" style={{ marginTop: 2, flexShrink: 0 }} />
+        <p style={{ margin: 0, fontSize: 12, color: '#1E40AF', lineHeight: 1.6 }}>
+          <strong>Regime CLT.</strong> Salário, FGTS e encargos são gerenciados via eSocial/Folha de Pagamento. Os valores da folha não entram na receita bruta do Simples Nacional.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: RAIO_MD, padding: '10px 14px' }}>
+      <FiInfo size={14} color="#6D28D9" style={{ marginTop: 2, flexShrink: 0 }} />
+      <p style={{ margin: 0, fontSize: 12, color: '#4C1D95', lineHeight: 1.6 }}>
+        <strong>Prestador PJ / Sócio.</strong> Deve emitir NFS-e ou RPS ao salão por cada repasse. Sem retenção de INSS pelo salão quando o prestador for optante do Simples Nacional.
+      </p>
+    </div>
+  );
+}
 
 export function AbaContrato({ form, setForm, listaFuncoes, setModalFuncoesAberto }: any) {
   return (
@@ -30,6 +77,9 @@ export function AbaContrato({ form, setForm, listaFuncoes, setModalFuncoesAberto
             <input list="funcoes-list" value={form.contrato.funcao || ""} onChange={(e) => setForm({ ...form, contrato: { ...form.contrato, funcao: e.target.value } })} style={inputStyle} placeholder="Selecione..." />
             <datalist id="funcoes-list">{listaFuncoes.map((f: any) => <option key={f.id} value={f.nome}>{f.nome}</option>)}</datalist>
           </div>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <BannerFiscal tipo={form.contrato.tipo} cnpj={form.contrato.cnpj || ''} />
         </div>
       </div>
       <div style={{ background: C.bg, padding: 20, borderRadius: RAIO_XL, border: `1px solid ${C.border}` }}>

@@ -67,10 +67,13 @@ export async function registrarPagamentoAssinatura({
     return { registrado: true, ativado: true, duplicado: true };
   }
 
+  // H2: registra pagamento como 'pending' primeiro — só marca 'approved' depois
+  // de ativar o módulo. Se a ativação falhar, fica 'pending' e o webhook pode
+  // ser reenviado. Evita estado inconsistente (pago mas módulo inativo).
   await supabaseAdmin
     .from('pagamentos_assinatura')
     .upsert(
-      { salao_id: salaoId, modulo_chave: moduloChave, valor, status, gateway, pagamento_externo_id: pagamentoExternoId },
+      { salao_id: salaoId, modulo_chave: moduloChave, valor, status: status === 'approved' ? 'pending' : status, gateway, pagamento_externo_id: pagamentoExternoId },
       { onConflict: 'pagamento_externo_id' }
     );
 
@@ -153,6 +156,11 @@ export async function registrarPagamentoAssinatura({
       alterado_por: null,
     });
 
+    // H2: só marca como 'approved' depois da ativação ter sucesso
+    await supabaseAdmin.from('pagamentos_assinatura')
+      .update({ status: 'approved' })
+      .eq('pagamento_externo_id', pagamentoExternoId);
+
     return { registrado: true, ativado: true, tipo: 'plano', periodo };
   }
 
@@ -176,6 +184,11 @@ export async function registrarPagamentoAssinatura({
     );
 
   if (erroModulo) return { registrado: true, ativado: false, erro: erroModulo.message };
+
+  // H2: só marca como 'approved' depois da ativação ter sucesso
+  await supabaseAdmin.from('pagamentos_assinatura')
+    .update({ status: 'approved' })
+    .eq('pagamento_externo_id', pagamentoExternoId);
 
   return { registrado: true, ativado: true, tipo: 'modulo', periodo };
 }

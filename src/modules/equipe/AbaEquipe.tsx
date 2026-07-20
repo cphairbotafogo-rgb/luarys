@@ -24,6 +24,20 @@ import { ModalAdiantamento } from "./modal/ModalAdiantamento";
 import { ModalFuncoes } from "./modal/ModalFuncoes";
 import { ModalLimitePlano } from "./modal/ModalLimitePlano";
 
+// Deriva o regime fiscal do profissional a partir do tipo de contrato e CNPJ.
+// Usada em salvarProfissional — coluna tipo_parceiro é consultável no banco.
+function derivarTipoParceiro(tipoContrato: string, cnpj: string): string {
+  const t = tipoContrato || '';
+  if (t.includes('Parceiro')) {
+    const digits = (cnpj || '').replace(/\D/g, '');
+    return digits.length === 14 ? 'parceiro_cnpj' : 'parceiro_cpf';
+  }
+  if (t === 'CLT') return 'clt';
+  if (t.includes('PJ') || t.includes('MEI') || t.includes('Prestador')) return 'pj';
+  if (t === 'Sociedade') return 'socio';
+  return 'parceiro_cpf';
+}
+
 export function AbaEquipe({ perfil }: any) {
   const toast = useToast();
   // ─── ESTADOS PRINCIPAIS E CONEXÕES ───
@@ -253,7 +267,9 @@ export function AbaEquipe({ perfil }: any) {
 
     const dados = {
       nome: form.nome, especialidades: form.especialidades, servicos_comissoes: form.comissoes, comissao_produtos: form.comissao_produtos,
-      cnpj_mei: form.contrato.cnpj, inscricao_municipal: form.contrato.inscricaoMunicipal, permissoes: form.permissoes, foto_url: form.foto_url,
+      cnpj_mei: form.contrato.cnpj, inscricao_municipal: form.contrato.inscricaoMunicipal,
+      tipo_parceiro: derivarTipoParceiro(form.contrato.tipo, form.contrato.cnpj),
+      permissoes: form.permissoes, foto_url: form.foto_url,
       ativo: form.ativo, produtivo: form.exibir_na_agenda, permite_comissao_produtos: form.permite_comissao_produtos,
       perfil_avancado: { apelido: form.apelido, cpf: form.cpf, rg: form.rg, estadoCivil: form.estadoCivil, telefone: form.telefone, email: form.email, genero: form.genero, nascimento: form.nascimento, exibir_na_agenda: form.exibir_na_agenda, folha_pagamento: form.folha_pagamento, horarios: form.horarios, banco: form.banco, contrato: form.contrato, endereco: form.endereco }
     };

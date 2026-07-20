@@ -11,8 +11,8 @@ export function usePortalDados({ clienteLogado, salaoSelecionado }: { clienteLog
   const [vitrineConfig, setVitrineConfig] = useState<any>(null);
   const [vitrineLiberada, setVitrineLiberada] = useState(false);
 
-  // ─── PRÓXIMA VISITA ───────────────────────────────────────────────────────────
-  const [proximoAgendamento, setProximoAgendamento] = useState<any>(null);
+  // ─── AGENDAMENTOS FUTUROS ─────────────────────────────────────────────────────
+  const [proximosAgendamentos, setProximosAgendamentos] = useState<any[]>([]);
   const [carregandoProximo, setCarregandoProximo] = useState(true);
 
   async function buscarProximaVisita() {
@@ -28,9 +28,8 @@ export function usePortalDados({ clienteLogado, salaoSelecionado }: { clienteLog
       .neq('status', 'Cancelado')
       .order('data', { ascending: true })
       .order('inicio', { ascending: true })
-      .limit(1);
-    if (!error && data && data.length > 0) setProximoAgendamento(data[0]);
-    else setProximoAgendamento(null);
+      .limit(10);
+    setProximosAgendamentos(!error && data ? data : []);
     setCarregandoProximo(false);
   }
 
@@ -52,14 +51,15 @@ export function usePortalDados({ clienteLogado, salaoSelecionado }: { clienteLog
   const [modalCancelamentoAberto, setModalCancelamentoAberto] = useState(false);
   const [cienteCancelamento, setCienteCancelamento] = useState(false);
   const [cancelandoAgendamento, setCancelandoAgendamento] = useState(false);
+  const [agendamentoParaCancelar, setAgendamentoParaCancelar] = useState<any>(null);
 
   let permiteCancelamentoGratuito = false;
   let motivoRegistoLegal = "";
-  if (proximoAgendamento?.data && proximoAgendamento?.inicio) {
+  if (agendamentoParaCancelar?.data && agendamentoParaCancelar?.inicio) {
     const agora = new Date().getTime();
-    const dataHoraServico = new Date(`${proximoAgendamento.data}T${proximoAgendamento.inicio}`).getTime();
+    const dataHoraServico = new Date(`${agendamentoParaCancelar.data}T${agendamentoParaCancelar.inicio}`).getTime();
     const faltaMs = dataHoraServico - agora;
-    const criacao = new Date(proximoAgendamento.created_at || new Date()).getTime();
+    const criacao = new Date(agendamentoParaCancelar.created_at || new Date()).getTime();
     const decorrido = agora - criacao;
     if (faltaMs >= 24 * 60 * 60 * 1000) {
       permiteCancelamentoGratuito = true;
@@ -72,19 +72,21 @@ export function usePortalDados({ clienteLogado, salaoSelecionado }: { clienteLog
     }
   }
 
-  function abrirModalCancelamento() {
+  function abrirModalCancelamento(ag: any) {
+    setAgendamentoParaCancelar(ag);
     setCienteCancelamento(false);
     setModalCancelamentoAberto(true);
   }
 
   async function confirmarCancelamentoAgendamento() {
-    if (!proximoAgendamento?.id) return;
+    if (!agendamentoParaCancelar?.id) return;
     setCancelandoAgendamento(true);
-    const novaObs = (proximoAgendamento.observacao || "") + motivoRegistoLegal;
-    const { error } = await supabase.from('agendamentos').update({ status: 'Cancelado', observacao: novaObs }).eq('id', proximoAgendamento.id);
+    const novaObs = (agendamentoParaCancelar.observacao || "") + motivoRegistoLegal;
+    const { error } = await supabase.from('agendamentos').update({ status: 'Cancelado', observacao: novaObs }).eq('id', agendamentoParaCancelar.id);
     if (!error) {
       toast.sucesso("Agendamento cancelado com sucesso.");
       setModalCancelamentoAberto(false);
+      setAgendamentoParaCancelar(null);
       await buscarProximaVisita();
     } else {
       toast.erro("Erro ao cancelar: " + error.message);
@@ -178,7 +180,7 @@ export function usePortalDados({ clienteLogado, salaoSelecionado }: { clienteLog
   return {
     clienteFresh, setClienteFresh,
     vitrineConfig, vitrineLiberada,
-    proximoAgendamento, carregandoProximo, buscarProximaVisita,
+    proximosAgendamentos, carregandoProximo, buscarProximaVisita,
     permiteCancelamentoGratuito, motivoRegistoLegal,
     modalCancelamentoAberto, setModalCancelamentoAberto,
     cienteCancelamento, setCienteCancelamento,

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   // Busca as notas fiscais garantindo que pertencem ao salão do usuário
   const { data: notas } = await supabaseAdmin
     .from('notas_fiscais')
-    .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, item_lista_servico')
+    .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, item_lista_servico, cnpj_profissional, tipo_parceiro, valor_cota_profissional, valor_cota_salao')
     .in('id', nota_ids)
     .eq('salao_id', perfil.salao_id)
     .eq('status', 'Não Emitido');

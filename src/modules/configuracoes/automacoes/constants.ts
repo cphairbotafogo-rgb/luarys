@@ -6,16 +6,44 @@ export const ROTULOS_GATILHO: Record<string, { label: string; icone: any; cor: s
 };
 
 export const MSG_CONFIRMACAO_PADRAO =
-`Olá {nome_do_cliente}!
+`{nome_do_cliente}, seu horário está confirmado.
+📅 {data} às {horario}
+✂️ {servico} · {profissional}
+{nome_salao}`;
 
-Confirmando seu agendamento:
+// Três templates fixos classificados como Utility pela Meta
+// (sem oferta, sem promoção, sem linguagem de marketing → menor custo de cobrança)
+export const TEMPLATES_CONFIRMACAO: { id: string; titulo: string; descricao: string; texto: string }[] = [
+  {
+    id: 'compacta',
+    titulo: 'Compacta',
+    descricao: 'Dados em lista, emoji discreto. Leitura rápida no celular.',
+    texto:
+`{nome_do_cliente}, seu horário está confirmado.
+📅 {data} às {horario}
+✂️ {servico} · {profissional}
+{nome_salao}`,
+  },
+  {
+    id: 'corrida',
+    titulo: 'Linha única',
+    descricao: 'Uma frase só — mínimo de texto, máximo de clareza.',
+    texto:
+`Olá {nome_do_cliente}! Agendamento confirmado: {data} às {horario}, {servico} com {profissional}. — {nome_salao}`,
+  },
+  {
+    id: 'formal',
+    titulo: 'Formal',
+    descricao: 'Formato tabular sem emoji. Ideal para salões mais tradicionais.',
+    texto:
+`{nome_do_cliente}, confirmação de agendamento:
 Data: {data}
 Horário: {horario}
 Serviço: {servico}
 Profissional: {profissional}
-
-Qualquer dúvida, estamos aqui!
-— {nome_salao}`;
+{nome_salao}`,
+  },
+];
 
 export const DICA_PLACEHOLDERS = [
   { var: '{nome_do_cliente}', desc: 'Nome do cliente' },

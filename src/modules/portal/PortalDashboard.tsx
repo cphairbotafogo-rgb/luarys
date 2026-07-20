@@ -91,34 +91,38 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
 
           <PortalComunicados salaoId={salaoSelecionado?.id} />
 
-          {/* ─── PRÓXIMO AGENDAMENTO ─── */}
+          {/* ─── MEUS AGENDAMENTOS ─── */}
           <div style={{ ...cardConteudo, padding: 24 }}>
-            <h3 style={{ fontFamily: FONTE_TITULO, margin: "0 0 16px", fontSize: 16, fontWeight: 800, color: C.textMain }}>Próximo Agendamento</h3>
+            <h3 style={{ fontFamily: FONTE_TITULO, margin: "0 0 16px", fontSize: 16, fontWeight: 800, color: C.textMain }}>Meus Agendamentos</h3>
             {pd.carregandoProximo ? (
               <p style={{ textAlign: "center", fontSize: 13, color: C.textLight, margin: 0 }}>Consultando sua agenda...</p>
-            ) : pd.proximoAgendamento ? (
-              <div style={{ background: C.bg, borderRadius: RAIO_XL, padding: 16, display: "flex", flexDirection: "column", gap: 12, border: `1px solid ${C.border}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg }}>{pd.proximoAgendamento?.servicos?.nome_servico || "Serviço"}</h4>
-                    <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textMain, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><FiUser size={13} /> {pd.proximoAgendamento?.profissionais?.nome || "Equipe"}</p>
-                    <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight, display: "flex", alignItems: "center", gap: 6 }}><FiCalendar size={12} /> {pd.proximoAgendamento?.data?.split('-').reverse().join('/')} às {pd.proximoAgendamento?.inicio?.substring(0, 5)}</p>
-                  </div>
-                  <span style={{ background: pd.proximoAgendamento?.status === 'Confirmado' ? C.success : pd.proximoAgendamento?.status === 'Aguardando' ? C.warning : pd.proximoAgendamento?.status === 'Cancelado' ? C.danger : C.textMuted, color: "#fff", padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>{pd.proximoAgendamento?.status}</span>
-                </div>
-                {['Confirmado', 'Aguardando'].includes(pd.proximoAgendamento?.status) && (
-                  <button onClick={pd.abrirModalCancelamento} style={{ background: "none", border: `1px solid ${C.danger}`, color: C.danger, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}>Cancelar Agendamento</button>
-                )}
-                {pd.proximoAgendamento?.status === 'Finalizado' && (
-                  <button onClick={() => pd.setAgendamentoParaAvaliar({ id: pd.proximoAgendamento.id, servico: pd.proximoAgendamento?.servicos?.nome_servico || "Serviço", profissional: pd.proximoAgendamento?.profissionais?.nome || "Equipe", id_prof: pd.proximoAgendamento?.profissional_id, data: pd.proximoAgendamento?.data, inicio: pd.proximoAgendamento?.inicio })}
-                    className="transition-all hover:opacity-90"
-                    style={{ background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                    <FiStar size={13} /> Avaliar este atendimento
-                  </button>
-                )}
-              </div>
-            ) : (
+            ) : pd.proximosAgendamentos.length === 0 ? (
               <p style={{ margin: 0, fontSize: 13, color: C.textMuted, textAlign: "center", padding: "16px 0" }}>Você não tem nenhum agendamento futuro nesta unidade.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {pd.proximosAgendamentos.map((ag: any) => (
+                  <div key={ag.id} style={{ background: C.bg, borderRadius: RAIO_XL, padding: 16, display: "flex", flexDirection: "column", gap: 12, border: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg }}>{ag.servicos?.nome_servico || "Serviço"}</h4>
+                        <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textMain, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}><FiUser size={13} /> {ag.profissionais?.nome || "Equipe"}</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight, display: "flex", alignItems: "center", gap: 6 }}><FiCalendar size={12} /> {ag.data?.split('-').reverse().join('/')} às {ag.inicio?.substring(0, 5)}</p>
+                      </div>
+                      <span style={{ background: ag.status === 'Confirmado' ? C.success : ag.status === 'Aguardando' ? C.warning : ag.status === 'Cancelado' ? C.danger : C.textMuted, color: "#fff", padding: "6px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>{ag.status}</span>
+                    </div>
+                    {['Confirmado', 'Aguardando'].includes(ag.status) && (
+                      <button onClick={() => pd.abrirModalCancelamento(ag)} style={{ background: "none", border: `1px solid ${C.danger}`, color: C.danger, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}>Cancelar Agendamento</button>
+                    )}
+                    {ag.status === 'Finalizado' && (
+                      <button onClick={() => pd.setAgendamentoParaAvaliar({ id: ag.id, servico: ag.servicos?.nome_servico || "Serviço", profissional: ag.profissionais?.nome || "Equipe", id_prof: ag.profissional_id, data: ag.data, inicio: ag.inicio })}
+                        className="transition-all hover:opacity-90"
+                        style={{ background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                        <FiStar size={13} /> Avaliar este atendimento
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

@@ -90,7 +90,18 @@ export function buildPayloadNFSe(opts: {
     regime_tributario?: string;  // campo direto de saloes (Dados da Empresa)
     config_fiscal?: any;
   };
-  nota: { cliente_nome?: string; cliente_cpf?: string; descricao_servico: string; valor: number; item_lista_servico?: string };
+  nota: {
+    cliente_nome?: string;
+    cliente_cpf?: string;
+    descricao_servico: string;
+    valor: number;
+    item_lista_servico?: string;
+    // campos de cota-parte (Fatia 5 — discriminação gDed na NFS-e)
+    cnpj_profissional?: string | null;
+    tipo_parceiro?: string | null;
+    valor_cota_profissional?: number | null;
+    valor_cota_salao?: number | null;
+  };
 }): PayloadNFSe {
   const { salao, nota } = opts;
   const aliquota = parseFloat(salao.config_fiscal?.aliquota_padrao || '2.00') / 100;
@@ -105,6 +116,19 @@ export function buildPayloadNFSe(opts: {
   const localBrasilia = agora.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' });
   const dataEmissao = localBrasilia.replace(' ', 'T') + '-03:00';
 
+  // gDed — dedução da cota do profissional parceiro com CNPJ (Lei 13.352/2016 +
+  // Resolução CGSN 140/2018). Só aplicável quando tipo_parceiro = 'parceiro_cnpj'
+  // e há valor de cota positivo. A base do ISS cai para a cota do salão.
+  const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj';
+  const valorDeducoes = ehParceiroComCnpj && Number(nota.valor_cota_profissional) > 0
+    ? Number(nota.valor_cota_profissional)
+    : 0;
+  // Algumas prefeituras rejeitam base_calculo = 0 (ex: São Paulo código E10).
+  // Limita a dedução para que a base mínima seja R$ 0,01 quando há valor de serviço.
+  const baseCalculo = nota.valor > 0
+    ? Math.max(0.01, nota.valor - valorDeducoes)
+    : 0;
+
   const payload: PayloadNFSe = {
     data_emissao: dataEmissao,
     natureza_operacao: 1,
@@ -117,11 +141,12 @@ export function buildPayloadNFSe(opts: {
     },
     servicos: [{
       aliquota,
-      base_calculo: nota.valor,
+      base_calculo: baseCalculo,
       descricao: nota.descricao_servico || 'Serviços de beleza',
       iss_retido: false,
       item_lista_servico: nota.item_lista_servico || '06.01',
       valor_servico: nota.valor,
+      valor_deducoes: valorDeducoes > 0 ? valorDeducoes : undefined,
     }],
   };
 
