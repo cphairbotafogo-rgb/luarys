@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from "react";
 import { C, brl } from "@/lib/constants";
-import { FONTE_CORPO, FONTE_TITULO, cardConteudo, botaoPrimario, SOMBRA_SUAVE } from "./estiloPortal";
+import { FONTE_CORPO, FONTE_TITULO, cardConteudo } from "./estiloPortal";
 import { RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
 
 // Intervalo de polling: 5 segundos
@@ -54,11 +54,11 @@ export function PortalPagamentoReserva({ salaoSelecionado, servicoEscolhido, cli
     setVerificando(true);
 
     try {
-      const body: any = { salao_id: salaoSelecionado.id, gateway: dados.gateway };
+      // agendamento_id enviado para todos os gateways — permite salvar forma de pagamento
+      const body: any = { salao_id: salaoSelecionado.id, gateway: dados.gateway, agendamento_id: agId };
 
       if (dados.gateway === 'infinitepay') {
-        // C2: envia agendamento_id — o servidor deriva order_nsu/slug para evitar spoofing
-        body.agendamento_id = agId;
+        // C2: servidor deriva order_nsu/slug para evitar spoofing
       } else if (dados.gateway === 'mercadopago') {
         body.id_transacao = dados.idTransacao;
       } else if (dados.gateway === 'simulador') {

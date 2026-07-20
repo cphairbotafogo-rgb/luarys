@@ -15,7 +15,7 @@ import { MotorAgendamento }  from "./components/MotorAgendamento";
 import { usePortalDados }    from "./hooks/usePortalDados";
 import { useAgendamentoFluxo } from "./hooks/useAgendamentoFluxo";
 import {
-  LOGO_ALTURA_HEADER, FONTE_CORPO, FONTE_TITULO, GRADIENTE_SLATE,
+  FONTE_CORPO, FONTE_TITULO, GRADIENTE_SLATE,
   cardConteudo, SOMBRA_SUAVE,
 } from "./estiloPortal";
 import { RAIO_MD, RAIO_LG, RAIO_XL, RAIO_3XL } from "@/lib/estiloGlobal";
@@ -33,7 +33,9 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
 
       {/* ─── CABEÇALHO ─── */}
       <div style={{ background: C.bgCard, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, position: "sticky", top: 0, zIndex: 50, boxShadow: SOMBRA_SUAVE }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA_HEADER, objectFit: "contain" }} />
+        <div style={{ display: "flex", alignItems: "center", padding: "6px 14px 6px 10px", borderRadius: RAIO_LG, border: `1.5px solid ${C.douradoEleva}50`, background: `linear-gradient(135deg, ${C.douradoEleva}12, transparent)`, boxShadow: `0 0 0 3px ${C.douradoEleva}10` }}>
+            <img src={C.logoUrl} alt="Luarys" style={{ height: 52, objectFit: "contain", display: "block" }} />
+          </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
             <span style={{ fontFamily: FONTE_TITULO, fontSize: 16, color: C.textMain, fontWeight: 800 }}>{salaoSelecionado?.nome_fantasia || "Unidade"}</span>
@@ -189,7 +191,7 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => pd.setModalExclusaoAberto(false)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONTE_TITULO }}>Cancelar</button>
               <button onClick={pd.solicitarExclusaoConta} disabled={pd.enviandoExclusao} style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: '#EF4444', color: '#fff', fontSize: 13, fontWeight: 700, cursor: pd.enviandoExclusao ? 'not-allowed' : 'pointer', fontFamily: FONTE_TITULO }}>
-                {pd.enviandoExclusao ? 'Enviando...' : 'Confirmar exclusão'}
+                {pd.enviandoExclusao ? 'Excluindo...' : 'Confirmar exclusão'}
               </button>
             </div>
           </div>

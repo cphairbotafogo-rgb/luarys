@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: boolean; erro?: string }> {
   const { data: ag, error: erroAg } = await supabaseAdmin
     .from('agendamentos')
-    .select('id, salao_id, cliente_id, cliente_nome, servico, data, inicio, valor_sinal, status, sinal_pago')
+    .select('id, salao_id, cliente_id, cliente_nome, servico, data, inicio, valor_sinal, status, sinal_pago, forma_pagamento_sinal, parcelas_sinal')
     .eq('id', agendamentoId)
     .maybeSingle();
 
@@ -39,6 +39,35 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
     ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     : '';
 
+  // Lança o sinal como entrada no financeiro (forma de pagamento + valor separado do fechamento)
+  if (ag.valor_sinal && Number(ag.valor_sinal) > 0) {
+    const dataMovimento = ag.data
+      ? new Date(`${ag.data}T12:00:00`).toISOString()
+      : new Date().toISOString();
+    const formaPag = ag.forma_pagamento_sinal || 'Portal';
+    const parcelas = ag.parcelas_sinal && ag.parcelas_sinal > 1 ? ag.parcelas_sinal : null;
+    const comentario = parcelas
+      ? `Sinal pago via portal do cliente — ${formaPag} em ${parcelas}x.`
+      : `Sinal pago via portal do cliente — ${formaPag}.`;
+
+    supabaseAdmin.from('financeiro').insert({
+      salao_id: ag.salao_id,
+      cliente_nome: ag.cliente_nome,
+      descricao: `Sinal de Reserva — ${ag.servico}`,
+      tipo: 'entrada',
+      categoria: 'Sinal de Reserva',
+      valor: Number(ag.valor_sinal),
+      forma_pagamento: formaPag,
+      metodo_pagamento: formaPag,
+      status: 'Pago',
+      data_movimentacao: dataMovimento,
+      agendamento_ids: [ag.id],
+      comentario,
+    }).then(({ error }) => {
+      if (error) console.error('[confirmarSinalPago] Falha ao lançar sinal no financeiro:', error.message);
+    });
+  }
+
   // Notificações — falhas não derrubam o fluxo de confirmação do pagamento
   try {
     await supabaseAdmin.from('notificacoes').insert({
@@ -47,7 +76,12 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       destinatario_id: ag.salao_id,
       tipo: 'sinal_confirmado',
       titulo: 'Sinal de reserva confirmado',
-      mensagem: `${ag.cliente_nome} pagou o sinal de ${ag.servico} em ${dataFormatada} às ${ag.inicio}.`,
+      mensagem: (() => {
+        const base = `${ag.cliente_nome} pagou o sinal de ${ag.servico} em ${dataFormatada} às ${ag.inicio}.`;
+        if (!ag.forma_pagamento_sinal) return base;
+        const parcelas = ag.parcelas_sinal && ag.parcelas_sinal > 1 ? ` em ${ag.parcelas_sinal}x` : '';
+        return `${base} Pagamento: ${ag.forma_pagamento_sinal}${parcelas}.`;
+      })(),
       agendamento_id: ag.id,
     });
   } catch (errSalao) {

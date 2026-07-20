@@ -6,6 +6,27 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function formatarFormaPagamentoIP(data: any): string {
+  if (!data) return 'InfinitePay';
+  const method = (data.payment_method || '').toLowerCase();
+  const brand  = data.brand ? ` (${data.brand})` : '';
+  if (method === 'credit') return `Crédito${brand}`;
+  if (method === 'debit')  return `Débito${brand}`;
+  if (method === 'pix')    return 'PIX';
+  return `InfinitePay${brand}`;
+}
+
+async function salvarFormaPagamento(agendamentoId: string, salaoId: string, formaPagamento: string, parcelas: number) {
+  if (!agendamentoId || !UUID_REGEX.test(agendamentoId)) return;
+  await supabaseAdmin
+    .from('agendamentos')
+    .update({ forma_pagamento_sinal: formaPagamento, parcelas_sinal: parcelas })
+    .eq('id', agendamentoId)
+    .eq('salao_id', salaoId);
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -14,15 +35,14 @@ export async function POST(request: Request) {
     if (!salao_id || !gateway) {
       return NextResponse.json({ erro: 'Dados insuficientes para verificar o pagamento.' }, { status: 400 });
     }
-
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_REGEX.test(salao_id)) {
       return NextResponse.json({ erro: 'ID de salão inválido.' }, { status: 400 });
     }
 
-    // ─── SIMULADOR: aprovado diretamente ───
+    // ─── SIMULADOR ────────────────────────────────────────────────────────────
     if (gateway === 'simulador') {
-      return NextResponse.json({ aprovado: true });
+      await salvarFormaPagamento(agendamento_id, salao_id, 'Simulador (PIX)', 1);
+      return NextResponse.json({ aprovado: true, formaPagamento: 'Simulador (PIX)', parcelas: 1 });
     }
 
     const { data: salao, error } = await supabaseAdmin
@@ -37,7 +57,7 @@ export async function POST(request: Request) {
 
     const token = salao.token_pagamento;
 
-    // ─── MERCADO PAGO ───
+    // ─── MERCADO PAGO ─────────────────────────────────────────────────────────
     if (gateway === 'mercadopago') {
       if (!id_transacao) {
         return NextResponse.json({ erro: 'ID da transação não informado.' }, { status: 400 });
@@ -53,19 +73,25 @@ export async function POST(request: Request) {
         return NextResponse.json({ erro: 'Falha ao consultar Mercado Pago.' }, { status: 400 });
       }
       const mpData = await mpRes.json();
-      return NextResponse.json({ aprovado: mpData.status === 'approved' });
+      const aprovado = mpData.status === 'approved';
+
+      // MP neste fluxo é sempre PIX (payment_method_id: 'pix')
+      const formaPagamento = 'PIX';
+      const parcelas = 1;
+
+      if (aprovado) {
+        await salvarFormaPagamento(agendamento_id, salao_id, formaPagamento, parcelas);
+      }
+
+      return NextResponse.json({ aprovado, formaPagamento, parcelas });
     }
 
-    // ─── INFINITEPAY ───
-    // C2: order_nsu e slug derivados server-side — nunca vindos do cliente
-    // Isso impede que um usuário mal-intencionado substitua o order_nsu por
-    // um de uma transação real de outra pessoa e confirme sem pagar.
+    // ─── INFINITEPAY ──────────────────────────────────────────────────────────
     if (gateway === 'infinitepay') {
       if (!agendamento_id || !UUID_REGEX.test(agendamento_id)) {
         return NextResponse.json({ erro: 'agendamento_id obrigatório para InfinitePay.' }, { status: 400 });
       }
 
-      // Confirma que o agendamento pertence ao salão informado
       const { data: ag } = await supabaseAdmin
         .from('agendamentos')
         .select('salao_id')
@@ -76,7 +102,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ erro: 'Agendamento não pertence a este salão.' }, { status: 403 });
       }
 
-      const handle = token.replace('@', '').replace('$', '').trim();
+      const handle   = token.replace('@', '').replace('$', '').trim();
       const orderNsu = `reserva_${agendamento_id}`;
 
       const checkRes = await fetch('https://api.checkout.infinitepay.io/payment_check', {
@@ -88,7 +114,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ erro: 'Falha ao consultar InfinitePay.' }, { status: 400 });
       }
       const checkData = await checkRes.json();
-      return NextResponse.json({ aprovado: checkData.success === true && checkData.paid === true });
+      const aprovado  = checkData.success === true && checkData.paid === true;
+
+      const formaPagamento = formatarFormaPagamentoIP(checkData);
+      const parcelas       = checkData.installments ?? 1;
+
+      if (aprovado) {
+        await salvarFormaPagamento(agendamento_id, salao_id, formaPagamento, parcelas);
+      }
+
+      return NextResponse.json({ aprovado, formaPagamento, parcelas });
     }
 
     return NextResponse.json({ erro: 'Gateway desconhecido.' }, { status: 400 });
