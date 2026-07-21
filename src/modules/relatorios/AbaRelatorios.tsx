@@ -35,6 +35,7 @@ import { GavetaBuscaServico } from "./gavetas/GavetaBuscaServico";
 import { GavetaRepasse } from "./gavetas/GavetaRepasse";
 import { GavetaPgdasd } from "./gavetas/GavetaPgdasd";
 import { GavetaEfdReinf } from "./gavetas/GavetaEfdReinf";
+import { GavetaGraficos } from "./gavetas/GavetaGraficos";
 
 export function AbaRelatorios({ perfil }: any) {
   const [relatorioAtivo, setRelatorioAtivo] = useState(() => {
@@ -144,6 +145,7 @@ export function AbaRelatorios({ perfil }: any) {
     'repasse_profissionais': 'Repasse de Profissionais Parceiros',
     'pgdas_d':               'Apuração PGDAS-D (Simples Nacional)',
     'efd_reinf':             'EFD-Reinf R-4010 / eSocial S-2300',
+    'graficos':              'Gráficos do Período',
   };
 
   if (carregando && dadosBase.financeiro.length === 0) return (
@@ -201,6 +203,9 @@ export function AbaRelatorios({ perfil }: any) {
           </button>
           <button style={menuBtnStyle(relatorioAtivo === 'comparativo')} onClick={() => setRelatorioAtivo('comparativo')}>
             <FiBarChart2 size={16} /> Comparativo de Períodos
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'graficos')} onClick={() => setRelatorioAtivo('graficos')}>
+            <FiBarChart2 size={16} /> Gráficos do Período
           </button>
           </>}
           </>)}
@@ -356,6 +361,7 @@ export function AbaRelatorios({ perfil }: any) {
           {relatorioAtivo === 'repasse_profissionais' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaRepasse perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'pgdas_d' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaPgdasd perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'efd_reinf' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaEfdReinf perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
+          {relatorioAtivo === 'graficos' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaGraficos dados={dadosBase} perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
         </div>
 
       </div>
