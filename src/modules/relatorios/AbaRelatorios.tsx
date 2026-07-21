@@ -361,7 +361,7 @@ export function AbaRelatorios({ perfil }: any) {
           {relatorioAtivo === 'repasse_profissionais' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaRepasse perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'pgdas_d' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaPgdasd perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'efd_reinf' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaEfdReinf perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
-          {relatorioAtivo === 'graficos' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaGraficos dados={dadosBase} perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
+          {relatorioAtivo === 'graficos' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaGraficos dados={dadosBase} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
         </div>
 
       </div>
