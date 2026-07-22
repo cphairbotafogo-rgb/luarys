@@ -36,6 +36,7 @@ import { GavetaRepasse } from "./gavetas/GavetaRepasse";
 import { GavetaPgdasd } from "./gavetas/GavetaPgdasd";
 import { GavetaEfdReinf } from "./gavetas/GavetaEfdReinf";
 import { GavetaGraficos } from "./gavetas/GavetaGraficos";
+import { GavetaClientes } from "./gavetas/GavetaClientes";
 
 export function AbaRelatorios({ perfil }: any) {
   const [relatorioAtivo, setRelatorioAtivo] = useState(() => {
@@ -146,6 +147,7 @@ export function AbaRelatorios({ perfil }: any) {
     'pgdas_d':               'Apuração PGDAS-D (Simples Nacional)',
     'efd_reinf':             'EFD-Reinf R-4010 / eSocial S-2300',
     'graficos':              'Gráficos do Período',
+    'relatorio_clientes':   'Relatório de Clientes',
   };
 
   if (carregando && dadosBase.financeiro.length === 0) return (
@@ -240,6 +242,9 @@ export function AbaRelatorios({ perfil }: any) {
           </button>
           <button style={menuBtnStyle(relatorioAtivo === 'busca_servico')} onClick={() => setRelatorioAtivo('busca_servico')}>
             <FiSearch size={16} /> Clientes por Serviço
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'relatorio_clientes')} onClick={() => setRelatorioAtivo('relatorio_clientes')}>
+            <FiUsers size={16} /> Relatório de Clientes
           </button>
           </>}
 
@@ -362,6 +367,7 @@ export function AbaRelatorios({ perfil }: any) {
           {relatorioAtivo === 'pgdas_d' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaPgdasd perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'efd_reinf' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaEfdReinf perfil={perfil} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
           {relatorioAtivo === 'graficos' && ((perfil?.isDono || perfil?.permissoes?.ver_financeiro) ? <GavetaGraficos dados={dadosBase} /> : <p style={{ color: C.danger, fontWeight: 700 }}>Acesso restrito.</p>)}
+          {relatorioAtivo === 'relatorio_clientes' && <GavetaClientes dados={dadosBase} />}
         </div>
 
       </div>

@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_SM, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
+import { InputData } from '@/components/InputData';
 import { FiSend, FiLock } from 'react-icons/fi';
 
 // ─── CARD DE MÉTRICA (clicável) ───────────────────────────────────────────────
@@ -129,63 +130,42 @@ export function BarraRelativa({ percent, cor }: { percent: number; cor: string }
   );
 }
 
-// ─── SELETOR DE PERÍODO (30 / 60 / 90 / Personalizado) ───────────────────────
+// ─── SELETOR DE PERÍODO (atalhos rápidos + date pickers) ─────────────────────
 
-export function SeletorPeriodo({ valor, onChange }: { valor: number; onChange: (v: number) => void }) {
-  const fixos = [30, 60, 90];
-  const isCustom = !fixos.includes(valor);
-  const [inputCustom, setInputCustom] = useState(isCustom ? String(valor) : '');
-
-  function aplicarCustom() {
-    const n = parseInt(inputCustom, 10);
-    if (n >= 1 && n <= 365) onChange(n);
+export function SeletorPeriodo({ dataIni, dataFim, onChange }: {
+  dataIni: string;
+  dataFim: string;
+  onChange: (ini: string, fim: string) => void;
+}) {
+  function atalho(dias: number) {
+    const hoje = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    d.setDate(d.getDate() - dias);
+    onChange(d.toISOString().split('T')[0], hoje);
   }
+
+  const inputStyle: React.CSSProperties = {
+    fontSize: 11, padding: '5px 8px', borderRadius: RAIO_SM,
+    border: `1px solid ${C.borderMid}`, color: C.textMain,
+    background: C.bgCard, outline: 'none',
+  };
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', background: C.bg, borderRadius: RAIO_MD, padding: 3 }}>
-        {fixos.map(v => (
-          <button key={v} onClick={() => { onChange(v); setInputCustom(''); }}
+        {[30, 60, 90].map(dias => (
+          <button key={dias} onClick={() => atalho(dias)}
             style={{
-              padding: '6px 14px', borderRadius: RAIO_SM, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              background: valor === v ? '#fff' : 'transparent',
-              color: valor === v ? C.sidebarBg : C.textMuted,
-              boxShadow: valor === v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              padding: '6px 12px', borderRadius: RAIO_SM, border: 'none', fontSize: 11,
+              fontWeight: 700, cursor: 'pointer', background: 'transparent', color: C.textMuted,
             }}>
-            {v} dias
+            Últ. {dias}d
           </button>
         ))}
-        <button onClick={() => { setInputCustom(isCustom ? String(valor) : ''); if (!isCustom) onChange(0); }}
-          style={{
-            padding: '6px 14px', borderRadius: RAIO_SM, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-            background: isCustom ? '#fff' : 'transparent',
-            color: isCustom ? C.sidebarBg : C.textMuted,
-            boxShadow: isCustom ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-          }}>
-          Personalizado
-        </button>
       </div>
-
-      {(isCustom || inputCustom !== '') && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input
-            type="number" min={1} max={365}
-            value={inputCustom}
-            onChange={e => setInputCustom(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && aplicarCustom()}
-            placeholder="dias"
-            style={{
-              width: 64, padding: '5px 8px', borderRadius: RAIO_SM,
-              border: `1px solid ${C.borderMid}`, fontSize: 12, color: C.textMain,
-              background: C.bgCard, outline: 'none',
-            }}
-          />
-          <button onClick={aplicarCustom}
-            style={{ padding: '5px 10px', borderRadius: RAIO_SM, border: 'none', background: C.sidebarBg, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-            OK
-          </button>
-        </div>
-      )}
+      <InputData value={dataIni} onChange={ini => onChange(ini, dataFim)} style={inputStyle} />
+      <span style={{ fontSize: 11, color: C.textMuted }}>até</span>
+      <InputData value={dataFim} onChange={fim => onChange(dataIni, fim)} style={inputStyle} />
     </div>
   );
 }

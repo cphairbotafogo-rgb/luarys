@@ -45,11 +45,8 @@ export function MenuContextoAgendamento({
   const ehFinalizado = statusAtual === 'Finalizado';
   const ehEncerrado  = statusAtual === 'Faltou' || statusAtual === 'Cancelado';
 
-  // Ajusta posição para não sair da tela
-  const menuWidth  = 230;
-  const menuHeight = 360;
-  const left = x + menuWidth > window.innerWidth  ? x - menuWidth  : x;
-  const top  = y + menuHeight > window.innerHeight ? y - menuHeight : y;
+  // Menu centralizado na viewport para garantir legibilidade em qualquer resolução
+  void x; void y;
 
   const itemStyle = (cor?: string): React.CSSProperties => ({
     background: 'none', border: 'none', textAlign: 'left', padding: '10px 16px',
@@ -68,16 +65,16 @@ export function MenuContextoAgendamento({
 
   return (
     <>
-      {/* Overlay para fechar */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+      {/* Overlay com fundo semitransparente */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.35)' }}
         onClick={onFechar} onContextMenu={e => { e.preventDefault(); onFechar(); }} />
 
-      {/* Menu */}
+      {/* Menu centralizado */}
       <div style={{
-        position: 'fixed', top, left, zIndex: 9999,
-        background: C.bgCard, border: `1px solid ${C.borderMid}`,
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        zIndex: 9999, background: C.bgCard, border: `1px solid ${C.borderMid}`,
         borderRadius: RAIO_LG, boxShadow: SOMBRA_ELEVADO,
-        width: menuWidth, overflow: 'hidden',
+        width: 260, maxHeight: '90vh', overflowY: 'auto',
       }}>
 
         {/* Cabeçalho: nome + horário */}

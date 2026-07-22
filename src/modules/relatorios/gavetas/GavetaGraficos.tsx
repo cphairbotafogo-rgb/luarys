@@ -136,10 +136,13 @@ export function GavetaGraficos({ dados }: { dados: any }) {
       desMap[ch] = (desMap[ch] || 0) + (Number(d.valor) || 0);
       totalDes += Number(d.valor) || 0;
     }
+    const catMap: Record<string, number> = {};
     for (const ag of (dados.agendamentos as any[])) {
       if (ag.status !== 'Finalizado') continue;
       const nome = ag.servicos?.nome_servico || 'Outros';
       srvMap[nome] = (srvMap[nome] || 0) + 1;
+      const cat = ag.servicos?.categoria || 'Sem categoria';
+      catMap[cat] = (catMap[cat] || 0) + 1;
     }
 
     const limite = agrup === 'dia' ? 45 : agrup === 'mes' ? 24 : 10;
@@ -154,7 +157,10 @@ export function GavetaGraficos({ dados }: { dados: any }) {
     const topPag = Object.entries(pagMap).sort((a, b) => b[1] - a[1])
       .map(([lb, v]) => ({ lb, v, extra: brl(v) }));
 
-    return { barras, recSimples, topSrv, topPag, totalRec, totalDes, totalDesc };
+    const topCat = Object.entries(catMap).sort((a, b) => b[1] - a[1])
+      .map(([lb, v]) => ({ lb, v, extra: `${v}×` }));
+
+    return { barras, recSimples, topSrv, topPag, topCat, totalRec, totalDes, totalDesc };
   }, [dados, agrup]);
 
   const btnAgrup = (a: Agrup) => ({
@@ -238,6 +244,14 @@ export function GavetaGraficos({ dados }: { dados: any }) {
               : <p style={{ color: C.textMuted, fontSize: 12 }}>Sem entradas registradas.</p>}
           </div>
         </div>
+
+        {/* Atendimentos por área/categoria */}
+        {calc.topCat.length > 0 && (
+          <div style={{ background: C.bgCard, borderRadius: RAIO_XL, padding: '20px 24px', border: `1px solid ${C.border}` }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, color: C.textMain }}>Atendimentos por Área / Categoria</h3>
+            <BarHoriz dados={calc.topCat} getCor={() => C.sidebarBg} />
+          </div>
+        )}
 
       </>)}
     </div>

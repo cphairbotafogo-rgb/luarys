@@ -29,7 +29,10 @@ import { PainelHorarios } from './PainelHorarios';
 import { PainelEquipe } from './PainelEquipe';
 
 export function AbaCrescimento({ perfil }: any) {
-  const [periodo, setPeriodo] = useState(90); // janela para horários/equipe; clientes sempre usa regra fixa 45/90
+  const [dataFim, setDataFim] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dataIni, setDataIni] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 90); return d.toISOString().split('T')[0];
+  });
   const [carregando, setCarregando] = useState(true);
   const [dados, setDados] = useState<{
     agendamentos: any[]; clientes: any[]; crmClientes: any[];
@@ -77,9 +80,9 @@ export function AbaCrescimento({ perfil }: any) {
     return <div style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 13 }}>Carregando indicadores...</div>;
   }
 
-  const { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes, periodo);
-  const celulasHorario = calcularHorariosOciosos(dados.agendamentos, dados.horariosFuncionamento, periodo);
-  const desempenhoEquipe = calcularDesempenhoProfissionais(dados.agendamentos, dados.profissionais, dados.servicos, periodo);
+  const { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes, dataIni, dataFim);
+  const celulasHorario = calcularHorariosOciosos(dados.agendamentos, dados.horariosFuncionamento, dataIni, dataFim);
+  const desempenhoEquipe = calcularDesempenhoProfissionais(dados.agendamentos, dados.profissionais, dados.servicos, dataIni, dataFim);
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 860, margin: '0 auto' }}>
@@ -95,7 +98,7 @@ export function AbaCrescimento({ perfil }: any) {
             <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>Mais faturamento, menos faltas, clientes que voltam — tudo num só lugar, com ação direta.</p>
           </div>
         </div>
-        <SeletorPeriodo valor={periodo} onChange={setPeriodo} />
+        <SeletorPeriodo dataIni={dataIni} dataFim={dataFim} onChange={(ini, fim) => { setDataIni(ini); setDataFim(fim); }} />
       </div>
 
       <PainelClientes

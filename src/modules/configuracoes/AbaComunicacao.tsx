@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, RAIO_2XL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
-import { FiMessageSquare, FiMail, FiMessageCircle, FiSend, FiUsers, FiFilter, FiFileText, FiSave, FiSettings, FiLock, FiZap, FiLoader } from "react-icons/fi";
+import { FiMessageSquare, FiMail, FiMessageCircle, FiSend, FiUsers, FiFilter, FiFileText, FiSave, FiSettings, FiLock, FiZap, FiLoader, FiCalendar, FiScissors } from "react-icons/fi";
+import { InputData } from "@/components/InputData";
 import { GavetaAutomacoes } from "./GavetaAutomacoes";
 import { useGuardModulo } from "@/lib/useGuardModulo";
 import { BloqueioModulo } from "@/components/BloqueioModulo";
@@ -23,6 +24,9 @@ export function AbaComunicacao({ perfil }: any) {
   const [canal, setCanal] = useState<'whatsapp' | 'email' | 'sms'>('whatsapp');
   const [publico, setPublico] = useState('todos');
   const [mensagemMarketing, setMensagemMarketing] = useState('');
+  const [dataIniSumidas, setDataIniSumidas] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 90); return d.toISOString().split('T')[0]; });
+  const [dataFimSumidas, setDataFimSumidas] = useState(() => new Date().toISOString().split('T')[0]);
+  const [servicoEspecifico, setServicoEspecifico] = useState('');
   const [msgZap, setMsgZap] = useState(MSG_ZAP_PADRAO);
   const [msgEmail, setMsgEmail] = useState("Olá {nome_do_cliente},\n\nGostaria de confirmar os detalhes do seu atendimento conosco...");
   const [msgZapAniversario, setMsgZapAniversario] = useState(MSG_ANIVERSARIO_PADRAO);
@@ -160,12 +164,36 @@ export function AbaComunicacao({ perfil }: any) {
                   <option value="aniversariantes">Aniversariantes do Mês</option>
                   <option value="inativos_30d">Não visitam há 30 dias</option>
                   <option value="vip">Clientes VIP</option>
+                  <option value="nunca_realizaram">Nunca realizaram serviço</option>
+                  <option value="sumidas_periodo">Sumidas — período selecionável</option>
+                  <option value="sem_servico_especifico">Não realizaram serviço específico</option>
                 </select>
               </div>
               <button disabled style={{ padding: "0 24px", background: C.bg, color: C.textLight, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, cursor: "not-allowed", opacity: 0.6 }} title="Em breve">
                 <FiFilter /> Filtro Avançado
               </button>
             </div>
+
+            {publico === 'sumidas_periodo' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '14px 18px', background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
+                <FiCalendar size={14} color={C.textMuted} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}>Sem visita de</span>
+                <InputData value={dataIniSumidas} onChange={setDataIniSumidas} style={{ fontSize: 12, padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, color: C.textMain, background: C.bgCard }} />
+                <span style={{ fontSize: 12, color: C.textMuted }}>até</span>
+                <InputData value={dataFimSumidas} onChange={setDataFimSumidas} style={{ fontSize: 12, padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, color: C.textMain, background: C.bgCard }} />
+              </div>
+            )}
+            {publico === 'sem_servico_especifico' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '14px 18px', background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
+                <FiScissors size={14} color={C.textMuted} />
+                <input
+                  style={{ flex: 1, fontSize: 12, padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, color: C.textMain, background: C.bgCard, outline: 'none' }}
+                  placeholder="Digite o nome do serviço (ex: Progressiva, Corte Feminino...)"
+                  value={servicoEspecifico}
+                  onChange={e => setServicoEspecifico(e.target.value)}
+                />
+              </div>
+            )}
 
             <h3 style={{ margin: "0 0 24px", fontSize: 14, fontWeight: 800, color: C.textMain, textTransform: "uppercase" }}>3. Escreva sua Mensagem</h3>
             <textarea

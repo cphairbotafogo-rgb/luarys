@@ -81,15 +81,19 @@ export function classificarClientes(
   agendamentos: any[],
   clientes: any[],
   crmClientes: any[],
-  diasPeriodo: number = 90
+  dataIni: string,
+  dataFim: string
 ): ClassificacaoClientes {
+  const diasPeriodo = Math.max(1, Math.round(
+    (new Date(dataFim + 'T12:00:00').getTime() - new Date(dataIni + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)
+  ));
   const limFiel = Math.floor(diasPeriodo / 2);
   const limRisco = diasPeriodo;
   const ultimaVisitaPorCliente: Record<string, string> = {};
   const visitasPorCliente: Record<string, number> = {};
 
   agendamentos
-    .filter(ag => ag.status === 'Finalizado' && ag.cliente_id && ag.data)
+    .filter(ag => ag.status === 'Finalizado' && ag.cliente_id && ag.data && ag.data >= dataIni && ag.data <= dataFim)
     .forEach(ag => {
       const atual = ultimaVisitaPorCliente[ag.cliente_id];
       if (!atual || ag.data > atual) ultimaVisitaPorCliente[ag.cliente_id] = ag.data;
@@ -147,30 +151,27 @@ export function classificarClientes(
 export function calcularHorariosOciosos(
   agendamentos: any[],
   horariosFuncionamento: DiaFuncionamento[],
-  diasNoPeriodo: number
+  dataIni: string,
+  dataFim: string
 ): CelulaHorario[] {
   const funcionamentoPorDia: Record<string, DiaFuncionamento> = {};
   (horariosFuncionamento || []).forEach(h => { funcionamentoPorDia[h.dia] = h; });
 
-  const limite = new Date();
-  limite.setDate(limite.getDate() - diasNoPeriodo);
-  const limiteStr = limite.toISOString().split('T')[0];
-
   // Conta apenas os dias em que o salão ESTAVA ABERTO no período
   const ocorrenciasPorDia: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-  const refHoje = new Date();
-  for (let i = 0; i < diasNoPeriodo; i++) {
-    const d = new Date(refHoje);
-    d.setDate(refHoje.getDate() - i);
-    const diaIdx = d.getDay();
+  const cur = new Date(dataIni + 'T12:00:00');
+  const fimDate = new Date(dataFim + 'T12:00:00');
+  while (cur <= fimDate) {
+    const diaIdx = cur.getDay();
     const nomeFuncionamento = DIAS_FUNCIONAMENTO_NOME[diaIdx];
     const config = funcionamentoPorDia[nomeFuncionamento];
     if (config && config.ativo) ocorrenciasPorDia[diaIdx]++;
+    cur.setDate(cur.getDate() + 1);
   }
 
   const ocupacaoPorCelula: Record<string, number> = {};
   agendamentos
-    .filter(ag => ag.data >= limiteStr && ag.status !== 'Cancelado' && ag.inicio)
+    .filter(ag => ag.data >= dataIni && ag.data <= dataFim && ag.status !== 'Cancelado' && ag.inicio)
     .forEach(ag => {
       const d = new Date(ag.data + 'T12:00:00');
       const diaIdx = d.getDay();
@@ -214,12 +215,9 @@ export function calcularDesempenhoProfissionais(
   agendamentos: any[],
   profissionais: any[],
   servicos: any[],
-  diasNoPeriodo: number
+  dataIni: string,
+  dataFim: string
 ): ProfissionalDesempenho[] {
-  const limite = new Date();
-  limite.setDate(limite.getDate() - diasNoPeriodo);
-  const limiteStr = limite.toISOString().split('T')[0];
-
   const servicoPorId: Record<string, any> = {};
   servicos.forEach(s => { servicoPorId[s.id] = s; });
 
@@ -227,7 +225,7 @@ export function calcularDesempenhoProfissionais(
   const atendimentosPorProf: Record<string, number> = {};
 
   agendamentos
-    .filter(ag => ag.status === 'Finalizado' && ag.profissional_id && ag.data >= limiteStr)
+    .filter(ag => ag.status === 'Finalizado' && ag.profissional_id && ag.data >= dataIni && ag.data <= dataFim)
     .forEach(ag => {
       const serv = servicoPorId[ag.servico_id];
       const valor = Number(ag.valor_cobrado || ag.valor_total || serv?.preco_padrao || 0);
