@@ -4,14 +4,23 @@
  * Insere ou atualiza um agendamento pelo portal do cliente usando service role,
  * contornando o RLS (clientes do portal não têm sessão Supabase Auth).
  *
- * Segurança mínima:
- *   - salao_id e servico_id devem ser UUIDs válidos
+ * Segurança:
+ *   - Rate limit por IP (mesmo padrão de agendar-guest/criar-agendamento)
+ *   - salao_id, cliente_id, profissional_id e servico_id devem ser UUIDs válidos
  *   - O serviço deve estar com exibir_online = true para aquele salão
+ *   - O profissional deve pertencer àquele salão e estar ativo
+ *   - O cliente deve pertencer àquele salão
+ *   - duracao_min vem do serviço no servidor, nunca do body (evita agendamento
+ *     com duração arbitrária)
+ *   - status restrito a um conjunto fixo (evita pular etapas do fluxo, ex.
+ *     criar já como "Finalizado")
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimitExcedido, obterIp } from '@/lib/rateLimiter';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STATUS_INICIAL_PERMITIDO = ['Agendado', 'Aguardando', 'Confirmado'] as const;
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,19 +30,32 @@ const admin = createClient(
 
 // POST — cria agendamento
 export async function POST(req: NextRequest) {
+  // Mesmo limite usado em agendar-guest/criar-agendamento: 10 tentativas por IP a cada 10 min
+  const ip = obterIp(req as any);
+  if (await rateLimitExcedido(`inserir-agendamento:${ip}`, 10, 600)) {
+    return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
+  }
+
   try {
     const body = await req.json();
     const { salao_id, cliente_id, profissional_id, servico_id, data, inicio,
-      duracao_min, status, cliente_nome, observacao, valor_sinal } = body;
+      status, cliente_nome, observacao, valor_sinal } = body;
 
-    if (!UUID_RE.test(String(salao_id)) || !UUID_RE.test(String(servico_id))) {
-      return NextResponse.json({ erro: 'IDs inválidos.' }, { status: 400 });
+    for (const [campo, val] of Object.entries({ salao_id, cliente_id, profissional_id, servico_id })) {
+      if (!UUID_RE.test(String(val))) {
+        return NextResponse.json({ erro: `${campo} inválido.` }, { status: 400 });
+      }
     }
 
-    // Garante que o serviço pertence ao salão e está visível online
+    if (status != null && !STATUS_INICIAL_PERMITIDO.includes(status)) {
+      return NextResponse.json({ erro: 'Status inicial não permitido.' }, { status: 400 });
+    }
+
+    // Garante que o serviço pertence ao salão e está visível online;
+    // duração vem daqui, nunca do body.
     const { data: serv } = await admin
       .from('servicos')
-      .select('id')
+      .select('id, duracao_minutos')
       .eq('id', servico_id)
       .eq('salao_id', salao_id)
       .eq('exibir_online', true)
@@ -41,11 +63,32 @@ export async function POST(req: NextRequest) {
 
     if (!serv) return NextResponse.json({ erro: 'Serviço não disponível.' }, { status: 403 });
 
+    // Garante que o profissional pertence a este salão e está ativo
+    const { data: prof } = await admin
+      .from('profissionais')
+      .select('id')
+      .eq('id', profissional_id)
+      .eq('salao_id', salao_id)
+      .eq('ativo', true)
+      .maybeSingle();
+
+    if (!prof) return NextResponse.json({ erro: 'Profissional não disponível.' }, { status: 403 });
+
+    // Garante que o cliente pertence a este salão
+    const { data: cli } = await admin
+      .from('clientes')
+      .select('id')
+      .eq('id', cliente_id)
+      .eq('salao_id', salao_id)
+      .maybeSingle();
+
+    if (!cli) return NextResponse.json({ erro: 'Cliente não encontrado.' }, { status: 403 });
+
     const { data: ag, error } = await admin
       .from('agendamentos')
       .insert({
         salao_id, cliente_id, profissional_id, servico_id,
-        data, inicio, duracao_min: duracao_min || 30,
+        data, inicio, duracao_min: serv.duracao_minutos || 30,
         status: status || 'Agendado',
         cliente_nome, observacao,
         ...(valor_sinal != null && { valor_sinal }),
@@ -75,6 +118,11 @@ const STATUS_PERMITIDOS = ['Cancelado', 'Confirmado'] as const;
 const STATUS_ORIGEM_VALIDA = ['Aguardando'] as const;
 
 export async function PATCH(req: NextRequest) {
+  const ip = obterIp(req as any);
+  if (await rateLimitExcedido(`inserir-agendamento-patch:${ip}`, 10, 600)) {
+    return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
+  }
+
   try {
     const { id, salao_id, status } = await req.json();
 

@@ -274,6 +274,4 @@ export function gerarLinkWhatsapp(telefone: string, mensagem: string): string {
 
 // ─── FORMATAÇÃO ───────────────────────────────────────────────────────────────
 
-export function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+export { brl } from '@/lib/constants';

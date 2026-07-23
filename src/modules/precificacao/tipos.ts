@@ -5,6 +5,9 @@
  * Importado por todos os arquivos do módulo Luarys Precifica.
  */
 
+import { brl } from '@/lib/constants';
+export { brl };
+
 // ─── INTERFACES ───────────────────────────────────────────────────────────────
 
 export interface ConfigCustos {
@@ -120,10 +123,6 @@ export const LEGENDA = [
 ];
 
 // ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
-
-export function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 export function pct(v: number) {
   return v.toFixed(1) + '%';

@@ -19,7 +19,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function POST(req: NextRequest) {
   // A4: 10 tentativas por IP a cada 10 minutos
   const ip = obterIp(req as any);
-  if (rateLimitExcedido(`agendar-guest:${ip}`, 10, 600)) {
+  if (await rateLimitExcedido(`agendar-guest:${ip}`, 10, 600)) {
     return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
   }
 

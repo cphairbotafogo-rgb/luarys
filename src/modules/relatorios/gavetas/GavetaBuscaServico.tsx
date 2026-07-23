@@ -1,171 +1,12 @@
 'use client'
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { InputData } from '@/components/InputData';
 import { RAIO_MD, RAIO_XL, RAIO_SM } from '@/lib/estiloGlobal';
 import { FiUser, FiSearch, FiCalendar, FiClock, FiX, FiLoader } from 'react-icons/fi';
-
-function fmt(d: string | null | undefined) {
-  if (!d) return '—';
-  const [a, m, dd] = d.split('T')[0].split('-');
-  return `${dd}/${m}/${a}`;
-}
-
-function corDias(dias: number) {
-  if (dias > 90) return { cor: '#EF4444', bg: '#FEE2E2' };
-  if (dias > 45) return { cor: '#D97706', bg: '#FEF3C7' };
-  return { cor: '#10B981', bg: '#D1FAE5' };
-}
-
-function hoje() { return new Date().toISOString().split('T')[0]; }
-function dataHaPeriodo(anos = 2) {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - anos);
-  return d.toISOString().split('T')[0];
-}
+import { useBuscaServico, fmt, corDias } from './useBuscaServico';
 
 export function GavetaBuscaServico({ perfil, dados }: any) {
-  const [dataInicio, setDataInicio] = useState(dataHaPeriodo(2));
-  const [dataFim, setDataFim]       = useState(hoje());
-  const [servicoId, setServicoId]       = useState('');
-  const [buscaServico, setBuscaServico] = useState('');
-  const [dropdownServicoAberto, setDropdownServicoAberto] = useState(false);
-  const refBuscaServico = useRef<HTMLDivElement>(null);
-  const [buscaNome, setBuscaNome]   = useState('');
-  const [resultado, setResultado]   = useState<any[]>([]);
-  const [buscando, setBuscando]     = useState(false);
-  const [executado, setExecutado]   = useState(false);
-  const [ordenarPor, setOrdenarPor] = useState<'diasSemVir' | 'visitas' | 'ultimaVisita'>('diasSemVir');
-
-  // Fonte 1: agendamentos têm join servicos embutido → popula instantaneamente
-  const servicosDosAgs = useMemo(() => {
-    const mapa: Record<string, any> = {};
-    (dados?.agendamentos || []).forEach((ag: any) => {
-      if (!ag.servico_id) return;
-      const s = ag.servicos as any;
-      if (!s?.nome_servico) return;
-      if (!mapa[ag.servico_id]) {
-        mapa[ag.servico_id] = { id: ag.servico_id, nome_servico: s.nome_servico, categoria: s.categoria || '' };
-      }
-    });
-    return Object.values(mapa);
-  }, [dados?.agendamentos]);
-
-  const [servicosQuery, setServicosQuery] = useState<any[]>([]);
-  const [carregandoServs, setCarregandoServs] = useState(false);
-
-  useEffect(() => {
-    if (!perfil?.salao_id) return;
-    setCarregandoServs(true);
-    supabase
-      .from('servicos')
-      .select('id, nome_servico, categoria')
-      .eq('salao_id', perfil.salao_id)
-      .order('nome_servico')
-      .limit(500)
-      .then(({ data, error }) => {
-        if (error) console.error('[GavetaBuscaServico] query servicos:', error.message);
-        setServicosQuery(data || []);
-        setCarregandoServs(false);
-      });
-  }, [perfil?.salao_id]);
-
-  const servicos = useMemo(() => {
-    if (servicosQuery.length > 0) return servicosQuery;
-    return [...servicosDosAgs].sort((a: any, b: any) =>
-      (a.nome_servico || '').localeCompare(b.nome_servico || '', 'pt-BR')
-    );
-  }, [servicosQuery, servicosDosAgs]);
-
-  const servicosFiltrados = useMemo(() => {
-    if (!buscaServico.trim()) return servicos;
-    const term = buscaServico.toLowerCase();
-    return servicos.filter((s: any) =>
-      (s.nome_servico || '').toLowerCase().includes(term) ||
-      (s.categoria || '').toLowerCase().includes(term)
-    );
-  }, [servicos, buscaServico]);
-
-  useEffect(() => {
-    function fechar(e: MouseEvent) {
-      if (refBuscaServico.current && !refBuscaServico.current.contains(e.target as Node)) {
-        setDropdownServicoAberto(false);
-      }
-    }
-    document.addEventListener('mousedown', fechar);
-    return () => document.removeEventListener('mousedown', fechar);
-  }, []);
-
-  const presets = [
-    { label: 'Este mês',   fn: () => { const d = new Date(); setDataInicio(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]); setDataFim(hoje()); } },
-    { label: 'Este ano',   fn: () => { setDataInicio(`${new Date().getFullYear()}-01-01`); setDataFim(hoje()); } },
-    { label: 'Último ano', fn: () => { setDataInicio(dataHaPeriodo(1)); setDataFim(hoje()); } },
-    { label: '2 anos',     fn: () => { setDataInicio(dataHaPeriodo(2)); setDataFim(hoje()); } },
-    { label: 'Tudo',       fn: () => { setDataInicio('2018-01-01'); setDataFim(hoje()); } },
-  ];
-
-  async function buscar() {
-    if (!servicoId || !perfil?.salao_id) return;
-    setBuscando(true);
-    setResultado([]);
-    setExecutado(false);
-
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .select('cliente_id, cliente_nome, data')
-      .eq('salao_id', perfil.salao_id)
-      .eq('servico_id', servicoId)
-      .eq('status', 'Finalizado')
-      .gte('data', dataInicio)
-      .lte('data', dataFim)
-      .order('data', { ascending: false })
-      .limit(5000);
-
-    if (error) {
-      console.error('[GavetaBuscaServico] buscar:', error.message);
-      setBuscando(false);
-      return;
-    }
-
-    const hojeStr = new Date().toISOString().split('T')[0];
-    const mapa: Record<string, any> = {};
-
-    (data || []).forEach((ag: any) => {
-      const nome = ag.cliente_nome || '—';
-      const id   = ag.cliente_id   || nome;
-      const d    = (ag.data || '').split('T')[0];
-      if (!mapa[id]) {
-        mapa[id] = { nome, ultimaVisita: d, primeiraVisita: d, visitas: 0 };
-      }
-      mapa[id].visitas++;
-      if (d > mapa[id].ultimaVisita)   mapa[id].ultimaVisita   = d;
-      if (d < mapa[id].primeiraVisita) mapa[id].primeiraVisita = d;
-    });
-
-    const lista = Object.values(mapa).map((c: any) => ({
-      ...c,
-      diasSemVir: Math.floor(
-        (new Date(hojeStr).getTime() - new Date(c.ultimaVisita).getTime()) / 86_400_000
-      ),
-    }));
-
-    setResultado(lista);
-    setBuscando(false);
-    setExecutado(true);
-  }
-
-  const listaExibida = useMemo(() => {
-    const filtrada = buscaNome
-      ? resultado.filter(c => c.nome.toLowerCase().includes(buscaNome.toLowerCase()))
-      : resultado;
-
-    return [...filtrada].sort((a, b) => {
-      if (ordenarPor === 'diasSemVir')    return b.diasSemVir - a.diasSemVir;
-      if (ordenarPor === 'visitas')       return b.visitas    - a.visitas;
-      return b.ultimaVisita.localeCompare(a.ultimaVisita);
-    });
-  }, [resultado, buscaNome, ordenarPor]);
+  const b = useBuscaServico(perfil, dados);
 
   const inputStyle: React.CSSProperties = {
     padding: '9px 12px', borderRadius: RAIO_MD,
@@ -195,8 +36,6 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
     color: ativo ? '#fff' : C.textMain, cursor: 'pointer',
   });
 
-  const dropdownCarregando = carregandoServs && servicos.length === 0;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 24, flexShrink: 0 }}>
@@ -215,9 +54,9 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
 
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, padding: '20px 24px', marginBottom: 24, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 2, minWidth: 220, position: 'relative' }} ref={refBuscaServico}>
+          <div style={{ flex: 2, minWidth: 220, position: 'relative' }} ref={b.refBuscaServico}>
             <label style={labelStyle}>Serviço</label>
-            {dropdownCarregando ? (
+            {b.dropdownCarregando ? (
               <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 8, color: C.textMuted }}>
                 <FiLoader size={13} /> Carregando serviços...
               </div>
@@ -228,25 +67,25 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                   <input
                     type="text"
                     placeholder="Digite para buscar um serviço..."
-                    value={buscaServico}
+                    value={b.buscaServico}
                     onChange={e => {
-                      setBuscaServico(e.target.value);
-                      setServicoId('');
-                      setDropdownServicoAberto(true);
+                      b.setBuscaServico(e.target.value);
+                      b.setServicoId('');
+                      b.setDropdownServicoAberto(true);
                     }}
-                    onFocus={() => setDropdownServicoAberto(true)}
-                    style={{ ...inputStyle, width: '100%', paddingLeft: 32, paddingRight: servicoId ? 32 : 12 }}
+                    onFocus={() => b.setDropdownServicoAberto(true)}
+                    style={{ ...inputStyle, width: '100%', paddingLeft: 32, paddingRight: b.servicoId ? 32 : 12 }}
                   />
-                  {(buscaServico || servicoId) && (
+                  {(b.buscaServico || b.servicoId) && (
                     <button
-                      onClick={() => { setServicoId(''); setBuscaServico(''); setDropdownServicoAberto(false); }}
+                      onClick={() => { b.setServicoId(''); b.setBuscaServico(''); b.setDropdownServicoAberto(false); }}
                       style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textLight, display: 'flex' }}
                     >
                       <FiX size={13} />
                     </button>
                   )}
                 </div>
-                {dropdownServicoAberto && servicosFiltrados.length > 0 && (
+                {b.dropdownServicoAberto && b.servicosFiltrados.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
                     background: C.bgCard, border: `1px solid ${C.borderMid}`,
@@ -254,19 +93,19 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                     maxHeight: 240, overflowY: 'auto',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}>
-                    {servicosFiltrados.map((s: any) => (
+                    {b.servicosFiltrados.map((s: any) => (
                       <button
                         key={s.id}
                         onMouseDown={e => e.preventDefault()}
                         onClick={() => {
-                          setServicoId(s.id);
-                          setBuscaServico(s.nome_servico + (s.categoria ? ` (${s.categoria})` : ''));
-                          setDropdownServicoAberto(false);
+                          b.setServicoId(s.id);
+                          b.setBuscaServico(s.nome_servico + (s.categoria ? ` (${s.categoria})` : ''));
+                          b.setDropdownServicoAberto(false);
                         }}
                         style={{
                           width: '100%', textAlign: 'left', padding: '9px 14px',
                           border: 'none', borderBottom: `1px solid ${C.border}`,
-                          background: s.id === servicoId ? `${C.sidebarBg}18` : 'transparent',
+                          background: s.id === b.servicoId ? `${C.sidebarBg}18` : 'transparent',
                           color: C.textMain, fontSize: 13, cursor: 'pointer', display: 'block',
                         }}
                       >
@@ -276,7 +115,7 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                     ))}
                   </div>
                 )}
-                {dropdownServicoAberto && servicosFiltrados.length === 0 && buscaServico.length > 0 && (
+                {b.dropdownServicoAberto && b.servicosFiltrados.length === 0 && b.buscaServico.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
                     background: C.bgCard, border: `1px solid ${C.borderMid}`,
@@ -284,7 +123,7 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                     fontSize: 12, color: C.textMuted,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}>
-                    Nenhum serviço encontrado para "{buscaServico}".
+                    Nenhum serviço encontrado para "{b.buscaServico}".
                   </div>
                 )}
               </>
@@ -293,24 +132,24 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
 
           <div>
             <label style={labelStyle}><FiCalendar size={11} style={{ display: 'inline', marginRight: 4 }} />De</label>
-            <InputData value={dataInicio} onChange={setDataInicio} style={inputStyle} />
+            <InputData value={b.dataInicio} onChange={b.setDataInicio} style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Até</label>
-            <InputData value={dataFim} onChange={setDataFim} style={inputStyle} />
+            <InputData value={b.dataFim} onChange={b.setDataFim} style={inputStyle} />
           </div>
           <button
-            onClick={buscar}
-            disabled={!servicoId || buscando}
+            onClick={b.buscar}
+            disabled={!b.servicoId || b.buscando}
             style={{
               padding: '10px 22px', borderRadius: RAIO_MD, border: 'none',
-              background: !servicoId || buscando ? C.borderMid : C.sidebarBg,
+              background: !b.servicoId || b.buscando ? C.borderMid : C.sidebarBg,
               color: '#fff', fontSize: 13, fontWeight: 700,
-              cursor: !servicoId || buscando ? 'not-allowed' : 'pointer',
+              cursor: !b.servicoId || b.buscando ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
             }}
           >
-            {buscando
+            {b.buscando
               ? <><FiLoader size={14} /> Buscando...</>
               : <><FiSearch size={14} /> Buscar</>
             }
@@ -319,26 +158,26 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>Atalhos de período:</span>
-          {presets.map(p => (
+          {b.presets.map(p => (
             <button key={p.label} onClick={p.fn} style={btnPreset}>{p.label}</button>
           ))}
         </div>
 
-        {!carregandoServs && servicosQuery.length === 0 && servicosDosAgs.length > 0 && (
+        {!b.carregandoServs && b.servicosQuery.length === 0 && b.servicosDosAgs.length > 0 && (
           <p style={{ margin: '10px 0 0', fontSize: 11, color: C.textMuted }}>
-            Exibindo serviços do período carregado ({servicosDosAgs.length} encontrados). Para ver todos os serviços do salão, recarregue a página.
+            Exibindo serviços do período carregado ({b.servicosDosAgs.length} encontrados). Para ver todos os serviços do salão, recarregue a página.
           </p>
         )}
       </div>
 
-      {buscando && (
+      {b.buscando && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textMuted }}>
           <FiLoader size={32} color={C.borderMid} style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 13, margin: 0 }}>Buscando clientes...</p>
         </div>
       )}
 
-      {!buscando && !executado && (
+      {!b.buscando && !b.executado && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.textMuted }}>
           <FiSearch size={36} color={C.borderMid} style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 13, margin: 0 }}>
@@ -347,7 +186,7 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
         </div>
       )}
 
-      {!buscando && executado && (
+      {!b.buscando && b.executado && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, overflow: 'hidden' }}>
           <div style={{ display: 'flex', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.borderMid}`, background: C.bg, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 300 }}>
@@ -355,12 +194,12 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
               <input
                 type="text"
                 placeholder="Filtrar por nome..."
-                value={buscaNome}
-                onChange={e => setBuscaNome(e.target.value)}
+                value={b.buscaNome}
+                onChange={e => b.setBuscaNome(e.target.value)}
                 style={{ ...inputStyle, paddingLeft: 32, width: '100%' }}
               />
-              {buscaNome && (
-                <button onClick={() => setBuscaNome('')}
+              {b.buscaNome && (
+                <button onClick={() => b.setBuscaNome('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textLight, display: 'flex' }}>
                   <FiX size={13} />
                 </button>
@@ -369,23 +208,23 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, color: C.textLight, fontWeight: 600, marginRight: 2 }}>Ordenar:</span>
-              <button style={btnOrdem(ordenarPor === 'diasSemVir')}   onClick={() => setOrdenarPor('diasSemVir')}>Mais tempo sem vir</button>
-              <button style={btnOrdem(ordenarPor === 'visitas')}      onClick={() => setOrdenarPor('visitas')}>Mais visitas</button>
-              <button style={btnOrdem(ordenarPor === 'ultimaVisita')} onClick={() => setOrdenarPor('ultimaVisita')}>Última visita</button>
+              <button style={btnOrdem(b.ordenarPor === 'diasSemVir')}   onClick={() => b.setOrdenarPor('diasSemVir')}>Mais tempo sem vir</button>
+              <button style={btnOrdem(b.ordenarPor === 'visitas')}      onClick={() => b.setOrdenarPor('visitas')}>Mais visitas</button>
+              <button style={btnOrdem(b.ordenarPor === 'ultimaVisita')} onClick={() => b.setOrdenarPor('ultimaVisita')}>Última visita</button>
             </div>
 
             <span style={{ marginLeft: 'auto', fontSize: 12, color: C.textMuted, fontWeight: 600, flexShrink: 0 }}>
-              {listaExibida.length} cliente{listaExibida.length !== 1 ? 's' : ''}
+              {b.listaExibida.length} cliente{b.listaExibida.length !== 1 ? 's' : ''}
             </span>
           </div>
 
-          {listaExibida.length === 0 && (
+          {b.listaExibida.length === 0 && (
             <p style={{ padding: 40, textAlign: 'center', color: C.textMuted, fontSize: 13, margin: 0 }}>
               Nenhum cliente realizou este serviço no período selecionado.
             </p>
           )}
 
-          {listaExibida.length > 0 && (
+          {b.listaExibida.length > 0 && (
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
                 <thead>
@@ -401,7 +240,7 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                   </tr>
                 </thead>
                 <tbody>
-                  {listaExibida.map((c, i) => {
+                  {b.listaExibida.map((c, i) => {
                     const { cor, bg } = corDias(c.diasSemVir);
                     return (
                       <tr key={c.nome + i} style={{ background: i % 2 === 0 ? 'transparent' : `${C.bg}99` }}>

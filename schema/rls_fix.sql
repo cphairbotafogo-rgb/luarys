@@ -1,4 +1,25 @@
 ﻿-- =============================================================================
+-- ⚠️ OBSOLETO E PERIGOSO — NÃO EXECUTAR ⚠️
+-- =============================================================================
+-- Este arquivo cria policies "FOR SELECT/INSERT/UPDATE TO anon USING (true)"
+-- em agendamentos e clientes (linhas ~49-101 abaixo), liberando leitura e
+-- escrita de TODOS os salões (nome, telefone, CPF, agendamentos) para
+-- qualquer visitante sem login. Esse exato padrão é hoje proibido em
+-- .claude/commands/references/portal_padroes.md (seção "Nunca").
+--
+-- O isolamento correto do Portal do Cliente já está implementado via
+-- usuario_portal_id = auth.uid() / cliente_id nas migrations:
+--   supabase/migrations/20260621_rls_portal_cliente.sql
+--   supabase/migrations/20260622_fix_recursao_rls_agendamentos.sql
+--
+-- A migration supabase/migrations/20260722_c4_drop_rls_fix_anon_policies.sql
+-- remove (DROP POLICY IF EXISTS) as 5 policies anon deste arquivo, caso
+-- tenham sido aplicadas em algum momento. Rode-a se ainda não rodou.
+--
+-- Mantido apenas como histórico. Não copiar/colar no SQL Editor.
+-- =============================================================================
+--
+-- =============================================================================
 -- CORREÇÃO DE RLS POLICIES — ISOLAMENTO POR SALÃO
 -- Projeto: Luarys
 -- Data: 2026-06-21

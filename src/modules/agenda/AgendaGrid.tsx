@@ -5,7 +5,7 @@
 //   - Menu de clique direito sobre card: status, editar, fechar conta, faltou, cancelar
 //   - Cor do card controlada por corPorStatus() — sempre reflete o status atual
 'use client'
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { C, brl } from '@/lib/constants';
 import { RAIO_XS } from '@/lib/estiloGlobal';
 import { FiGlobe, FiGift, FiCheckCircle, FiZap, FiCalendar, FiAlertCircle } from 'react-icons/fi';
@@ -59,6 +59,34 @@ export function AgendaGrid({
   // ── Menu de contexto sobre card ─────────────────────────────────────────────
   const [menuCard, setMenuCard] = useState<{ ag: any; x: number; y: number } | null>(null);
 
+  // ── Índices memoizados ──────────────────────────────────────────────────────
+  // Evita refazer .filter()/.find() no array inteiro de agendamentos/clientes
+  // a cada render — antes rodava por coluna de profissional e por card.
+  const agendamentosPorProfissional = useMemo(() => {
+    const mapa = new Map<string, any[]>();
+    for (const a of agendamentos) {
+      if (a.data !== dataHojeStr) continue;
+      const chave = String(a.id_prof);
+      const lista = mapa.get(chave);
+      if (lista) lista.push(a); else mapa.set(chave, [a]);
+    }
+    return mapa;
+  }, [agendamentos, dataHojeStr]);
+
+  const clientesPorNome = useMemo(() => {
+    const mapa = new Map<string, any>();
+    for (const c of clientesDb) {
+      // mantém o primeiro match, mesmo comportamento de clientesDb.find(...)
+      if (c?.nome_completo && !mapa.has(c.nome_completo)) mapa.set(c.nome_completo, c);
+    }
+    return mapa;
+  }, [clientesDb]);
+
+  const profissionaisFiltrados = useMemo(
+    () => profissionaisVisiveis.filter((prof: any) => !filtroFuncao || prof.perfil_avancado?.contrato?.funcao === filtroFuncao),
+    [profissionaisVisiveis, filtroFuncao],
+  );
+
   // ── Cálculos visuais ────────────────────────────────────────────────────────
   function calcularPosicao(horaString: string, duracaoMinutos: number) {
     let [h, m] = horaString.split(':').map(Number);
@@ -86,7 +114,7 @@ export function AgendaGrid({
   }
 
   function verificarAniversario(nomeCliente: string) {
-    const cliente = clientesDb.find((c: any) => c.nome_completo === nomeCliente);
+    const cliente = clientesPorNome.get(nomeCliente);
     if (!cliente?.nascimento) return null;
     const partesNasc = cliente.nascimento.split('-');
     if (partesNasc.length < 3) return null;
@@ -125,7 +153,7 @@ export function AgendaGrid({
 
   // ── WhatsApp via template configurado em Textos Padrões ─────────────────────
   function abrirWhatsAppCard(ag: any) {
-    const cliente = clientesDb.find((c: any) => c.nome_completo === ag.cliente);
+    const cliente = clientesPorNome.get(ag.cliente);
     const telefone = cliente?.telefone_whatsapp;
     if (!telefone) return;
     const num = telefone.replace(/\D/g, '');
@@ -199,8 +227,7 @@ export function AgendaGrid({
           </div>
         )}
 
-        {profissionaisVisiveis
-          .filter((prof: any) => !filtroFuncao || prof.perfil_avancado?.contrato?.funcao === filtroFuncao)
+        {profissionaisFiltrados
           .map((prof: any) => (
             <div key={prof.id} style={{ flex: 1, minWidth: LARGURA_COLUNA, borderRight: `1px solid ${C.borderMid}`, position: 'relative' }}>
 
@@ -241,8 +268,7 @@ export function AgendaGrid({
                 })}
 
                 {/* Cards de agendamento */}
-                {agendamentos
-                  .filter((a: any) => String(a.id_prof) === String(prof.id) && a.data === dataHojeStr)
+                {(agendamentosPorProfissional.get(String(prof.id)) || [])
                   .map((ag: any, _idx: number, agsDoDia: any[]) => {
                     const styleP      = calcularPosicao(ag.inicio, ag.duracaoMin);
                     const sobreposicao = calcularSobreposicao(ag, agsDoDia);
@@ -419,7 +445,7 @@ export function AgendaGrid({
           onCancelar={() => { setMenuCard(null); onCancelar?.(menuCard.ag); }}
           onFaltou={() => { setMenuCard(null); onFaltou?.(menuCard.ag); }}
           onWhatsApp={() => abrirWhatsAppCard(menuCard.ag)}
-          temTelefone={!!clientesDb.find((c: any) => c.nome_completo === menuCard.ag.cliente)?.telefone_whatsapp}
+          temTelefone={!!clientesPorNome.get(menuCard.ag.cliente)?.telefone_whatsapp}
           isGerenteOuDono={isGerenteOuDono ?? true}
         />
       )}

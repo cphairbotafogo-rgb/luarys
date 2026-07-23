@@ -6,29 +6,14 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from './supabase';
 import { DadosGlobaisContext } from './contexto/DadosGlobaisContext';
-
-// ─── Helpers internos ────────────────────────────────────────────────────────
-
-function resolverChaveBandeira(bandeira: string, taxasCartoes: Record<string, any>): string | null {
-  if (!bandeira) return null;
-  if (taxasCartoes[bandeira]) return bandeira;
-  const lower = bandeira.toLowerCase();
-  return Object.keys(taxasCartoes).find(k => k.toLowerCase() === lower) ?? null;
-}
-
-function taxaMedia(campo: string, taxasCartoes: Record<string, any>): number {
-  const vals = Object.values(taxasCartoes)
-    .map((b: any) => parseFloat(b?.[campo] || '0') || 0)
-    .filter(t => t > 0);
-  if (vals.length === 0) return 0;
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
-}
+import { resolverChaveBandeira, taxaMedia } from './taxasCartao';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
 export interface TaxasConfig {
   taxasCartoes: Record<string, any>;
   taxaPix: number;
+  maxParcelas: number;
   configCarregada: boolean;
   obterTaxa: (forma: string, bandeira: string | null) => number;
 }
@@ -57,6 +42,7 @@ export function useTaxasConfig(perfil: any): TaxasConfig {
   // Estado local apenas usado quando fora do DadosGlobaisProvider
   const [taxasCartoesLocal, setTaxasCartoesLocal] = useState<Record<string, any>>({});
   const [taxaPixLocal,      setTaxaPixLocal]      = useState(0);
+  const [maxParcelasLocal,  setMaxParcelasLocal]  = useState(12);
   const [configCarregadaLocal, setConfigCarregadaLocal] = useState(false);
 
   useEffect(() => {
@@ -64,12 +50,13 @@ export function useTaxasConfig(perfil: any): TaxasConfig {
     async function carregar() {
       const { data } = await supabase
         .from('config_taxas')
-        .select('taxa_pix, taxas_cartoes')
+        .select('taxa_pix, taxas_cartoes, max_parcelas')
         .eq('salao_id', perfil.salao_id)
         .maybeSingle();
       if (data) {
         setTaxaPixLocal(Number(data.taxa_pix) || 0);
         setTaxasCartoesLocal(data.taxas_cartoes || {});
+        if (data.max_parcelas) setMaxParcelasLocal(Number(data.max_parcelas));
         setConfigCarregadaLocal(true);
       }
     }
@@ -78,6 +65,7 @@ export function useTaxasConfig(perfil: any): TaxasConfig {
 
   const taxasCartoes   = emContexto ? ctx!.taxasCartoes : taxasCartoesLocal;
   const taxaPix        = emContexto ? ctx!.taxaPix      : taxaPixLocal;
+  const maxParcelas    = emContexto ? ctx!.maxParcelas  : maxParcelasLocal;
   const configCarregada = emContexto ? ctx!.configTaxasCarregada : configCarregadaLocal;
 
   const obterTaxa = useCallback((forma: string, bandeira: string | null): number => {
@@ -92,5 +80,5 @@ export function useTaxasConfig(perfil: any): TaxasConfig {
     return taxaMedia(campo, taxasCartoes);
   }, [taxasCartoes, taxaPix]);
 
-  return { taxasCartoes, taxaPix, configCarregada, obterTaxa };
+  return { taxasCartoes, taxaPix, maxParcelas, configCarregada, obterTaxa };
 }

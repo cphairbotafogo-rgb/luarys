@@ -71,9 +71,7 @@ export function labelValorHora(valor: number): string {
 
 // ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
 
-export function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+export { brl } from '@/lib/constants';
 
 export function fmtData(d: string) {
   if (!d) return '—';

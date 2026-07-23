@@ -30,14 +30,9 @@ export function ModalFechamentoCaixa({
   adicionarItemAvulsoCaixa
 }: any) {
   const ui = useFechamentoUI({ perfil, dadosCaixa, setDadosCaixa, clientesDb, servicosDb, produtosDb, onFinalizar });
-
-  const [maxParcelas, setMaxParcelas] = useState<number>(12);
-  useEffect(() => {
-    if (!perfil?.salao_id) return;
-    supabase.from('config_taxas').select('max_parcelas')
-      .eq('salao_id', perfil.salao_id).maybeSingle()
-      .then(({ data }) => { if (data?.max_parcelas) setMaxParcelas(Number(data.max_parcelas)); });
-  }, [perfil?.salao_id]);
+  // maxParcelas já vem de useFechamentoUI (config_taxas) — evita um segundo
+  // fetch idêntico rodando em paralelo dentro do mesmo modal.
+  const { maxParcelas } = ui;
 
   const [dividaCliente, setDividaCliente] = useState<number>(0);
   useEffect(() => {

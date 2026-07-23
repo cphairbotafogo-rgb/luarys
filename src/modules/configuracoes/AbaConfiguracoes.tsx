@@ -90,8 +90,8 @@ export function AbaConfiguracoes({ perfil }: any) {
           setTokenPagamento(resSalao.data.token_pagamento || "");
 
           if (resSalao.data.horarios_funcionamento) {
-            try { setHorarios(typeof resSalao.data.horarios_funcionamento === 'string' ? JSON.parse(resSalao.data.horarios_funcionamento) : resSalao.data.horarios_funcionamento); } 
-            catch (e) {}
+            try { setHorarios(typeof resSalao.data.horarios_funcionamento === 'string' ? JSON.parse(resSalao.data.horarios_funcionamento) : resSalao.data.horarios_funcionamento); }
+            catch (e) { console.error('[AbaConfiguracoes] Erro ao parsear horarios_funcionamento:', e); }
           }
         }
         if (resUser.data) setFormPerfil({ nome: resUser.data.nome || '', telefone: resUser.data.telefone || '' });
@@ -111,7 +111,9 @@ export function AbaConfiguracoes({ perfil }: any) {
         if (!data.erro) {
           setFormSalao(prev => ({ ...prev, logradouro: data.logradouro || prev.logradouro, bairro: data.bairro || prev.bairro, cidade: data.localidade || prev.cidade, estado: data.uf || prev.estado }));
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error('[AbaConfiguracoes] Erro ao buscar CEP:', error);
+      }
     }
   }
 

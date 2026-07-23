@@ -51,12 +51,25 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
       return;
     }
     setComprando(true);
-    const { error } = await supabase.rpc('comprar_pacote_whatsapp', {
-      p_pacote_id: pacoteId,
-      p_meio_pagamento: meio,
+    // A RPC comprar_pacote_whatsapp foi revogada de authenticated/anon
+    // (supabase/migrations/20260717_c3_revoke_admin_rpcs.sql — creditava
+    // saldo sem confirmar pagamento real). A rota abaixo resolve o salao_id
+    // no servidor e só credita se WHATSAPP_CREDITO_TESTE_HABILITADO estiver
+    // ligado — ver /api/whatsapp/comprar-creditos-teste.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setComprando(false);
+      toast.erro('Sessão expirada. Faça login novamente.');
+      return;
+    }
+    const res = await fetch('/api/whatsapp/comprar-creditos-teste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ pacoteId, meioPagamento: meio }),
     });
+    const json = await res.json().catch(() => ({}));
     setComprando(false);
-    if (error) { toast.erro('Erro ao processar: ' + error.message); return; }
+    if (!res.ok) { toast.erro(json.erro || 'Erro ao processar a compra.'); return; }
     toast.sucesso(`${selecionado.quantidade} créditos de marketing adicionados!`);
     setSelecionado(null);
     setMostrarLoja(false);

@@ -79,16 +79,31 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
       setComprando(true);
       setErro(null);
 
-      // p_salao_id não é necessário aqui porque a RPC usa auth_salao_id() internamente
-      // (ver migrations/003_whatsapp_carteira_creditos.sql — assinatura sem p_salao_id)
-      const { error } = await supabase.rpc('comprar_pacote_whatsapp', {
-        p_pacote_id:      pacoteId,
-        p_meio_pagamento: meioPagamento,
+      // A RPC comprar_pacote_whatsapp foi revogada de authenticated/anon
+      // (supabase/migrations/20260717_c3_revoke_admin_rpcs.sql — creditava
+      // saldo sem confirmar pagamento real). A rota abaixo resolve o
+      // salao_id no servidor e só credita se WHATSAPP_CREDITO_TESTE_HABILITADO
+      // estiver ligado — ver /api/whatsapp/comprar-creditos-teste.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setComprando(false);
+        setErro('Sessão expirada. Faça login novamente.');
+        return false;
+      }
+
+      const res = await fetch('/api/whatsapp/comprar-creditos-teste', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ pacoteId, meioPagamento }),
       });
+      const json = await res.json().catch(() => ({}));
 
       setComprando(false);
 
-      if (error) { setErro(error.message); return false; }
+      if (!res.ok) { setErro(json.erro || 'Não foi possível processar a compra.'); return false; }
 
       await carregar();
       return true;

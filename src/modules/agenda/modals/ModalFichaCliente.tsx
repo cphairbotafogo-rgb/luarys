@@ -79,7 +79,9 @@ export function ModalFichaCliente({
           estado:     data.uf         || '',
         });
       }
-    } catch {}
+    } catch (erro) {
+      console.error('[ModalFichaCliente] Erro ao buscar CEP:', erro);
+    }
     setBuscandoCep(false);
   }
 

@@ -11,6 +11,7 @@ import { gerarDetalhamentoParcelas, gerarHtmlCupom } from "./tipos";
 import { temPermissao } from "@/lib/permissoes";
 import { useFechamentoItens } from "./useFechamentoItens";
 import { verificarPinGerente } from "@/lib/verificarPinGerente";
+import { useTaxasConfig } from "@/lib/useTaxasConfig";
 
 export function useFechamentoUI({
   perfil,
@@ -55,8 +56,10 @@ export function useFechamentoUI({
 
   const [bandeiraCredito, setBandeiraCredito] = useState("");
   const [bandeiraDebito, setBandeiraDebito] = useState("");
-  const [maxParcelas, setMaxParcelas] = useState<number>(12);
-  const [taxasCartoes, setTaxasCartoes] = useState<Record<string, any>>({});
+  // Fonte única de taxas/max_parcelas: DadosGlobaisContext quando disponível,
+  // fetch próprio como fallback (useTaxasConfig cuida dos dois casos) — evita
+  // um segundo fetch de config_taxas dentro do mesmo fluxo de fechamento.
+  const { taxasCartoes, maxParcelas } = useTaxasConfig(perfil);
   const [dadosSalao, setDadosSalao] = useState<any>(null);
 
   const [buscas, setBuscas] = useState<Record<string, { item: string; prof: string }>>({});
@@ -64,22 +67,18 @@ export function useFechamentoUI({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function buscarConfiguracoes() {
+    async function buscarDadosSalao() {
       if (!perfil?.salao_id) return;
       try {
-        const { data: taxas } = await supabase
-          .from('config_taxas').select('max_parcelas, taxas_cartoes')
-          .eq('salao_id', perfil.salao_id).maybeSingle();
-        if (taxas?.max_parcelas) setMaxParcelas(taxas.max_parcelas);
-        if (taxas?.taxas_cartoes) setTaxasCartoes(taxas.taxas_cartoes);
-
         const { data: salao } = await supabase
           .from('saloes').select('nome_fantasia, razao_social, cnpj, telefone')
           .eq('id', perfil.salao_id).maybeSingle();
         if (salao) setDadosSalao(salao);
-      } catch {}
+      } catch (erro) {
+        console.error('[useFechamentoUI] Erro ao buscar dados do salão:', erro);
+      }
     }
-    buscarConfiguracoes();
+    buscarDadosSalao();
   }, [perfil?.salao_id]);
 
   useEffect(() => {
@@ -113,7 +112,9 @@ export function useFechamentoUI({
             };
           });
         }
-      } catch {}
+      } catch (erro) {
+        console.error('[useFechamentoUI] Erro ao checar sinal pago pelo portal:', erro);
+      }
     }
     checarSinalPortal();
   }, [dadosCaixa.agendamentoId]);

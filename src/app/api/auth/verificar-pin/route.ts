@@ -3,9 +3,16 @@
  *
  * A1: Valida o PIN do gerente server-side — o PIN nunca trafega para o cliente.
  * Requer sessão autenticada. Retorna { valido: boolean } sem expor o PIN.
+ *
+ * Segurança: o ameaçador aqui é um funcionário comum autenticado no mesmo
+ * salão tentando descobrir o PIN do gerente por força bruta — rate limit por
+ * usuário (não só por IP, já que é o mesmo computador/wifi do salão) e
+ * comparação timing-safe, mesmo padrão de /api/admin/verify-key.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'crypto';
+import { rateLimitExcedido, obterIp } from '@/lib/rateLimiter';
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +21,12 @@ const admin = createClient(
 );
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function pinConfere(informado: string, correto: string): boolean {
+  const a = Buffer.from(informado);
+  const b = Buffer.from(correto);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +38,15 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await admin.auth.getUser(bearer);
     if (!user) {
       return NextResponse.json({ erro: 'Sessão inválida.' }, { status: 401 });
+    }
+
+    // 5 tentativas por usuário a cada 15 minutos
+    if (await rateLimitExcedido(`verificar-pin:${user.id}`, 5, 900)) {
+      return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
+    }
+    // Camada extra por IP, caso o ataque venha de múltiplas contas na mesma rede
+    if (await rateLimitExcedido(`verificar-pin-ip:${obterIp(req as any)}`, 15, 900)) {
+      return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
     }
 
     const { salao_id, pin } = await req.json();
@@ -58,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valido: false, semPin: true });
     }
 
-    const valido = String(pin) === String(salao.pin_gerente);
+    const valido = pinConfere(String(pin), String(salao.pin_gerente));
     return NextResponse.json({ valido });
 
   } catch (err) {

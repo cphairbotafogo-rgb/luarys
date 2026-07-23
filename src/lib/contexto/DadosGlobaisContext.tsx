@@ -11,6 +11,7 @@ export interface DadosGlobais {
   profissionais: any[];
   taxasCartoes: Record<string, any>;
   taxaPix: number;
+  maxParcelas: number;
   configTaxasCarregada: boolean;
   carregando: boolean;
   /** Força re-fetch de config_taxas após o usuário salvar Configurações → Taxas */
@@ -24,6 +25,7 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
   const [profissionais,  setProfissionais]  = useState<any[]>([]);
   const [taxasCartoes,   setTaxasCartoes]   = useState<Record<string, any>>({});
   const [taxaPix,        setTaxaPix]        = useState(0);
+  const [maxParcelas,    setMaxParcelas]    = useState(12);
   const [configTaxasCarregada, setConfigTaxasCarregada] = useState(false);
   const [carregando,     setCarregando]     = useState(true);
 
@@ -46,7 +48,7 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
           .eq('ativo', true),
         supabase
           .from('config_taxas')
-          .select('taxa_pix, taxas_cartoes')
+          .select('taxa_pix, taxas_cartoes, max_parcelas')
           .eq('salao_id', perfil.salao_id)
           .maybeSingle(),
       ]);
@@ -56,6 +58,7 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
       if (resTax.data) {
         setTaxaPix(Number(resTax.data.taxa_pix) || 0);
         setTaxasCartoes(resTax.data.taxas_cartoes || {});
+        if (resTax.data.max_parcelas) setMaxParcelas(Number(resTax.data.max_parcelas));
         setConfigTaxasCarregada(true);
       }
       setCarregando(false);
@@ -69,12 +72,13 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
     if (!perfil?.salao_id) return;
     const { data } = await supabase
       .from('config_taxas')
-      .select('taxa_pix, taxas_cartoes')
+      .select('taxa_pix, taxas_cartoes, max_parcelas')
       .eq('salao_id', perfil.salao_id)
       .maybeSingle();
     if (data) {
       setTaxaPix(Number(data.taxa_pix) || 0);
       setTaxasCartoes(data.taxas_cartoes || {});
+      if (data.max_parcelas) setMaxParcelas(Number(data.max_parcelas));
       setConfigTaxasCarregada(true);
     }
   }, [perfil?.salao_id]);
@@ -82,7 +86,7 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
   return (
     <DadosGlobaisContext.Provider value={{
       servicos, profissionais,
-      taxasCartoes, taxaPix, configTaxasCarregada,
+      taxasCartoes, taxaPix, maxParcelas, configTaxasCarregada,
       carregando, recarregarTaxas,
     }}>
       {children}

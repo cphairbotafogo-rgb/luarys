@@ -40,9 +40,7 @@ export interface TransacaoFidelidade {
 
 // ─── FORMATAÇÃO ───────────────────────────────────────────────────────────────
 
-export function brl(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+export { brl } from '@/lib/constants';
 
 export function formatarPontos(v: number) {
   return v.toLocaleString('pt-BR');

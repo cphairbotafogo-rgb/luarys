@@ -13,6 +13,7 @@ import { toast } from "@/components/Toast";
 import { calcularItensFechamento } from "./calcularItensFechamento";
 import { construirPayloadNfceBalcao } from "@/lib/nfce/payloadBalcao";
 import { carregarAssinaturaCtx } from "./carregarAssinaturaCtx";
+import { taxaMedia } from "@/lib/taxasCartao";
 
 interface Ctx {
   perfil: any;
@@ -79,25 +80,17 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
     const taxasCartoes: any         = confTaxas?.taxas_cartoes || {};
     const taxaPixRate: number       = Number(confTaxas?.taxa_pix) || 0;
 
-    // Média das taxas configuradas de um campo (ex: 'debito', 'cred_1'), usada como
-    // fallback quando a bandeira do pagamento não tem taxa própria. Evita chutar
-    // 'Visa' — que pode ser só crédito (o débito costuma ser outra bandeira, ex:
-    // Visa Electron). Mesma lógica do useTaxasConfig.
-    const mediaTaxa = (campo: string): number => {
-      const vals = Object.values(taxasCartoes)
-        .map((b: any) => parseFloat(b?.[campo] || '0') || 0)
-        .filter((t: number) => t > 0);
-      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    };
-
-    // Taxa da operadora aplicável ao pagamento desta conta
+    // Taxa da operadora aplicável ao pagamento desta conta.
+    // taxaMedia (fallback quando a bandeira não tem taxa própria configurada —
+    // evita chutar 'Visa', que pode ser só crédito) vem de @/lib/taxasCartao,
+    // a mesma fonte usada pelo hook useTaxasConfig.
     let taxaOperadoraPercent = 0;
     if (modoTaxaOp !== 'nao_descontar') {
       if (formaFin.includes('Crédito')) {
         const parcelas = (dadosCaixa.pagamentos as any).parcelas_credito || 1;
-        taxaOperadoraPercent = Number(taxasCartoes[bandeiraCaixa || '']?.[`cred_${parcelas}`]) || mediaTaxa(`cred_${parcelas}`);
+        taxaOperadoraPercent = Number(taxasCartoes[bandeiraCaixa || '']?.[`cred_${parcelas}`]) || taxaMedia(`cred_${parcelas}`, taxasCartoes);
       } else if (formaFin.includes('Débito')) {
-        taxaOperadoraPercent = Number(taxasCartoes[bandeiraCaixa || '']?.debito) || mediaTaxa('debito');
+        taxaOperadoraPercent = Number(taxasCartoes[bandeiraCaixa || '']?.debito) || taxaMedia('debito', taxasCartoes);
       } else if (formaFin === 'PIX') {
         taxaOperadoraPercent = taxaPixRate;
       }

@@ -110,7 +110,7 @@ async function popularAmbienteDemo(admin: any, salaoId: string) {
 // ─── HANDLER ──────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   // 3 cadastros por IP a cada hora — evita criação de contas em massa
-  if (rateLimitExcedido(obterIp(request), 3, 3600)) {
+  if (await rateLimitExcedido(obterIp(request), 3, 3600)) {
     return NextResponse.json({ erro: 'Muitos cadastros em sequência. Aguarde alguns minutos e tente novamente.' }, { status: 429 });
   }
 

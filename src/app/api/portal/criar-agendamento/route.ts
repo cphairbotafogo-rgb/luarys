@@ -24,7 +24,7 @@ const supabaseAdmin = createClient(
 export async function POST(request: NextRequest) {
   // A4: 10 agendamentos por IP a cada 10 minutos
   const ip = obterIp(request as any);
-  if (rateLimitExcedido(`criar-agendamento:${ip}`, 10, 600)) {
+  if (await rateLimitExcedido(`criar-agendamento:${ip}`, 10, 600)) {
     return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });
   }
 
