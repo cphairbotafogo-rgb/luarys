@@ -8,6 +8,21 @@ function extrairDadosSalao(saloesRel: any): any {
   return Array.isArray(saloesRel) ? saloesRel[0] : saloesRel;
 }
 
+/**
+ * Módulos sem preço (preco_mensal nulo ou <= 0) não têm checkout — regra de
+ * negócio é que ficam liberados automaticamente, sem depender de uma linha
+ * em salao_modulos (nunca é criada pra eles, já que não há pagamento).
+ */
+async function buscarChavesGratis(): Promise<string[]> {
+  const { data } = await supabase
+    .from('modulos_catalogo')
+    .select('chave, preco_mensal')
+    .eq('ativo', true);
+  return (data || [])
+    .filter((m: any) => m.preco_mensal == null || Number(m.preco_mensal) <= 0)
+    .map((m: any) => m.chave);
+}
+
 function derivarModulos(
   modulosAtivos: string[],
   statusAssinatura: string | null,
@@ -57,13 +72,14 @@ export async function carregarPerfilUsuario(userId: string): Promise<ResultadoLo
     .from('perfis_usuarios').select('*').eq('id', userId).single();
 
   if (dono) {
-    const [{ data: salaoData }, { data: salaoModulosData }] = await Promise.all([
+    const [{ data: salaoData }, { data: salaoModulosData }, chavesGratis] = await Promise.all([
       supabase.from('saloes').select('*').eq('id', dono.salao_id).single(),
       supabase.from('salao_modulos').select('modulo_chave').eq('salao_id', dono.salao_id).eq('ativo', true),
+      buscarChavesGratis(),
     ]);
 
     const acessoTotal  = !!salaoData?.acesso_total;
-    const modulosAtivos = (salaoModulosData || []).map((m: any) => m.modulo_chave);
+    const modulosAtivos = [...(salaoModulosData || []).map((m: any) => m.modulo_chave), ...chavesGratis];
     const acesso   = derivarAcessoPlano(salaoData?.plano_assinatura, salaoData?.status_assinatura, acessoTotal, salaoData?.trial_expiracao);
     const modulos  = derivarModulos(modulosAtivos, salaoData?.status_assinatura, !!salaoData?.modulo_fiscal_liberado, !!salaoData?.api_whatsapp_liberada, acessoTotal);
 
@@ -110,8 +126,11 @@ export async function carregarPerfilUsuario(userId: string): Promise<ResultadoLo
 
   const dadosSalao      = extrairDadosSalao(funcionario.saloes);
   const acessoTotalFunc = !!dadosSalao?.acesso_total;
-  const { data: modulosFunc } = await supabase.from('salao_modulos').select('modulo_chave').eq('salao_id', funcionario.salao_id).eq('ativo', true);
-  const modulosAtivosFunc = (modulosFunc || []).map((m: any) => m.modulo_chave);
+  const [{ data: modulosFunc }, chavesGratisFunc] = await Promise.all([
+    supabase.from('salao_modulos').select('modulo_chave').eq('salao_id', funcionario.salao_id).eq('ativo', true),
+    buscarChavesGratis(),
+  ]);
+  const modulosAtivosFunc = [...(modulosFunc || []).map((m: any) => m.modulo_chave), ...chavesGratisFunc];
   const acessoFunc  = derivarAcessoPlano(dadosSalao?.plano_assinatura, dadosSalao?.status_assinatura, acessoTotalFunc, dadosSalao?.trial_expiracao);
   const modulosFunc2 = derivarModulos(modulosAtivosFunc, dadosSalao?.status_assinatura, !!dadosSalao?.modulo_fiscal_liberado, !!dadosSalao?.api_whatsapp_liberada, acessoTotalFunc);
 

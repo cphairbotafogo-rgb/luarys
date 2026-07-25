@@ -19,10 +19,15 @@ export function useGuardModulo(salaoId: string | undefined, moduloChave: string)
         .eq('modulo_chave', moduloChave)
         .eq('ativo', true)
         .maybeSingle(),
-    ]).then(([resSalao, resModulo]) => {
+      // Módulos sem preço não têm checkout — ficam liberados automaticamente,
+      // sem depender de uma linha em salao_modulos (nunca é criada pra eles).
+      supabase.from('modulos_catalogo').select('preco_mensal').eq('chave', moduloChave).eq('ativo', true).maybeSingle(),
+    ]).then(([resSalao, resModulo, resCatalogo]) => {
       const acessoTotal = !!resSalao.data?.acesso_total;
       const moduloAtivo = !!resModulo.data;
-      setLiberado(acessoTotal || moduloAtivo);
+      const precoCatalogo = resCatalogo.data?.preco_mensal;
+      const moduloGratis = !!resCatalogo.data && (precoCatalogo == null || Number(precoCatalogo) <= 0);
+      setLiberado(acessoTotal || moduloAtivo || moduloGratis);
     });
   }, [salaoId, moduloChave]);
 
