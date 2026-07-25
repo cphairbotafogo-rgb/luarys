@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
@@ -43,6 +43,17 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
       });
   }, []);
 
+  // Pagamento acontece em outra aba (checkout abre com window.open) — ao
+  // voltar para esta, recarrega o saldo pra refletir a ativação feita pelo
+  // webhook do Asaas.
+  const onCompraFinalizadaRef = useRef(onCompraFinalizada);
+  onCompraFinalizadaRef.current = onCompraFinalizada;
+  useEffect(() => {
+    function aoFocar() { onCompraFinalizadaRef.current(); }
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
+  }, []);
+
   async function comprar(meio: 'pix' | 'cartao_credito') {
     if (!selecionado) return;
     const pacoteId = pacotesDb[selecionado.quantidade];
@@ -51,29 +62,24 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
       return;
     }
     setComprando(true);
-    // A RPC comprar_pacote_whatsapp foi revogada de authenticated/anon
-    // (supabase/migrations/20260717_c3_revoke_admin_rpcs.sql — creditava
-    // saldo sem confirmar pagamento real). A rota abaixo resolve o salao_id
-    // no servidor e só credita se WHATSAPP_CREDITO_TESTE_HABILITADO estiver
-    // ligado — ver /api/whatsapp/comprar-creditos-teste.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setComprando(false);
       toast.erro('Sessão expirada. Faça login novamente.');
       return;
     }
-    const res = await fetch('/api/whatsapp/comprar-creditos-teste', {
+    const res = await fetch('/api/whatsapp/comprar-creditos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ pacoteId, meioPagamento: meio }),
     });
     const json = await res.json().catch(() => ({}));
     setComprando(false);
-    if (!res.ok) { toast.erro(json.erro || 'Erro ao processar a compra.'); return; }
-    toast.sucesso(`${selecionado.quantidade} créditos de marketing adicionados!`);
+    if (!res.ok || !json.checkoutUrl) { toast.erro(json.erro || 'Erro ao processar a compra.'); return; }
+    window.open(json.checkoutUrl, '_blank');
+    toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
     setSelecionado(null);
     setMostrarLoja(false);
-    onCompraFinalizada();
   }
 
   const zerado = saldo !== null && saldo <= 0;
@@ -128,14 +134,6 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
       {/* Loja de pacotes */}
       {mostrarLoja && (
         <>
-          {/* Aviso gateway de pagamento */}
-          <div style={{ background: '#FEF9C3', border: '1px solid #CA8A04', borderRadius: RAIO_MD, padding: '8px 12px', marginBottom: 14, display: 'flex', gap: 7, alignItems: 'flex-start' }}>
-            <FiAlertTriangle size={12} color="#CA8A04" style={{ marginTop: 2, flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 11, color: '#78350F', lineHeight: 1.5 }}>
-              <strong>Ambiente de teste:</strong> pagamentos ainda não conectados a um gateway real (Asaas).
-            </p>
-          </div>
-
           <p style={{ margin: '0 0 10px', fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Escolha um pacote — R$ 0,55 / mensagem
           </p>

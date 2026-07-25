@@ -57,16 +57,11 @@ export function PainelCarteiraWhatsapp() {
 
   async function confirmarCompra(meio: MeioPagamento) {
     if (!pacoteSelecionado) return;
-    // TODO: GATEWAY DE PAGAMENTO NÃO CONECTADO
-    // Esta função credita saldo direto na RPC sem confirmar pagamento real.
-    // Antes de colocar no ar (produção/internet), integrar um gateway (ex: Mercado Pago, Stripe)
-    // que confirme o PIX/cartão via webhook ANTES de chamar comprarPacote().
-    // O banner amarelo abaixo avisa o usuário enquanto isso não estiver pronto.
     const ok = await comprarPacote(pacoteSelecionado.id, meio);
     if (ok) {
       setPacoteSelecionado(null);
       setMostrarLoja(false);
-      toast.sucesso('Créditos adicionados com sucesso!');
+      toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
     } else {
       toast.erro('Erro ao processar a compra. Tente novamente.');
     }
@@ -108,18 +103,6 @@ export function PainelCarteiraWhatsapp() {
         >
           {mostrarLoja ? <><FiX size={12} /> Fechar</> : <><FiPlus size={12} /> Comprar créditos</>}
         </button>
-      </div>
-
-      {/* Aviso: gateway de pagamento não configurado para produção */}
-      <div style={{
-        background: '#FEF9C3', border: '1px solid #CA8A04', borderRadius: RAIO_MD,
-        padding: '10px 14px', marginBottom: 16, display: 'flex', gap: 8, alignItems: 'flex-start',
-      }}>
-        <FiAlertTriangle size={14} color="#CA8A04" style={{ marginTop: 2, flexShrink: 0 }} />
-        <p style={{ margin: 0, fontSize: 12, color: '#78350F', lineHeight: 1.5 }}>
-          <strong>Ambiente de teste:</strong> compras ainda não estão conectadas a um gateway de pagamento real.
-          Antes de colocar no ar, integre Mercado Pago ou Stripe para confirmar PIX/cartão via webhook.
-        </p>
       </div>
 
       {erro && (

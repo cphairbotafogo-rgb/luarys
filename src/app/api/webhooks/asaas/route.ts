@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { registrarPagamentoAssinatura, parseReferencia } from '@/lib/assinaturas';
+import { parseReferenciaWhatsappCreditos, registrarCompraCreditosWhatsapp } from '@/lib/whatsappCreditos';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,6 +98,24 @@ export async function POST(request: NextRequest) {
     }
 
     const pagamento = await pagResp.json();
+
+    // Compra avulsa de créditos WhatsApp ("whatsapp::salaoId::pacoteId") —
+    // checada ANTES de parseReferencia, que não reconhece esse formato e
+    // (por só validar salaoId/moduloChave não-vazios) interpretaria "whatsapp"
+    // como salaoId sem erro, corrompendo o fluxo de assinatura.
+    const refCreditos = parseReferenciaWhatsappCreditos(pagamento.externalReference);
+    if (refCreditos) {
+      const statusFinal = eAprovado;
+      const resultadoCreditos = await registrarCompraCreditosWhatsapp({
+        salaoId:            refCreditos.salaoId,
+        pacoteId:           refCreditos.pacoteId,
+        meioPagamento:      pagamento.billingType === 'PIX' ? 'pix' : 'cartao_credito',
+        pagamentoExternoId: paymentId,
+        aprovado:           statusFinal,
+      });
+      return NextResponse.json({ recebido: true, ...resultadoCreditos });
+    }
+
     let referencia = parseReferencia(pagamento.externalReference);
 
     // Cobranças geradas automaticamente por uma subscription (ciclos recorrentes

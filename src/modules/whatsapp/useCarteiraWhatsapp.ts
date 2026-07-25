@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   SaldoWhatsapp, PacoteWhatsapp, ConsumoAgrupado,
@@ -74,16 +74,22 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  // Pagamento acontece em outra aba (checkout abre com window.open) — ao
+  // voltar para esta, recarrega o saldo pra refletir a ativação feita pelo
+  // webhook do Asaas.
+  const carregarRef = useRef(carregar);
+  carregarRef.current = carregar;
+  useEffect(() => {
+    function aoFocar() { carregarRef.current(); }
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
+  }, []);
+
   const comprarPacote = useCallback(
     async (pacoteId: string, meioPagamento: MeioPagamento): Promise<boolean> => {
       setComprando(true);
       setErro(null);
 
-      // A RPC comprar_pacote_whatsapp foi revogada de authenticated/anon
-      // (supabase/migrations/20260717_c3_revoke_admin_rpcs.sql — creditava
-      // saldo sem confirmar pagamento real). A rota abaixo resolve o
-      // salao_id no servidor e só credita se WHATSAPP_CREDITO_TESTE_HABILITADO
-      // estiver ligado — ver /api/whatsapp/comprar-creditos-teste.
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setComprando(false);
@@ -91,7 +97,10 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
         return false;
       }
 
-      const res = await fetch('/api/whatsapp/comprar-creditos-teste', {
+      // O saldo só é creditado quando o webhook do Asaas confirmar o
+      // pagamento — ver /api/whatsapp/comprar-creditos e
+      // src/lib/whatsappCreditos.ts.
+      const res = await fetch('/api/whatsapp/comprar-creditos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,12 +112,12 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
 
       setComprando(false);
 
-      if (!res.ok) { setErro(json.erro || 'Não foi possível processar a compra.'); return false; }
+      if (!res.ok || !json.checkoutUrl) { setErro(json.erro || 'Não foi possível processar a compra.'); return false; }
 
-      await carregar();
+      window.open(json.checkoutUrl, '_blank');
       return true;
     },
-    [carregar],
+    [],
   );
 
   return {
