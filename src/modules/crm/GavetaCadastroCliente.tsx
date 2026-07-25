@@ -17,7 +17,7 @@ const ORIGENS = [
 const formVazio = {
   nome: '', ddi: '+55', telefone: '', email: '', genero: '',
   cpf: '', nascimento: '', instagram: '', como_conheceu: '',
-  observacoes: '', anamnese: '',
+  observacoes: '', anamnese: '', canal_notificacao_preferido: 'whatsapp',
 };
 
 type Props = {
@@ -93,6 +93,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
         nascimento:       form.nascimento || null,
         instagram:        form.instagram  || null,
         como_conheceu:    form.como_conheceu || null,
+        canal_notificacao_preferido: form.canal_notificacao_preferido,
       }]).select('id').single();
       if (error) throw error;
 
@@ -195,6 +196,22 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
                 {ORIGENS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Canal preferido para confirmações */}
+          <div>
+            <label style={labelStyle}>
+              Canal de confirmação
+              <IconeAjuda texto={"Como o cliente prefere receber a confirmação do agendamento.\nSe escolher e-mail mas não preencher o campo acima, o sistema usa WhatsApp."} posicao="baixo" />
+            </label>
+            <select
+              style={{ ...inputStyle, maxWidth: 220 }}
+              value={form.canal_notificacao_preferido}
+              onChange={e => set('canal_notificacao_preferido', e.target.value)}
+            >
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">E-mail</option>
+            </select>
           </div>
 
           {/* Observações */}

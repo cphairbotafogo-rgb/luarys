@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { enviarPushPortal } from './webPush';
+import { notificarConfirmacaoAgendamento } from './notificarAgendamento';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +35,8 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
     console.error('[confirmarSinalPago] Falha ao gravar sinal_pago:', erroUpdate.message);
     return { ok: false, erro: 'Falha ao registrar pagamento.' };
   }
+
+  await notificarConfirmacaoAgendamento(agendamentoId);
 
   const dataFormatada = ag.data
     ? new Date(ag.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })

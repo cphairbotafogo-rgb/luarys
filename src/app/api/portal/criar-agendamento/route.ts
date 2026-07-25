@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimitExcedido, obterIp } from '@/lib/rateLimiter';
+import { notificarConfirmacaoAgendamento } from '@/lib/notificarAgendamento';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -170,6 +171,7 @@ export async function POST(request: NextRequest) {
 
     // ── Se não cobra sinal, retorna agendamento confirmado ────────────────────
     if (!cobrarSinal || valorSinal <= 0) {
+      await notificarConfirmacaoAgendamento(agendamentoId);
       return NextResponse.json({ agendamentoId, status: 'Agendado', sinalNecessario: false });
     }
 
@@ -181,6 +183,7 @@ export async function POST(request: NextRequest) {
         .update({ status: 'Agendado', valor_sinal: null, sinal_pago: false })
         .eq('id', agendamentoId);
 
+      await notificarConfirmacaoAgendamento(agendamentoId);
       return NextResponse.json({ agendamentoId, status: 'Agendado', sinalNecessario: false });
     }
 
@@ -196,6 +199,7 @@ export async function POST(request: NextRequest) {
         .update({ sinal_pago: true, status: 'Agendado' })
         .eq('id', agendamentoId);
 
+      await notificarConfirmacaoAgendamento(agendamentoId);
       return NextResponse.json({
         agendamentoId,
         status: 'Agendado',
