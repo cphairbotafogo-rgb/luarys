@@ -88,7 +88,21 @@ export async function POST(request: NextRequest) {
     }
 
     const pagamento = await pagResp.json();
-    const referencia = parseReferencia(pagamento.externalReference);
+    let referencia = parseReferencia(pagamento.externalReference);
+
+    // Cobranças geradas automaticamente por uma subscription (ciclos recorrentes
+    // após o primeiro) nem sempre repetem o externalReference da fatura original
+    // — o Asaas garante isso no external reference da SUBSCRIPTION, então caímos
+    // para buscar por lá quando a fatura não tiver um de forma direta.
+    if (!referencia && pagamento.subscription) {
+      const subResp = await fetch(`${asaasBase}/subscriptions/${pagamento.subscription}`, {
+        headers: { 'access_token': asaasKey },
+      });
+      if (subResp.ok) {
+        const subData = await subResp.json();
+        referencia = parseReferencia(subData.externalReference);
+      }
+    }
 
     if (!referencia) {
       // Cobrança sem referência — não é do sistema de assinaturas
@@ -105,6 +119,7 @@ export async function POST(request: NextRequest) {
       gateway:           'asaas',
       pagamentoExternoId: paymentId,
       periodo:           referencia.periodo,
+      asaasSubscriptionId: pagamento.subscription || undefined,
     });
 
     return NextResponse.json({ recebido: true, ...resultado });

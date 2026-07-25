@@ -44,7 +44,7 @@ export default async function PoliticaPrivacidade() {
     <PaginaLegal titulo="Política de Privacidade" atualizadoEm="22 de junho de 2026">
 
       <p style={SL.p}>
-        Esta Política de Privacidade descreve como a <strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, inscrita sob o CNPJ <strong>[CNPJ]</strong>, com sede em <strong>[ENDEREÇO COMPLETO]</strong> ("Luarys", "nós"), coleta, usa, armazena e compartilha dados pessoais no contexto da plataforma Luarys, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
+        Esta Política de Privacidade descreve como a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, inscrita sob o CNPJ <strong>68.176.336/0001-43</strong>, com sede em <strong>Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</strong> ("Luarys", "nós"), coleta, usa, armazena e compartilha dados pessoais no contexto da plataforma Luarys, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
       </p>
       <p style={SL.p}>
         Ao usar a plataforma, você confirma que leu e compreendeu esta Política. Se não concordar com algum ponto, não utilize o serviço e entre em contato pelo e-mail indicado ao final.
@@ -172,9 +172,9 @@ export default async function PoliticaPrivacidade() {
       {/* 12 */}
       <h2 style={SL.h2}>12. Contato e Encarregado de Dados (DPO)</h2>
       <div style={SL.box}>
-        <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>Encarregado de Proteção de Dados:</strong> [NOME DO DPO]</p>
+        <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>Encarregado de Proteção de Dados:</strong> Aristides da Silva Peixoto</p>
         <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>E-mail:</strong> privacidade@luarys.com.br</p>
-        <p style={{ ...SL.p, margin: 0 }}><strong>Endereço:</strong> [ENDEREÇO COMPLETO]</p>
+        <p style={{ ...SL.p, margin: 0 }}><strong>Endereço:</strong> Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</p>
       </div>
       <p style={SL.p}>
         Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD) pelo site <strong>gov.br/anpd</strong>.

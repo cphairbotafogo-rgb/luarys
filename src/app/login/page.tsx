@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
-import { FiAlertCircle, FiMail, FiLock } from "react-icons/fi";
+import { FiAlertCircle, FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { AnimacaoLogo } from "@/app/AnimacaoLogo";
 
 const D = C.douradoEleva;
@@ -15,6 +15,7 @@ export default function LoginLojista() {
   const [carregando, setCarregando]     = useState(false);
   const [erro, setErro]                 = useState<string | null>(null);
   const [mensagemReset, setMensagemReset] = useState<string | null>(null);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const router = useRouter();
 
   async function recuperarSenha() {
@@ -30,9 +31,34 @@ export default function LoginLojista() {
     e.preventDefault();
     if (!email || !senha) { setErro("Por favor, preencha o e-mail e a senha."); return; }
     setCarregando(true); setErro(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) { setErro("E-mail ou senha incorretos."); setCarregando(false); return; }
-    router.replace('/');
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+
+      if (error) {
+        console.error('[login] Erro Supabase:', error.message);
+        const msg = error.message?.toLowerCase() || '';
+        if (msg.includes('invalid login credentials')) {
+          setErro("E-mail ou senha incorretos. Confira os dois campos e tente novamente.");
+        } else if (msg.includes('email not confirmed')) {
+          setErro("Este e-mail ainda não foi confirmado.");
+        } else {
+          setErro("Não foi possível entrar: " + error.message);
+        }
+        return;
+      }
+
+      if (!data?.session) {
+        setErro("Não foi possível iniciar a sessão. Tente novamente.");
+        return;
+      }
+
+      router.replace('/');
+    } catch (e: any) {
+      console.error('[login] Erro inesperado:', e);
+      setErro("Erro de conexão. Verifique sua internet e tente novamente.");
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
@@ -154,10 +180,18 @@ export default function LoginLojista() {
               <div style={{ position: "relative" }}>
                 <FiLock size={15} color={C.textLight} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 <input
-                  type="password" value={senha} onChange={e => setSenha(e.target.value)}
+                  type={mostrarSenha ? "text" : "password"} value={senha} onChange={e => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  style={{ width: "100%", padding: "13px 14px 13px 40px", borderRadius: RAIO_LG, border: `1.5px solid ${C.borderMid}`, outlineColor: D, fontSize: 14, color: C.textMain, backgroundColor: C.bg, boxSizing: "border-box" as const, fontFamily: "var(--font-body)", fontWeight: 500 }}
+                  style={{ width: "100%", padding: "13px 40px 13px 40px", borderRadius: RAIO_LG, border: `1.5px solid ${C.borderMid}`, outlineColor: D, fontSize: 14, color: C.textMain, backgroundColor: C.bg, boxSizing: "border-box" as const, fontFamily: "var(--font-body)", fontWeight: 500 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(v => !v)}
+                  aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.textLight, display: "flex", padding: 4 }}
+                >
+                  {mostrarSenha ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                </button>
               </div>
             </div>
 

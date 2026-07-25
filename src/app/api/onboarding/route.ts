@@ -31,7 +31,7 @@ function validarCPF(cpf: string): boolean {
     const r = (soma * 10) % 11;
     return r === 10 ? 0 : r;
   };
-  return calc(n, 9) === Number(n[9]) && calc(n.slice(0, 10), 10) === Number(n[10]);
+  return calc(n.slice(0, 9), 9) === Number(n[9]) && calc(n.slice(0, 10), 10) === Number(n[10]);
 }
 
 function slugify(texto: string): string {

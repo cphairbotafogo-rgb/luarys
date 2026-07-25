@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // 2. Confirma que o salão existe
     const { data: salao, error: erroSalao } = await supabaseAdmin
       .from('saloes')
-      .select('id, nome_fantasia, razao_social, email_contato')
+      .select('id, nome_fantasia, razao_social, email_contato, cnpj, telefone')
       .eq('id', salao_id)
       .maybeSingle();
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Conta de recebimento ativa (multi-conta — permite trocar de CNPJ/conta
     // sem editar env vars). Se nenhuma estiver marcada como ativa, cai para
     // a config simples (plataforma_config) e depois para as env vars.
-    const { data: contaAtivaRaw } = await supabaseAdmin
+    const { data: contaAtivaRaw, error: erroContaAtiva } = await supabaseAdmin
       .from('plataforma_contas_recebimento')
       .select('gateway, mercadopago_access_token, infinitepay_handle, cielo_merchant_id, cielo_merchant_key, asaas_api_key, asaas_environment')
       .eq('ativa', true)
@@ -116,8 +116,13 @@ export async function POST(request: NextRequest) {
     if (contaAtiva) {
       gatewayPlataforma = contaAtiva.gateway;
     } else {
+      // Diagnóstico: se caiu aqui apesar de existir conta ativa no admin, o
+      // motivo real está em erroContaAtiva (ex: coluna inexistente, ou mais
+      // de uma linha com ativa=true fazendo .maybeSingle() falhar).
+      console.error('[criar-checkout] Nenhuma conta ativa encontrada — caindo no fallback.', 'erro_query=', erroContaAtiva?.message ?? 'nenhum');
       const { data: config } = await supabaseAdmin.from('plataforma_config').select('gateway_pagamento').eq('id', 1).maybeSingle();
       gatewayPlataforma = (config?.gateway_pagamento || process.env.PLATFORM_GATEWAY || 'mercadopago').toLowerCase();
+      console.error('[criar-checkout] Gateway do fallback:', gatewayPlataforma, '(config.gateway_pagamento=', config?.gateway_pagamento, ', env PLATFORM_GATEWAY=', process.env.PLATFORM_GATEWAY, ')');
     }
 
     let checkoutUrl: string;
@@ -283,12 +288,23 @@ export async function POST(request: NextRequest) {
       }
 
       if (!asaasCustomerId) {
+        // cpfCnpj é obrigatório no Asaas para criar assinatura recorrente (cobrança
+        // de boleto/split fiscal exige documento) — o painel manual do Asaas pede
+        // isso na tela; aqui pegamos automaticamente do cadastro do salão (coletado
+        // no /cadastro), então ninguém precisa digitar nada na hora da compra.
+        const cnpjLimpo = (salao.cnpj || '').replace(/\D/g, '');
+        if (!cnpjLimpo) {
+          return NextResponse.json({ erro: 'Este salão não tem CNPJ cadastrado — obrigatório para gerar assinatura recorrente no Asaas.' }, { status: 400 });
+        }
+
         const custResp = await fetch(`${asaasBase}/customers`, {
           method: 'POST',
           headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name:              salao.nome_fantasia || salao.razao_social || `Salão ${salao_id}`,
             email:             salao.email_contato || undefined,
+            cpfCnpj:           cnpjLimpo,
+            mobilePhone:       salao.telefone ? salao.telefone.replace(/\D/g, '') : undefined,
             externalReference: salao_id,
           }),
         });
@@ -299,53 +315,81 @@ export async function POST(request: NextRequest) {
         asaasCustomerId = custData.id;
       }
 
-      // Vencimento em 3 dias úteis
+      // Vencimento em 3 dias úteis (primeira cobrança da recorrência)
       const venc = new Date();
       venc.setDate(venc.getDate() + 3);
       const vencStr = venc.toISOString().split('T')[0];
 
-      // billingType UNDEFINED = cliente escolhe PIX ou cartão na página do Asaas
-      const cobrancaResp = await fetch(`${asaasBase}/payments`, {
+      // Cobrança recorrente automática — SÓ cartão de crédito, sem parcelamento.
+      // Cada ciclo (mensal/anual) gera e cobra uma nova fatura cheia sozinho,
+      // sem o salão precisar voltar para pagar de novo (diferente do modelo de
+      // cobrança avulsa usado pelos outros gateways). O cliente cadastra o
+      // cartão uma vez na invoiceUrl da primeira fatura; ciclos seguintes usam
+      // o mesmo cartão automaticamente.
+      const assinaturaResp = await fetch(`${asaasBase}/subscriptions`, {
         method: 'POST',
         headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer:          asaasCustomerId,
-          billingType:       'UNDEFINED',
+          billingType:       'CREDIT_CARD',
+          cycle:             periodo === 'anual' ? 'YEARLY' : 'MONTHLY',
           value:             Math.round(precoItem * 100) / 100,
-          dueDate:           vencStr,
+          nextDueDate:       vencStr,
           description:       descricao,
           externalReference: referencia,
-          installmentCount:  1,
-          callback: {
-            successUrl:  `${appUrl}/#configuracoes`,
-            autoRedirect: true,
-          },
         }),
       });
 
-      const cobrancaData = await cobrancaResp.json();
+      const assinaturaData = await assinaturaResp.json();
 
-      if (!cobrancaResp.ok || !cobrancaData.id) {
-        return NextResponse.json({ erro: 'Falha ao gerar cobrança no Asaas: ' + (cobrancaData.errors?.[0]?.description || JSON.stringify(cobrancaData)) }, { status: 400 });
+      if (!assinaturaResp.ok || !assinaturaData.id) {
+        return NextResponse.json({ erro: 'Falha ao criar assinatura recorrente no Asaas: ' + (assinaturaData.errors?.[0]?.description || JSON.stringify(assinaturaData)) }, { status: 400 });
       }
 
-      checkoutUrl        = cobrancaData.invoiceUrl;
-      pagamentoExternoId = cobrancaData.id;
+      // Busca a primeira fatura gerada pela subscription para pegar a invoiceUrl
+      // (onde o salão vai cadastrar o cartão) — a subscription em si não retorna isso.
+      const faturasResp = await fetch(`${asaasBase}/payments?subscription=${assinaturaData.id}`, {
+        headers: { 'access_token': asaasKey },
+      });
+      const faturasData = await faturasResp.json();
+      const primeiraFatura = faturasData?.data?.[0];
+
+      if (!faturasResp.ok || !primeiraFatura?.invoiceUrl) {
+        // A subscription foi criada, mas não achamos o link de pagamento — evita
+        // deixar uma subscription órfã sem checkout possível.
+        await fetch(`${asaasBase}/subscriptions/${assinaturaData.id}`, {
+          method: 'DELETE',
+          headers: { 'access_token': asaasKey },
+        }).catch(() => {});
+        return NextResponse.json({ erro: 'Assinatura criada no Asaas, mas não foi possível obter o link de pagamento da primeira fatura.' }, { status: 500 });
+      }
+
+      checkoutUrl        = primeiraFatura.invoiceUrl;
+      // Guardamos o id da SUBSCRIPTION (não da fatura) — o webhook usa esse
+      // valor para saber a qual salão/módulo pertence cada cobrança recorrente
+      // futura, e a rota de cancelamento usa ele para parar a recorrência.
+      pagamentoExternoId = assinaturaData.id;
 
     } else {
       return NextResponse.json({ erro: `PLATFORM_GATEWAY inválido: "${gatewayPlataforma}". Use "mercadopago", "infinitepay", "cielo" ou "asaas".` }, { status: 500 });
     }
 
-    // 3. Registra a tentativa de pagamento como "pending"
-    await supabaseAdmin.from('pagamentos_assinatura').insert([{
-      salao_id,
-      modulo_chave,
-      valor: precoItem,
-      status: 'pending',
-      gateway: gatewayPlataforma,
-      pagamento_externo_id: pagamentoExternoId,
-      periodo,
-    }]);
+    // 3. Registra a tentativa de pagamento como "pending".
+    // Exceção: assinatura recorrente Asaas — pagamentoExternoId aqui é o id da
+    // SUBSCRIPTION, não de uma fatura/pagamento. registrarPagamentoAssinatura()
+    // já cria seu próprio registro (chaveado pelo id da fatura real) quando o
+    // webhook confirmar a primeira cobrança, então não duplicamos aqui.
+    if (gatewayPlataforma !== 'asaas') {
+      await supabaseAdmin.from('pagamentos_assinatura').insert([{
+        salao_id,
+        modulo_chave,
+        valor: precoItem,
+        status: 'pending',
+        gateway: gatewayPlataforma,
+        pagamento_externo_id: pagamentoExternoId,
+        periodo,
+      }]);
+    }
 
     return NextResponse.json({ sucesso: true, gateway: gatewayPlataforma, checkoutUrl });
 

@@ -83,16 +83,23 @@ export async function autenticarRota(
     };
   }
 
-  // 3. Resolve perfil (salao_id, role)
-  const { data: perfil } = await supabaseAdmin
+  // 3. Resolve perfil (salao_id). "role" nunca existiu de verdade na tabela —
+  // pedir essa coluna fazia a query INTEIRA falhar (erro "column
+  // perfis_usuarios.role does not exist"), e como o erro era descartado, todo
+  // usuário caía no motivo genérico "perfil_sem_salao" mesmo com salao_id
+  // válido. "role" não é lido em nenhum outro lugar do código.
+  const { data: perfil, error: erroPerfil } = await supabaseAdmin
     .from('perfis_usuarios')
-    .select('salao_id, role')
+    .select('salao_id')
     .eq('id', user.id)
     .maybeSingle();
 
   if (!perfil?.salao_id) {
     const latencia = Date.now() - inicio;
-    console.log(`[API] ${label} user=${user.id} salao=- status=403 latencia=${latencia}ms motivo=perfil_sem_salao`);
+    // Loga o erro cru do Postgres/PostgREST, se houver — "perfil_sem_salao" no
+    // motivo às vezes é na verdade uma query que falhou (ex: coluna
+    // inexistente), não um perfil genuinamente sem salão.
+    console.log(`[API] ${label} user=${user.id} salao=- status=403 latencia=${latencia}ms motivo=perfil_sem_salao erro_query=${erroPerfil?.message ?? 'nenhum'}`);
     return {
       user,
       perfil: null,

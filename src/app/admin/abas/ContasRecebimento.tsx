@@ -1,7 +1,7 @@
 /**
  * src/app/admin/abas/ContasRecebimento.tsx
  *
- * Gestão das contas de recebimento da plataforma (Mercado Pago/InfinitePay).
+ * Gestão das contas de recebimento da plataforma (Mercado Pago/InfinitePay/Cielo/Asaas).
  * Permite cadastrar mais de uma conta (ex: CNPJs diferentes) e escolher
  * qual está ativa — usada pelo /api/assinatura/criar-checkout.
  */
@@ -18,7 +18,7 @@ import { FiXCircle } from "react-icons/fi";
 export function ContasRecebimento() {
   const toast = useToast();
   const [contas, setContas] = useState<any[]>([]);
-  const [novaConta, setNovaConta] = useState<{ nome: string; gateway: 'mercadopago' | 'infinitepay' | 'cielo' }>({ nome: '', gateway: 'mercadopago' });
+  const [novaConta, setNovaConta] = useState<{ nome: string; gateway: 'mercadopago' | 'infinitepay' | 'cielo' | 'asaas' }>({ nome: '', gateway: 'mercadopago' });
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function ContasRecebimento() {
   async function carregarContas() {
     const { data } = await supabase
       .from('plataforma_contas_recebimento')
-      .select('id, nome, gateway, mercadopago_access_token, mercadopago_webhook_secret, infinitepay_handle, infinitepay_webhook_token, cielo_merchant_id, cielo_merchant_key, ativa, created_at')
+      .select('id, nome, gateway, mercadopago_access_token, mercadopago_webhook_secret, infinitepay_handle, infinitepay_webhook_token, cielo_merchant_id, cielo_merchant_key, asaas_api_key, asaas_environment, ativa, created_at')
       .order('created_at');
 
     if (data) setContas(data);
@@ -76,7 +76,7 @@ export function ContasRecebimento() {
     setSalvandoId(null);
   }
 
-  async function salvarCredencial(conta: any, campo: 'mercadopago_access_token' | 'mercadopago_webhook_secret' | 'infinitepay_handle' | 'infinitepay_webhook_token' | 'cielo_merchant_id' | 'cielo_merchant_key', valor: string) {
+  async function salvarCredencial(conta: any, campo: 'mercadopago_access_token' | 'mercadopago_webhook_secret' | 'infinitepay_handle' | 'infinitepay_webhook_token' | 'cielo_merchant_id' | 'cielo_merchant_key' | 'asaas_api_key' | 'asaas_environment', valor: string) {
     if (!valor.trim()) return; // campo vazio = mantém a credencial atual
     setSalvandoId(`conta-${conta.id}-${campo}`);
 
@@ -127,7 +127,7 @@ export function ContasRecebimento() {
                   style={{ fontWeight: 700, fontSize: 14, color: C.textMain, border: "none", borderBottom: `1px dashed ${C.borderMid}`, padding: "4px 0", flex: 1, minWidth: 160 }}
                 />
                 <span style={{ fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase", background: C.bg, padding: "4px 10px", borderRadius: RAIO_XL }}>
-                  {c.gateway === 'mercadopago' ? 'Mercado Pago' : c.gateway === 'infinitepay' ? 'InfinitePay' : 'Cielo'}
+                  {c.gateway === 'mercadopago' ? 'Mercado Pago' : c.gateway === 'infinitepay' ? 'InfinitePay' : c.gateway === 'asaas' ? 'Asaas' : 'Cielo'}
                 </span>
                 <button
                   onClick={() => ativarConta(c)}
@@ -199,6 +199,39 @@ export function ContasRecebimento() {
                     <p style={{ margin: "4px 0 0", fontSize: 11, color: C.textMuted }}>Confirmar na documentação da InfinitePay qual header eles enviam nas notificações.</p>
                   </div>
                 </div>
+              ) : c.gateway === 'asaas' ? (
+                /* ─── ASAAS ─── */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, color: C.textMuted }}>
+                    Asaas — obtenha a Chave de API em: <strong>asaas.com/dashboard → Integrações → Chave de API</strong>
+                  </p>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Chave de API (access_token)</label>
+                    <input
+                      type="password"
+                      placeholder={c.asaas_api_key ? "•••••••••••••••• (configurado — digite para alterar)" : "Cole a Chave de API (produção ou sandbox)..."}
+                      onBlur={(e) => { salvarCredencial(c, 'asaas_api_key', e.target.value); e.target.value = ''; }}
+                      disabled={salvandoId === `conta-${c.id}-asaas_api_key`}
+                      style={{ width: "100%", marginTop: 4, padding: "8px 10px", borderRadius: RAIO_MD, border: `1px solid ${c.asaas_api_key ? C.borderMid : '#FCA5A5'}`, fontSize: 12, boxSizing: "border-box", fontFamily: "monospace" }}
+                    />
+                    {!c.asaas_api_key && <p style={{ margin: "4px 0 0", fontSize: 11, color: '#DC2626' }}>Obrigatório para gerar cobranças no Asaas.</p>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Ambiente</label>
+                    <select
+                      defaultValue={c.asaas_environment || 'production'}
+                      onChange={(e) => salvarCredencial(c, 'asaas_environment', e.target.value)}
+                      disabled={salvandoId === `conta-${c.id}-asaas_environment`}
+                      style={{ width: "100%", marginTop: 4, padding: "8px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12 }}
+                    >
+                      <option value="production">Produção</option>
+                      <option value="sandbox">Sandbox (testes)</option>
+                    </select>
+                  </div>
+                  <p style={{ margin: "4px 0 0", fontSize: 11, color: C.textMuted }}>
+                    URL do Webhook para configurar no painel Asaas (Integrações → Webhooks): <code style={{ background: C.bg, padding: "1px 6px", borderRadius: 4 }}>/api/webhooks/asaas</code>. Defina também a env var <code style={{ background: C.bg, padding: "1px 6px", borderRadius: 4 }}>ASAAS_WEBHOOK_TOKEN</code> com o mesmo token configurado lá — sem isso, o webhook aceita notificações sem autenticação.
+                  </p>
+                </div>
               ) : (
                 /* ─── CIELO ─── */
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -249,12 +282,13 @@ export function ContasRecebimento() {
             <label style={{ fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Gateway</label>
             <select
               value={novaConta.gateway}
-              onChange={(e) => setNovaConta(prev => ({ ...prev, gateway: e.target.value as 'mercadopago' | 'infinitepay' }))}
+              onChange={(e) => setNovaConta(prev => ({ ...prev, gateway: e.target.value as 'mercadopago' | 'infinitepay' | 'cielo' | 'asaas' }))}
               style={{ display: "block", marginTop: 4, padding: "8px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12 }}
             >
               <option value="mercadopago">Mercado Pago</option>
               <option value="infinitepay">InfinitePay</option>
               <option value="cielo">Cielo</option>
+              <option value="asaas">Asaas</option>
             </select>
           </div>
           <button

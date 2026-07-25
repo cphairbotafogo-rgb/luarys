@@ -24,7 +24,7 @@ export function parseReferencia(ref: string | undefined | null): {
   };
 }
 
-async function ehPlanoBase(chave: string): Promise<boolean> {
+export async function ehPlanoBase(chave: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('planos')
     .select('chave')
@@ -47,6 +47,7 @@ export async function registrarPagamentoAssinatura({
   gateway,
   pagamentoExternoId,
   periodo = 'mensal',
+  asaasSubscriptionId,
 }: {
   salaoId: string;
   moduloChave: string;
@@ -55,6 +56,10 @@ export async function registrarPagamentoAssinatura({
   gateway: string;
   pagamentoExternoId: string;
   periodo?: PeriodoAssinatura;
+  /** Presente quando o pagamento veio de uma subscription Asaas (cobrança
+   * recorrente no cartão) — grava o id em saloes/salao_modulos para permitir
+   * cancelar a recorrência depois (ver /api/assinatura/cancelar-recorrencia). */
+  asaasSubscriptionId?: string | null;
 }) {
   // ── Idempotência ──────────────────────────────────────────────────────────────
   const { data: registroExistente } = await supabaseAdmin
@@ -141,6 +146,9 @@ export async function registrarPagamentoAssinatura({
     if (plano?.limite_profissionais != null) {
       updateSalao.limite_profissionais = plano.limite_profissionais;
     }
+    if (asaasSubscriptionId) {
+      updateSalao.asaas_subscription_id = asaasSubscriptionId;
+    }
 
     const { error: erroPlano } = await supabaseAdmin
       .from('saloes')
@@ -165,23 +173,25 @@ export async function registrarPagamentoAssinatura({
   }
 
   // ── Módulo avulso → atualiza salao_modulos ───────────────────────────────────
+  const dadosModulo: Record<string, any> = {
+    salao_id: salaoId,
+    modulo_chave: moduloChave,
+    ativo: true,
+    origem: 'pagamento',
+    ativado_em: new Date().toISOString(),
+    renovacao_em: renovacaoEm.toISOString(),
+    periodo,
+    cancelamento_agendado: false,
+    aviso_enviado_em: null,
+    segundo_aviso_enviado_em: null,
+  };
+  if (asaasSubscriptionId) {
+    dadosModulo.asaas_subscription_id = asaasSubscriptionId;
+  }
+
   const { error: erroModulo } = await supabaseAdmin
     .from('salao_modulos')
-    .upsert(
-      {
-        salao_id: salaoId,
-        modulo_chave: moduloChave,
-        ativo: true,
-        origem: 'pagamento',
-        ativado_em: new Date().toISOString(),
-        renovacao_em: renovacaoEm.toISOString(),
-        periodo,
-        cancelamento_agendado: false,
-        aviso_enviado_em: null,
-        segundo_aviso_enviado_em: null,
-      },
-      { onConflict: 'salao_id,modulo_chave' }
-    );
+    .upsert(dadosModulo, { onConflict: 'salao_id,modulo_chave' });
 
   if (erroModulo) return { registrado: true, ativado: false, erro: erroModulo.message };
 

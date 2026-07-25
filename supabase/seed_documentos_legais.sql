@@ -1,14 +1,15 @@
 -- Seed: conteúdo inicial dos documentos legais públicos
 -- Execute no SQL Editor do Supabase (yojtfrgoosapnsvyzgpw)
--- Substitua [RAZÃO SOCIAL], [CNPJ], [CIDADE DA SEDE], [ENDEREÇO COMPLETO], [NOME DO DPO]
--- antes ou depois de publicar pelo Admin.
+-- Dados da empresa já preenchidos: CNPJ 68.176.336/0001-43, LUARYS SOFTWARE E
+-- SISTEMAS LTDA, sede em Rio de Janeiro/RJ, Encarregado de Proteção de Dados
+-- (LGPD, art. 41): Aristides da Silva Peixoto.
 
 -- ─── TERMOS DE USO ───────────────────────────────────────────────────────────
 INSERT INTO plataforma_documentos (tipo, titulo, conteudo, versao, ativo)
 VALUES (
   'termos_uso',
   'Termos de Uso — Luarys',
-  $HTML$<p>Estes Termos de Uso ("Termos") regulam o acesso e uso da plataforma Luarys, operada pela <strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, CNPJ <strong>[CNPJ]</strong> ("Luarys", "nós"). Ao criar uma conta ou usar qualquer funcionalidade da plataforma, você ("Usuário") aceita integralmente estes Termos.</p>
+  $HTML$<p>Estes Termos de Uso ("Termos") regulam o acesso e uso da plataforma Luarys, operada pela <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> ("Luarys", "nós"). Ao criar uma conta ou usar qualquer funcionalidade da plataforma, você ("Usuário") aceita integralmente estes Termos.</p>
 
 <h2>1. O que é o Luarys</h2>
 <p>O Luarys é uma plataforma de gestão para salões de beleza e estética que oferece: agenda digital, controle financeiro, emissão de notas fiscais (NFS-e e NFC-e), portal de agendamento para clientes finais, controle de estoque e relatórios gerenciais.</p>
@@ -86,7 +87,7 @@ VALUES (
 <h2>12. Disposições gerais</h2>
 <ul>
   <li><strong>Lei aplicável:</strong> estes Termos são regidos pela legislação brasileira.</li>
-  <li><strong>Foro:</strong> fica eleito o foro da comarca de <strong>[CIDADE DA SEDE]</strong>.</li>
+  <li><strong>Foro:</strong> fica eleito o foro da comarca de <strong>Rio de Janeiro/RJ</strong>.</li>
   <li><strong>Integralidade:</strong> estes Termos, juntamente com a Política de Privacidade, constituem o acordo integral entre as partes.</li>
 </ul>
 
@@ -94,7 +95,7 @@ VALUES (
 <div class="box">
   <p><strong>E-mail geral:</strong> contato@luarys.com.br</p>
   <p><strong>Privacidade e dados:</strong> privacidade@luarys.com.br</p>
-  <p><strong>Endereço:</strong> [ENDEREÇO COMPLETO]</p>
+  <p><strong>Endereço:</strong> Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</p>
 </div>$HTML$,
   1, true
 );
@@ -104,7 +105,7 @@ INSERT INTO plataforma_documentos (tipo, titulo, conteudo, versao, ativo)
 VALUES (
   'privacidade',
   'Política de Privacidade — Luarys',
-  $HTML$<p>Esta Política de Privacidade descreve como a <strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, CNPJ <strong>[CNPJ]</strong>, com sede em <strong>[ENDEREÇO COMPLETO]</strong> ("Luarys", "nós"), coleta, usa, armazena e compartilha dados pessoais, em conformidade com a LGPD (Lei 13.709/2018).</p>
+  $HTML$<p>Esta Política de Privacidade descreve como a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong>, com sede em <strong>Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</strong> ("Luarys", "nós"), coleta, usa, armazena e compartilha dados pessoais, em conformidade com a LGPD (Lei 13.709/2018).</p>
 
 <h2>1. Quem é o controlador dos dados</h2>
 <p>O Luarys atua como <strong>controlador</strong> dos dados dos lojistas e dos clientes finais que usam o portal de agendamento. Para os dados dos clientes finais dos salões, o salão é o controlador e o Luarys atua como <strong>operador</strong>.</p>
@@ -189,9 +190,9 @@ VALUES (
 
 <h2>12. Contato e Encarregado de Dados (DPO)</h2>
 <div class="box">
-  <p><strong>Encarregado de Proteção de Dados:</strong> [NOME DO DPO]</p>
+  <p><strong>Encarregado de Proteção de Dados:</strong> Aristides da Silva Peixoto</p>
   <p><strong>E-mail:</strong> privacidade@luarys.com.br</p>
-  <p><strong>Endereço:</strong> [ENDEREÇO COMPLETO]</p>
+  <p><strong>Endereço:</strong> Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</p>
 </div>
 <p>Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD) pelo site <strong>gov.br/anpd</strong>.</p>$HTML$,
   1, true
@@ -202,7 +203,7 @@ INSERT INTO plataforma_documentos (tipo, titulo, conteudo, versao, ativo)
 VALUES (
   'dpa',
   'Contrato de Tratamento de Dados (CTD/DPA) — Luarys',
-  $HTML$<p>Este Contrato de Tratamento de Dados ("CTD" ou "DPA") é celebrado entre a <strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, CNPJ <strong>[CNPJ]</strong> ("Luarys" ou "Operador") e o salão ou estabelecimento que utiliza a plataforma Luarys ("Controlador"), nos termos da LGPD (Lei 13.709/2018).</p>
+  $HTML$<p>Este Contrato de Tratamento de Dados ("CTD" ou "DPA") é celebrado entre a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> ("Luarys" ou "Operador") e o salão ou estabelecimento que utiliza a plataforma Luarys ("Controlador"), nos termos da LGPD (Lei 13.709/2018).</p>
 <p>Este CTD é incorporado e forma parte integrante dos <a href="/termos">Termos de Uso</a>. Ao aceitar os Termos de Uso, o Controlador também aceita as condições deste CTD.</p>
 
 <h2>1. Definições</h2>
@@ -286,14 +287,14 @@ VALUES (
 <ul>
   <li>Este CTD integra e prevalece sobre os Termos de Uso em matéria de proteção de dados.</li>
   <li>Qualquer alteração será notificada com antecedência mínima de 30 dias.</li>
-  <li>Este CTD é regido pela legislação brasileira, com foro eleito em <strong>[CIDADE DA SEDE]</strong>.</li>
+  <li>Este CTD é regido pela legislação brasileira, com foro eleito em <strong>Rio de Janeiro/RJ</strong>.</li>
 </ul>
 
 <h2>14. Contato</h2>
 <div class="box">
-  <p><strong>Encarregado de Dados (DPO):</strong> [NOME DO DPO]</p>
+  <p><strong>Encarregado de Dados (DPO):</strong> Aristides da Silva Peixoto</p>
   <p><strong>E-mail:</strong> privacidade@luarys.com.br</p>
-  <p><strong>Endereço:</strong> [ENDEREÇO COMPLETO]</p>
+  <p><strong>Endereço:</strong> Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</p>
 </div>$HTML$,
   1, true
 );

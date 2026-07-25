@@ -45,7 +45,7 @@ export default async function ContratoTratamentoDados() {
     <PaginaLegal titulo="Contrato de Tratamento de Dados (CTD/DPA)" atualizadoEm="22 de junho de 2026">
 
       <p style={SL.p}>
-        Este Contrato de Tratamento de Dados ("CTD" ou "DPA") é celebrado entre a <strong>[RAZÃO SOCIAL DA EMPRESA]</strong>, CNPJ <strong>[CNPJ]</strong> ("Luarys" ou "Operador") e o salão ou estabelecimento que utiliza a plataforma Luarys ("Controlador"), nos termos da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
+        Este Contrato de Tratamento de Dados ("CTD" ou "DPA") é celebrado entre a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> ("Luarys" ou "Operador") e o salão ou estabelecimento que utiliza a plataforma Luarys ("Controlador"), nos termos da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
       </p>
       <p style={SL.p}>
         Este CTD é incorporado e forma parte integrante dos <a href="/termos" style={{ color: '#2C3643', fontWeight: 600 }}>Termos de Uso</a>. Ao aceitar os Termos de Uso, o Controlador também aceita as condições deste CTD.
@@ -170,15 +170,15 @@ export default async function ContratoTratamentoDados() {
       <ul style={SL.ul}>
         <li>Este CTD integra e prevalece sobre os Termos de Uso em matéria de proteção de dados.</li>
         <li>Qualquer alteração a este CTD será notificada com antecedência mínima de 30 dias. O uso continuado após a data de vigência implica aceitação.</li>
-        <li>Este CTD é regido pela legislação brasileira, em especial a LGPD, com foro eleito em <strong>[CIDADE DA SEDE]</strong>.</li>
+        <li>Este CTD é regido pela legislação brasileira, em especial a LGPD, com foro eleito em <strong>Rio de Janeiro/RJ</strong>.</li>
       </ul>
 
       {/* 14 */}
       <h2 style={SL.h2}>14. Contato</h2>
       <div style={SL.box}>
-        <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>Encarregado de Dados (DPO):</strong> [NOME DO DPO]</p>
+        <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>Encarregado de Dados (DPO):</strong> Aristides da Silva Peixoto</p>
         <p style={{ ...SL.p, margin: '0 0 4px' }}><strong>E-mail:</strong> privacidade@luarys.com.br</p>
-        <p style={{ ...SL.p, margin: 0 }}><strong>Endereço:</strong> [ENDEREÇO COMPLETO]</p>
+        <p style={{ ...SL.p, margin: 0 }}><strong>Endereço:</strong> Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</p>
       </div>
 
     </PaginaLegal>

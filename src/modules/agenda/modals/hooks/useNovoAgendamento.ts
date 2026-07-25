@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { useToast } from "@/components/Toast";
+import { confirmarAcaoGlobal } from "@/components/ConfirmacaoGlobal";
 import { temPermissao } from "@/lib/permissoes";
 import { MSG_ZAP_PADRAO } from "@/lib/mensagensPadrao";
 
@@ -202,7 +203,7 @@ export function useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistent
     window.open(`https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
   }
 
-  function buildPayload() {
+  function buildPayload(forcarEncaixe = false) {
     return itensAgendamento.map(item => {
       const cat = bancoServicos.find(s => s.id === item.servico_id);
       return {
@@ -217,10 +218,37 @@ export function useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistent
         preco_editado_manualmente: item.valorEditadoManualmente || false,
         data_hora_inicio: new Date(`${item.data}T${item.hora}:00`).toISOString(),
         status: 'Agendado',
-        eh_encaixe: item.eh_encaixe || false,
+        eh_encaixe: forcarEncaixe || item.eh_encaixe || false,
         cor: '#1E293B',
       };
     });
+  }
+
+  // Traduz o erro cru do Postgres numa ação. 23505 em agendamentos_slot_unique =
+  // já existe agendamento ativo nesse profissional, data e horário (ver
+  // supabase/migrations/20260708_agendamentos_slot_unique_parcial.sql). Mostra um
+  // modal central (não toast, fácil de passar despercebido) com botão "Encaixe"
+  // que marca os itens e tenta salvar de novo — não só avisa, resolve.
+  async function tratarErroSalvar(e: any, tentarComoEncaixe?: () => void | Promise<void>) {
+    if (e?.code === '23505' && String(e?.message || '').includes('agendamentos_slot_unique')) {
+      // Esperado (usuário tentou marcar 2 agendamentos ativos no mesmo slot) — warn,
+      // não error, para não disparar o overlay de erro do Next.js em dev por cima
+      // do modal amigável abaixo.
+      console.warn('[useNovoAgendamento] conflito de horário (slot ocupado):', e.message);
+      const confirmouEncaixe = await confirmarAcaoGlobal({
+        titulo: 'Horário já ocupado',
+        descricao: 'Já existe um cliente ou serviço agendado nesse profissional, nessa data e horário. Confirme como Encaixe para agendar mesmo assim, ou cancele e escolha outro horário.',
+        rotuloCta: 'Encaixe',
+        perigoso: false,
+      });
+      if (confirmouEncaixe && tentarComoEncaixe) {
+        setItensAgendamento(prev => prev.map(item => ({ ...item, eh_encaixe: true })));
+        await tentarComoEncaixe();
+      }
+      return;
+    }
+    console.error('[useNovoAgendamento]', e?.message ?? e);
+    toast.erro('Erro ao gravar: ' + (e?.message || 'verifique o console.'));
   }
 
   function validar() {
@@ -234,33 +262,39 @@ export function useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistent
     return true;
   }
 
-  const handleConfirmarAgendamento = async () => {
-    if (!validar()) return;
+  async function executarConfirmarAgendamento(forcarEncaixe = false) {
     setSalvando(true);
     try {
-      const { error } = await supabase.from('agendamentos').insert(buildPayload());
+      const { error } = await supabase.from('agendamentos').insert(buildPayload(forcarEncaixe));
       if (error) throw error;
       onClose(true);
     } catch (e: any) {
-      console.error('[useNovoAgendamento] confirmar:', e?.message ?? e);
-      toast.erro('Erro ao gravar: ' + (e?.message || 'verifique o console.'));
+      await tratarErroSalvar(e, () => executarConfirmarAgendamento(true));
     }
     finally { setSalvando(false); }
+  }
+
+  const handleConfirmarAgendamento = async () => {
+    if (!validar()) return;
+    await executarConfirmarAgendamento();
   };
 
-  const handleSalvarEFaturar = async () => {
-    if (!validar()) return;
+  async function executarSalvarEFaturar(forcarEncaixe = false) {
     setSalvando(true);
     try {
-      const { data: inseridos, error } = await supabase.from('agendamentos').insert(buildPayload()).select();
+      const { data: inseridos, error } = await supabase.from('agendamentos').insert(buildPayload(forcarEncaixe)).select();
       if (error) throw error;
       if (typeof onSalvarEFaturar === 'function') onSalvarEFaturar(inseridos ?? [], bancoServicos);
       else onClose(true);
     } catch (e: any) {
-      console.error('[useNovoAgendamento] salvar-e-faturar:', e?.message ?? e);
-      toast.erro('Erro ao gravar: ' + (e?.message || 'verifique o console.'));
+      await tratarErroSalvar(e, () => executarSalvarEFaturar(true));
     }
     finally { setSalvando(false); }
+  }
+
+  const handleSalvarEFaturar = async () => {
+    if (!validar()) return;
+    await executarSalvarEFaturar();
   };
 
   return {

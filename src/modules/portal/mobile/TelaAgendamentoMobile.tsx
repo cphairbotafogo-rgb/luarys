@@ -65,7 +65,8 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
     setDataEscolhida(data); setHoraEscolhida('');
     if (!data) return;
     setBuscandoAgenda(true);
-    const { data: diaExc } = await supabase.from('dias_excepcionais').select('tipo,hora_abertura,hora_fechamento').eq('salao_id', salaoSelecionado.id).eq('data', data).maybeSingle().then(r => r).catch(() => ({ data: null, error: null }));
+    const { data: diaExc } = await supabase.from('dias_excepcionais').select('tipo,hora_abertura,hora_fechamento').eq('salao_id', salaoSelecionado.id).eq('data', data).maybeSingle()
+      .then(r => r, () => ({ data: null, error: null }));
     if (diaExc?.tipo === 'fechado') { setHorarios([]); setBuscandoAgenda(false); return; }
     const diaDaSemana = new Date(data + 'T12:00:00').getDay();
     const padroes = [{ id: 1, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 2, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 3, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 4, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 5, ativo: true, inicio: '09:00', fim: '19:00' }, { id: 6, ativo: true, inicio: '09:00', fim: '18:00' }, { id: 0, ativo: false, inicio: '10:00', fim: '15:00' }];

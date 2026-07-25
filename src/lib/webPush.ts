@@ -1,11 +1,17 @@
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_EMAIL ?? 'luarysltda@gmail.com'}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Chaves ausentes não podem derrubar o carregamento do módulo (e o build inteiro
+// junto — Next.js executa este import ao coletar dados de página de qualquer rota
+// que use enviarPushPortal). Sem chaves, Web Push fica desativado; enviarPushPortal
+// já trata esse caso e não envia nada.
+if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPID_EMAIL ?? 'luarysltda@gmail.com'}`,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
