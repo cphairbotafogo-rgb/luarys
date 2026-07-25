@@ -34,16 +34,22 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
 
     async function carregar() {
       const [resSrv, resPro, resTax] = await Promise.all([
-        // Só os campos usados em agenda, caixa, relatorios e precificacao
+        // Só os campos usados em agenda, caixa, relatorios e precificacao.
+        // "servicos" não tem coluna "ativo" (exclusão é hard delete, não soft
+        // delete) — pedir essa coluna/filtro fazia a query INTEIRA falhar
+        // (erro "column servicos.ativo does not exist") e, como o erro era
+        // descartado, servicos/profissionais ficavam vazios silenciosamente
+        // em toda tela que depende deste contexto.
         supabase
           .from('servicos')
-          .select('id, nome_servico, preco_padrao, duracao_minutos, categoria, ativo')
-          .eq('salao_id', perfil.salao_id)
-          .eq('ativo', true),
-        // Só os campos usados em agenda, equipe e comissoes
+          .select('id, nome_servico, preco_padrao, duracao_minutos, categoria')
+          .eq('salao_id', perfil.salao_id),
+        // Só os campos usados em agenda, equipe e comissoes. "cor_agenda"
+        // nunca existiu de verdade na tabela — mesmo problema do "ativo" em
+        // servicos, também descartado silenciosamente.
         supabase
           .from('profissionais')
-          .select('id, nome, foto_url, cargo, ativo, permissoes, servicos_comissoes, cor_agenda, cnpj_mei, tipo_parceiro, comissao_produtos')
+          .select('id, nome, foto_url, cargo, ativo, permissoes, servicos_comissoes, cnpj_mei, tipo_parceiro, comissao_produtos')
           .eq('salao_id', perfil.salao_id)
           .eq('ativo', true),
         supabase
@@ -53,6 +59,8 @@ export function DadosGlobaisProvider({ perfil, children }: { perfil: any; childr
           .maybeSingle(),
       ]);
 
+      if (resSrv.error) console.error('[DadosGlobaisContext] Erro ao buscar servicos:', resSrv.error.message);
+      if (resPro.error) console.error('[DadosGlobaisContext] Erro ao buscar profissionais:', resPro.error.message);
       setServicos(resSrv.data || []);
       setProfissionais(resPro.data || []);
       if (resTax.data) {

@@ -68,7 +68,9 @@ export function AbaRelatorios({ perfil }: any) {
       supabase.from('financeiro').select('id, tipo, status, categoria, descricao, valor, data_movimentacao, forma_pagamento, bandeira_cartao, desconto, tipo_desconto, created_at, cliente_nome, os_numero, pagamentos').eq('salao_id', perfil.salao_id).gte('data_movimentacao', `${ini}T00:00:00Z`).lte('data_movimentacao', `${fim}T23:59:59Z`).limit(2000),
       supabase.from('agendamentos').select('id, cliente_id, cliente_nome, profissional_id, servico_id, data, inicio, status, valor_final, valor_sinal, duracao_min, observacao, cor, desconto, tipo_desconto, created_at, servicos(nome_servico, categoria)').eq('salao_id', perfil.salao_id).gte('data', ini).lte('data', fim).limit(2000),
       supabase.from('clientes').select('id, nome_completo, nascimento, created_at, telefone_whatsapp, cpf, email, foto_url').eq('salao_id', perfil.salao_id).limit(2000),
-      supabase.from('servicos').select('id, nome_servico, categoria, preco_padrao, duracao_minutos, ativo').eq('salao_id', perfil.salao_id).limit(500),
+      // "servicos" não tem coluna "ativo" — pedi-la fazia esta query falhar
+      // inteira e o relatório de serviços ficar silenciosamente vazio.
+      supabase.from('servicos').select('id, nome_servico, categoria, preco_padrao, duracao_minutos').eq('salao_id', perfil.salao_id).limit(500),
       supabase.from('profissionais').select('id, nome, foto_url, cargo, ativo, perfil_avancado, servicos_comissoes').eq('salao_id', perfil.salao_id).limit(200),
       supabase.from('despesas').select('id, descricao, categoria, valor, data_pagamento, data_vencimento, status, forma_pagamento, observacao').eq('salao_id', perfil.salao_id).gte('data_vencimento', ini).lte('data_vencimento', fim).limit(2000),
       supabase.from('produtos').select('id, nome_produto, categoria, preco_venda, custo_medio, unidade_medida').eq('salao_id', perfil.salao_id).limit(500),
@@ -79,6 +81,13 @@ export function AbaRelatorios({ perfil }: any) {
     // Avisa se alguma coleção atingiu o limite (dados podem estar incompletos)
     const atingiuLimite = [resFin, resAg, resDesp, resHist, resCom].some(r => (r.data?.length || 0) >= 2000);
     if (atingiuLimite) setAvisoTruncado(true);
+
+    // Erro de query aqui vira relatório silenciosamente incompleto — logar
+    // pra não repetir o mesmo tipo de bug já visto em servicos.ativo/role.
+    const resultados = { financeiro: resFin, agendamentos: resAg, clientes: resCli, servicos: resServ, profissionais: resProf, despesas: resDesp, produtos: resProd, historico_estoque: resHist, comissoes: resCom };
+    for (const [nome, r] of Object.entries(resultados)) {
+      if (r.error) console.error(`[AbaRelatorios] Erro ao buscar ${nome}:`, r.error.message);
+    }
 
     setDadosBase({
       financeiro:   resFin.data  || [],
