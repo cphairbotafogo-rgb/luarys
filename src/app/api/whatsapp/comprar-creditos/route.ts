@@ -155,8 +155,10 @@ export async function POST(request: NextRequest) {
         dueDate:           vencStr,
         description:       descricao,
         externalReference: formatarReferenciaWhatsappCreditos(salaoId, pacote.id),
-        // Somente à vista — sem parcelamento
-        installmentCount:  1,
+        // Não enviar installmentCount aqui: ele ativa o modo parcelado da
+        // API do Asaas, que exige installmentValue/totalValue junto — sem
+        // isso dá "O valor da parcela deve ser informado". Um pagamento
+        // à vista simples é só "value" sem nenhum campo de parcelamento.
       }),
     });
 
