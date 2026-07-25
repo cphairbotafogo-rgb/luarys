@@ -78,16 +78,16 @@ export function SistemaNFCe({ perfil }: any) {
   if (!liberado) return (
     <BloqueioModulo
       salaoId={salaoId}
-      moduloChave="pacote_fiscal"
-      nome="Módulo Fiscal (NFS-e / NFC-e)"
-      descricao="Emissão de notas fiscais de serviço e cupom fiscal eletrônico via provedor homologado pela SEFAZ."
-      preco={79.90}
+      moduloChave="nfce"
+      nome="NFC-e — Nota Fiscal do Consumidor"
+      descricao="Emita cupom fiscal eletrônico ao vender produtos, via provedor homologado pela SEFAZ."
+      preco={84.00}
       itens={[
-        'Notas Fiscais de Serviço (NFS-e) para serviços prestados',
         'Cupom Fiscal Eletrônico (NFC-e) para venda de produtos',
         'Integração com Focus NFe (homologado em todos os estados)',
         'Ambiente de homologação incluso para testes',
-        'Até 500 documentos fiscais por mês',
+        'Consulta de status em tempo real',
+        'Cancelamento online',
       ]}
     />
   );

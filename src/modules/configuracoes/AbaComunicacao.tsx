@@ -16,7 +16,11 @@ import { PainelCreditosMarketing } from "@/modules/comunicacao/PainelCreditosMar
 
 export function AbaComunicacao({ perfil }: any) {
   const toast = useToast();
-  const liberado = useGuardModulo(perfil?.salao_id, 'comunicacao');
+  // 'comunicacao' é uma chave antiga/inativa em modulos_catalogo — o módulo
+  // vendido de verdade é 'central_comunicacao' (ver mesmo bug corrigido em
+  // carregarPerfil.ts). Sem isso, essa trava interna bloqueava mesmo com o
+  // pagamento confirmado e perfil.moduloComunicacaoLiberado=true.
+  const liberado = useGuardModulo(perfil?.salao_id, 'central_comunicacao');
   const [abaInterna, setAbaInterna] = useState<'marketing' | 'automacoes' | 'textos' | 'whatsapp'>('marketing');
   const [carregando, setCarregando] = useState(true);
 
@@ -104,7 +108,7 @@ export function AbaComunicacao({ perfil }: any) {
   });
 
   if (liberado === null) return <div style={{ padding: 32, color: C.textLight, display: 'flex', alignItems: 'center', gap: 10 }}><FiLoader className="animate-spin" size={16} /> Verificando acesso...</div>;
-  if (!liberado) return <BloqueioModulo salaoId={perfil?.salao_id} moduloChave="comunicacao" nome="Central de Comunicação" descricao="Dispare campanhas de WhatsApp e e-mail, crie automações e gerencie lembretes para seus clientes." preco={39.90} itens={['Campanhas em massa por WhatsApp', 'Envio de e-mail marketing', 'Automações de aniversário e pós-visita', 'Textos padrões personalizáveis', 'Integração com agenda']} />;
+  if (!liberado) return <BloqueioModulo salaoId={perfil?.salao_id} moduloChave="central_comunicacao" nome="Central de Comunicação" descricao="Dispare campanhas de WhatsApp e e-mail, crie automações e gerencie lembretes para seus clientes." preco={79.00} itens={['Campanhas em massa por WhatsApp', 'Envio de e-mail marketing', 'Automações de aniversário e pós-visita', 'Textos padrões personalizáveis', 'Integração com agenda']} />;
   if (carregando) return <div style={{ padding: 32, fontWeight: "bold", color: C.textLight }}>Carregando...</div>;
 
   return (

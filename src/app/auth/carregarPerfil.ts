@@ -23,9 +23,13 @@ function derivarModulos(
   };
   if (acessoTotal || (statusAssinatura ?? 'trial') === 'trial') return todosLiberados;
   const tem = (chave: string) => modulosAtivos.includes(chave);
+  // "fiscal" e "comunicacao" são chaves antigas/inativas em modulos_catalogo
+  // (ativo=false) — quem é vendido de verdade é "nfse"/"nfce" e
+  // "central_comunicacao". Checar só a chave antiga fazia o módulo pago nunca
+  // liberar, mesmo com o pagamento confirmado e salao_modulos.ativo=true.
   return {
-    moduloFiscalLiberado:        tem('fiscal')       || legacyFiscal,
-    moduloComunicacaoLiberado:   tem('comunicacao')  || legacyComm,
+    moduloFiscalLiberado:        tem('fiscal') || tem('nfse') || tem('nfce') || legacyFiscal,
+    moduloComunicacaoLiberado:   tem('comunicacao') || tem('central_comunicacao') || legacyComm,
     moduloCrescimentoLiberado:   tem('crescimento'),
     moduloPrecificacaoLiberado:  tem('precificacao'),
     moduloFidelidadeLiberado:    tem('fidelidade'),
