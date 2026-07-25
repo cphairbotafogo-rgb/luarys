@@ -24,20 +24,29 @@ const supabaseAdmin = createClient(
 );
 
 const EVENTOS_APROVADOS = new Set(['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED']);
-const EVENTOS_REJEITADOS = new Set(['PAYMENT_REFUSED', 'PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED']);
+// "PAYMENT_REFUSED" não existe na lista de eventos aceita pela API de
+// cadastro de webhooks do Asaas (confirmado ao registrar o webhook) — recusa
+// de cartão em assinatura aparece como cobrança que nunca chega a CONFIRMED e
+// eventualmente OVERDUE, não como um evento de recusa dedicado.
+const EVENTOS_REJEITADOS = new Set(['PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED']);
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Valida o token secreto enviado pelo Asaas no header (configurado no painel)
+    // Valida o token secreto enviado pelo Asaas no header (mesmo authToken
+    // configurado ao cadastrar o webhook em /v3/webhooks). Obrigatório —
+    // sem token configurado, a requisição é rejeitada (fail-closed, mesmo
+    // padrão do webhook do Cielo).
     const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN;
-    if (webhookToken) {
-      const tokenRecebido = request.headers.get('asaas-access-token') || '';
-      if (tokenRecebido !== webhookToken) {
-        console.warn('[webhook/asaas] Token inválido — requisição rejeitada.');
-        return NextResponse.json({ erro: 'Token inválido.' }, { status: 401 });
-      }
+    if (!webhookToken) {
+      console.error('[webhook/asaas] ASAAS_WEBHOOK_TOKEN não configurado — requisição bloqueada.');
+      return NextResponse.json({ erro: 'Configuração ausente.' }, { status: 500 });
+    }
+    const tokenRecebido = request.headers.get('asaas-access-token') || '';
+    if (tokenRecebido !== webhookToken) {
+      console.warn('[webhook/asaas] Token inválido — requisição rejeitada.');
+      return NextResponse.json({ erro: 'Token inválido.' }, { status: 401 });
     }
 
     const evento    = body.event as string | undefined;

@@ -47,9 +47,11 @@ export function TelaTrialExpirado({ perfil }: Props) {
       });
       const data = await resp.json();
       if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar checkout.');
-      window.location.href = data.checkoutUrl;
+      window.open(data.checkoutUrl, '_blank');
+      toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba e atualize a página.');
     } catch (e: any) {
       toast.erro(e.message);
+    } finally {
       setProcessando(null);
     }
   }

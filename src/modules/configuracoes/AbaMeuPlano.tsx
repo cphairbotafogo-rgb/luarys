@@ -35,6 +35,14 @@ export function AbaMeuPlano({ perfil }: any) {
 
   useEffect(() => { carregarDados(); }, [perfil]);
 
+  // Pagamento acontece em outra aba (checkout abre com window.open) — ao
+  // voltar para esta, recarrega para refletir a ativação feita pelo webhook.
+  useEffect(() => {
+    function aoFocar() { carregarDados(); }
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
+  }, [perfil]);
+
   async function carregarDados() {
     if (!perfil?.salao_id) return;
     setCarregando(true);
@@ -84,9 +92,11 @@ export function AbaMeuPlano({ perfil }: any) {
       const data = await resp.json();
       if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar checkout.');
       if (!data.checkoutUrl) throw new Error('URL de pagamento não retornada. Tente novamente.');
-      window.location.href = data.checkoutUrl;
+      window.open(data.checkoutUrl, '_blank');
+      toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o status é atualizado automaticamente.');
     } catch (e: any) {
       toast.erro(e.message);
+    } finally {
       setProcessandoChave(null);
     }
   }
