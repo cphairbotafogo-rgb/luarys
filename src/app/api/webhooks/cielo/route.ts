@@ -45,17 +45,22 @@ async function confirmarPagamentoCielo(
 
 export async function POST(request: NextRequest) {
   try {
-    // C5: token estático opcional — configure CIELO_WEBHOOK_TOKEN na Vercel
-    // e no painel Cielo (campo "Chave de Segurança do Webhook").
+    // Token estático obrigatório — configure CIELO_WEBHOOK_TOKEN na Vercel
+    // e no painel Cielo (campo "Chave de Segurança do Webhook"). Mesmo padrão
+    // fail-closed do Mercado Pago/InfinitePay: sem token configurado, a
+    // confirmação via API da Cielo abaixo continua exigida, mas rejeitamos
+    // aqui para não depender só dela.
     const cieloToken = process.env.CIELO_WEBHOOK_TOKEN;
-    if (cieloToken) {
-      const recebido = request.headers.get('x-cielo-hmac-sha512') ||
-                       request.headers.get('authorization') ||
-                       request.headers.get('x-webhook-token') || '';
-      if (!tokenValido(recebido.replace(/^Bearer\s+/i, '').trim(), cieloToken)) {
-        console.warn('[webhook/cielo] Token inválido — requisição rejeitada.');
-        return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
-      }
+    if (!cieloToken) {
+      console.error('[webhook/cielo] CIELO_WEBHOOK_TOKEN não configurado — requisição bloqueada.');
+      return NextResponse.json({ erro: 'Configuração ausente.' }, { status: 500 });
+    }
+    const recebido = request.headers.get('x-cielo-hmac-sha512') ||
+                     request.headers.get('authorization') ||
+                     request.headers.get('x-webhook-token') || '';
+    if (!tokenValido(recebido.replace(/^Bearer\s+/i, '').trim(), cieloToken)) {
+      console.warn('[webhook/cielo] Token inválido — requisição rejeitada.');
+      return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
     }
 
     // Cielo pode enviar form-encoded ou JSON

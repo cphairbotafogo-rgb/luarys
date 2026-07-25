@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
     const { user, perfil, erro } = await autenticarRota(request, 'POST /api/assinatura/cancelar-recorrencia');
     if (erro) return erro;
 
-    const { data: funcionario } = await supabaseAdmin
+    const { data: funcionario, error: erroFuncionario } = await supabaseAdmin
       .from('profissionais')
       .select('salao_id')
       .eq('id', user!.id)
       .maybeSingle();
+    if (erroFuncionario) console.error('[cancelar-recorrencia] Erro ao buscar profissionais:', erroFuncionario.message);
 
     const salaoDoChamador = perfil?.salao_id || funcionario?.salao_id;
     if (!salaoDoChamador || salaoDoChamador !== salao_id) {
@@ -61,12 +62,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ sucesso: true, cancelado: false });
     }
 
-    const { data: contaAtivaRaw } = await supabaseAdmin
+    // Busca pela conta Asaas especificamente (gateway='asaas'), não pela conta
+    // "ativa" — a assinatura foi criada com a chave da conta Asaas de então, e
+    // precisa continuar cancelável mesmo que a plataforma tenha trocado o
+    // gateway ativo pra outro depois. Prioriza a ativa se houver mais de uma
+    // conta Asaas cadastrada (troca de CNPJ).
+    const { data: contasAsaas } = await supabaseAdmin
       .from('plataforma_contas_recebimento')
-      .select('gateway, asaas_api_key, asaas_environment')
-      .eq('ativa', true)
-      .maybeSingle();
-    const contaAtiva = contaAtivaRaw as any;
+      .select('asaas_api_key, asaas_environment, ativa')
+      .eq('gateway', 'asaas')
+      .order('ativa', { ascending: false })
+      .limit(1);
+    const contaAtiva = contasAsaas?.[0] as any;
 
     const asaasKey = contaAtiva?.asaas_api_key || process.env.ASAAS_API_KEY;
     if (!asaasKey) {

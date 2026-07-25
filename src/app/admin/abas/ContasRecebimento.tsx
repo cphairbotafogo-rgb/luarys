@@ -13,13 +13,17 @@ import { RAIO_MD, RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { confirmarAcaoGlobal } from '@/components/ConfirmacaoGlobal';
-import { FiXCircle } from "react-icons/fi";
+import { FiXCircle, FiAlertTriangle } from "react-icons/fi";
 
 export function ContasRecebimento() {
   const toast = useToast();
   const [contas, setContas] = useState<any[]>([]);
   const [novaConta, setNovaConta] = useState<{ nome: string; gateway: 'mercadopago' | 'infinitepay' | 'cielo' | 'asaas' }>({ nome: '', gateway: 'mercadopago' });
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
+  // Com contas cadastradas mas nenhuma ativa, o checkout cai silenciosamente
+  // no fallback de variáveis de ambiente (gateway legado) — já causou um bug
+  // em produção onde o gateway errado foi usado sem nenhum aviso.
+  const nenhumaContaAtiva = contas.length > 0 && !contas.some(c => c.ativa);
 
   useEffect(() => {
     carregarContas();
@@ -111,6 +115,19 @@ export function ContasRecebimento() {
           Cadastre uma ou mais contas (ex: CNPJs diferentes). A conta marcada como "Ativa" é a usada para gerar os checkouts de assinatura dos salões — só uma fica ativa por vez.
         </p>
       </div>
+
+      {nenhumaContaAtiva && (
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 10, padding: "14px 16px", marginBottom: 20,
+          background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: RAIO_LG,
+        }}>
+          <FiAlertTriangle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+          <p style={{ margin: 0, fontSize: 13, color: "#991B1B" }}>
+            <strong>Nenhuma conta está marcada como ativa.</strong> Os checkouts de assinatura vão cair no gateway legado configurado por variável de ambiente, o que pode não ser o esperado. Clique em "Ativar" em uma das contas abaixo.
+          </p>
+        </div>
+      )}
+
       <Card style={{ padding: 24, marginBottom: 24 }}>
         {contas.length === 0 && (
           <p style={{ color: C.textLight, fontStyle: "italic", fontSize: 13, marginBottom: 16 }}>Nenhuma conta cadastrada — o sistema usa as variáveis de ambiente (MERCADOPAGO_PLATFORM_ACCESS_TOKEN / INFINITEPAY_PLATFORM_HANDLE) como antes.</p>

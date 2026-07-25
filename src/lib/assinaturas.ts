@@ -25,11 +25,15 @@ export function parseReferencia(ref: string | undefined | null): {
 }
 
 export async function ehPlanoBase(chave: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('planos')
     .select('chave')
     .eq('chave', chave)
     .maybeSingle();
+  // Se a query falhar, "false" faz o chamador tratar como módulo avulso em
+  // vez de plano base — errado silenciosamente, por isso loga sempre que
+  // houver erro real (não apenas "não encontrado", que já é null sem erro).
+  if (error) console.error('[ehPlanoBase] Erro ao consultar planos:', error.message);
   return !!data;
 }
 
@@ -83,11 +87,12 @@ export async function registrarPagamentoAssinatura({
     );
 
   // Info do salão para notificações
-  const { data: salao } = await supabaseAdmin
+  const { data: salao, error: erroSalaoInfo } = await supabaseAdmin
     .from('saloes')
     .select('nome_fantasia, razao_social, email_contato')
     .eq('id', salaoId)
     .maybeSingle();
+  if (erroSalaoInfo) console.error('[registrarPagamentoAssinatura] Erro ao buscar saloes:', erroSalaoInfo.message);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -122,17 +127,21 @@ export async function registrarPagamentoAssinatura({
 
   // ── Plano base → atualiza saloes ─────────────────────────────────────────────
   if (await ehPlanoBase(moduloChave)) {
-    const { data: salaoAtual } = await supabaseAdmin
+    const { data: salaoAtual, error: erroSalaoAtual } = await supabaseAdmin
       .from('saloes')
       .select('plano_chave')
       .eq('id', salaoId)
       .maybeSingle();
+    if (erroSalaoAtual) console.error('[registrarPagamentoAssinatura] Erro ao buscar plano_chave atual:', erroSalaoAtual.message);
 
-    const { data: plano } = await supabaseAdmin
+    // Erro aqui faz limite_profissionais não ser atualizado silenciosamente
+    // ao trocar de plano — o salão pagaria por mais vagas sem o limite subir.
+    const { data: plano, error: erroPlanoLimite } = await supabaseAdmin
       .from('planos')
       .select('nome, limite_profissionais')
       .eq('chave', moduloChave)
       .maybeSingle();
+    if (erroPlanoLimite) console.error('[registrarPagamentoAssinatura] Erro ao buscar limite_profissionais do plano:', erroPlanoLimite.message);
 
     const updateSalao: Record<string, any> = {
       plano_chave: moduloChave,

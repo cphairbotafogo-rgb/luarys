@@ -17,6 +17,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarRota } from '@/lib/apiAuth';
+import { ehPlanoBase } from '@/lib/assinaturas';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,11 +41,12 @@ export async function POST(request: NextRequest) {
 
     // Esta rota aceita tanto dono (perfis_usuarios) quanto funcionário (profissionais).
     // O perfil de dono já foi resolvido por autenticarRota; busca funcionário como fallback.
-    const { data: funcionario } = await supabaseAdmin
+    const { data: funcionario, error: erroFuncionario } = await supabaseAdmin
       .from('profissionais')
       .select('salao_id')
       .eq('id', user!.id)
       .maybeSingle();
+    if (erroFuncionario) console.error('[criar-checkout] Erro ao buscar profissionais:', erroFuncionario.message);
 
     const salaoDoChamador = perfil?.salao_id || funcionario?.salao_id;
     if (!salaoDoChamador || salaoDoChamador !== salao_id) {
@@ -55,11 +57,12 @@ export async function POST(request: NextRequest) {
     let nomeItem: string;
     let precoItem: number;
 
-    const { data: modulo } = await supabaseAdmin
+    const { data: modulo, error: erroModulo } = await supabaseAdmin
       .from('modulos_catalogo')
       .select('chave, nome, preco_mensal, preco_anual, ativo')
       .eq('chave', modulo_chave)
       .maybeSingle();
+    if (erroModulo) console.error('[criar-checkout] Erro ao buscar modulos_catalogo:', erroModulo.message);
 
     if (modulo?.ativo) {
       nomeItem = modulo.nome;
@@ -67,11 +70,12 @@ export async function POST(request: NextRequest) {
         ? Number(modulo.preco_anual)
         : Number(modulo.preco_mensal);
     } else {
-      const { data: plano } = await supabaseAdmin
+      const { data: plano, error: erroPlano } = await supabaseAdmin
         .from('planos')
         .select('chave, nome, preco_mensal, preco_anual, ativo')
         .eq('chave', modulo_chave)
         .maybeSingle();
+      if (erroPlano) console.error('[criar-checkout] Erro ao buscar planos:', erroPlano.message);
 
       // Enterprise (preco_mensal NULL) é "fale com a gente" — não tem checkout self-service
       if (!plano || !plano.ativo || plano.preco_mensal == null) {
@@ -269,6 +273,22 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ erro: 'Gateway Asaas selecionado, mas ASAAS_API_KEY não está configurado em /admin nem nas variáveis de ambiente.' }, { status: 500 });
       }
 
+      // Bloqueia criar uma SEGUNDA assinatura recorrente pro mesmo item — sem
+      // isso, um clique duplo ou requisição repetida cria uma subscription
+      // paralela no Asaas; asaas_subscription_id só guarda 1 id, então a
+      // antiga ficaria cobrando pra sempre sem ninguém conseguir cancelar.
+      const ehPlanoParaChecagem = await ehPlanoBase(modulo_chave);
+      const tabelaChecagem = ehPlanoParaChecagem ? 'saloes' : 'salao_modulos';
+      const filtroChecagem = ehPlanoParaChecagem ? { id: salao_id } : { salao_id, modulo_chave };
+      const { data: assinaturaExistente } = await supabaseAdmin
+        .from(tabelaChecagem)
+        .select('asaas_subscription_id')
+        .match(filtroChecagem)
+        .maybeSingle();
+      if (assinaturaExistente?.asaas_subscription_id) {
+        return NextResponse.json({ erro: 'Já existe uma assinatura recorrente ativa para este item. Cancele a atual antes de criar uma nova.' }, { status: 409 });
+      }
+
       const asaasEnv = contaAtiva?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production';
       const asaasBase = asaasEnv === 'sandbox'
         ? 'https://sandbox.asaas.com/api/v3'
@@ -281,6 +301,12 @@ export async function POST(request: NextRequest) {
         const searchResp = await fetch(`${asaasBase}/customers?email=${encodeURIComponent(salao.email_contato)}`, {
           headers: { 'access_token': asaasKey },
         });
+        if (!searchResp.ok) {
+          // Nunca tratar falha de busca como "cliente não existe" — isso
+          // criaria um cliente duplicado no Asaas a cada instabilidade.
+          const searchErrData = await searchResp.json().catch(() => ({}));
+          return NextResponse.json({ erro: 'Falha ao consultar cliente no Asaas: ' + (searchErrData.errors?.[0]?.description || JSON.stringify(searchErrData)) }, { status: 400 });
+        }
         const searchData = await searchResp.json();
         asaasCustomerId = searchData.data?.[0]?.id ?? '';
       } else {
