@@ -24,7 +24,8 @@ async function buscarChavesGratis(): Promise<string[]> {
 }
 
 function derivarModulos(
-  modulosAtivos: string[],
+  estadoModulos: Record<string, boolean>, // chave -> ativo, só pra quem tem linha em salao_modulos
+  chavesGratis: string[],
   statusAssinatura: string | null,
   legacyFiscal: boolean,
   legacyComm: boolean,
@@ -37,7 +38,11 @@ function derivarModulos(
     moduloEstoqueLiberado: true, moduloFinanceiroLiberado: true,
   };
   if (acessoTotal || (statusAssinatura ?? 'trial') === 'trial') return todosLiberados;
-  const tem = (chave: string) => modulosAtivos.includes(chave);
+  // Um registro explícito em salao_modulos (feito pelo admin em "Liberar
+  // Módulos por Salão", ou pelo webhook de pagamento) sempre vence — inclusive
+  // pra travar um módulo normalmente grátis. Só cai no "é grátis, libera"
+  // quando NUNCA existiu nenhum registro pra essa chave nesse salão.
+  const tem = (chave: string) => estadoModulos[chave] ?? chavesGratis.includes(chave);
   // "fiscal" e "comunicacao" são chaves antigas/inativas em modulos_catalogo
   // (ativo=false) — quem é vendido de verdade é "nfse"/"nfce" e
   // "central_comunicacao". Checar só a chave antiga fazia o módulo pago nunca
@@ -74,14 +79,17 @@ export async function carregarPerfilUsuario(userId: string): Promise<ResultadoLo
   if (dono) {
     const [{ data: salaoData }, { data: salaoModulosData }, chavesGratis] = await Promise.all([
       supabase.from('saloes').select('*').eq('id', dono.salao_id).single(),
-      supabase.from('salao_modulos').select('modulo_chave').eq('salao_id', dono.salao_id).eq('ativo', true),
+      // Sem filtro de ativo aqui — precisamos saber também das linhas
+      // ativo=false (bloqueio explícito do admin), não só das ativas.
+      supabase.from('salao_modulos').select('modulo_chave, ativo').eq('salao_id', dono.salao_id),
       buscarChavesGratis(),
     ]);
 
     const acessoTotal  = !!salaoData?.acesso_total;
-    const modulosAtivos = [...(salaoModulosData || []).map((m: any) => m.modulo_chave), ...chavesGratis];
+    const estadoModulos: Record<string, boolean> = {};
+    (salaoModulosData || []).forEach((m: any) => { estadoModulos[m.modulo_chave] = !!m.ativo; });
     const acesso   = derivarAcessoPlano(salaoData?.plano_assinatura, salaoData?.status_assinatura, acessoTotal, salaoData?.trial_expiracao);
-    const modulos  = derivarModulos(modulosAtivos, salaoData?.status_assinatura, !!salaoData?.modulo_fiscal_liberado, !!salaoData?.api_whatsapp_liberada, acessoTotal);
+    const modulos  = derivarModulos(estadoModulos, chavesGratis, salaoData?.status_assinatura, !!salaoData?.modulo_fiscal_liberado, !!salaoData?.api_whatsapp_liberada, acessoTotal);
 
     return {
       tipo: 'dono',
@@ -127,12 +135,13 @@ export async function carregarPerfilUsuario(userId: string): Promise<ResultadoLo
   const dadosSalao      = extrairDadosSalao(funcionario.saloes);
   const acessoTotalFunc = !!dadosSalao?.acesso_total;
   const [{ data: modulosFunc }, chavesGratisFunc] = await Promise.all([
-    supabase.from('salao_modulos').select('modulo_chave').eq('salao_id', funcionario.salao_id).eq('ativo', true),
+    supabase.from('salao_modulos').select('modulo_chave, ativo').eq('salao_id', funcionario.salao_id),
     buscarChavesGratis(),
   ]);
-  const modulosAtivosFunc = [...(modulosFunc || []).map((m: any) => m.modulo_chave), ...chavesGratisFunc];
+  const estadoModulosFunc: Record<string, boolean> = {};
+  (modulosFunc || []).forEach((m: any) => { estadoModulosFunc[m.modulo_chave] = !!m.ativo; });
   const acessoFunc  = derivarAcessoPlano(dadosSalao?.plano_assinatura, dadosSalao?.status_assinatura, acessoTotalFunc, dadosSalao?.trial_expiracao);
-  const modulosFunc2 = derivarModulos(modulosAtivosFunc, dadosSalao?.status_assinatura, !!dadosSalao?.modulo_fiscal_liberado, !!dadosSalao?.api_whatsapp_liberada, acessoTotalFunc);
+  const modulosFunc2 = derivarModulos(estadoModulosFunc, chavesGratisFunc, dadosSalao?.status_assinatura, !!dadosSalao?.modulo_fiscal_liberado, !!dadosSalao?.api_whatsapp_liberada, acessoTotalFunc);
 
   return {
     tipo: 'funcionario',
