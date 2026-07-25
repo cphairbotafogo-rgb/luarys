@@ -80,6 +80,17 @@ export default function AppWrapper() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Checkout de assinatura abre em outra aba (window.open) — ao voltar para
+  // esta, recarrega o perfil pra refletir módulos/plano recém-ativados pelo
+  // webhook. Sem isso, o sidebar continua com o cadeado até um F5 manual.
+  useEffect(() => {
+    function aoFocar() {
+      if (sessao) carregarPerfil((sessao as any).user.id);
+    }
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
+  }, [sessao]);
+
   if (carregandoAuth) return <div style={{height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, color: C.deepPurple, fontWeight: "bold"}}>Autenticando credenciais...</div>;
 
   if (erroAcesso) return (
