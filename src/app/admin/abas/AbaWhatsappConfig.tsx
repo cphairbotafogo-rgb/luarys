@@ -6,6 +6,7 @@ import { RAIO_MD } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { FiMessageCircle, FiSave } from "react-icons/fi";
+import { PacotesWhatsapp } from "./PacotesWhatsapp";
 
 export function AbaWhatsappConfig() {
   const toast = useToast();
@@ -114,6 +115,8 @@ export function AbaWhatsappConfig() {
           </div>
         )}
       </Card>
+
+      <PacotesWhatsapp />
     </>
   );
 }
