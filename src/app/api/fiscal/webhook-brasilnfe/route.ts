@@ -8,8 +8,9 @@
  *  - Confirmar como a Brasil NFe autentica o webhook (HMAC-SHA256? Bearer secret? IP allowlist?)
  *  - Confirmar o formato do payload: { cnpj, company_token, protocolo, status }
  *  - Confirmar o nome exato dos campos e valores possíveis de `status`
- *  - Registrar esta URL no painel/API da Brasil NFe:
- *    https://luarys.com.br/api/fiscal/webhook-brasilnfe (produção)
+ *  - Registrar esta URL no painel/API da Brasil NFe (usar "www" — luarys.com.br
+ *    sem www faz 308 redirect e a maioria dos gateways não segue redirect em POST):
+ *    https://www.luarys.com.br/api/fiscal/webhook-brasilnfe (produção)
  *
  * Configurar em .env.local:
  *   BRASIL_NFE_WEBHOOK_SECRET=<segredo combinado com a Brasil NFe>

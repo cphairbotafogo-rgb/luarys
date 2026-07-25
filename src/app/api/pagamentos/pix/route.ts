@@ -76,7 +76,10 @@ export async function POST(request: NextRequest) {
       // order_nsu deve ser "reserva_<uuid>" — formato esperado pelo webhook e pelo verificar
       const orderNsu = agendamento_id ? `reserva_${agendamento_id}` : `reserva_${Date.now()}`;
 
-      const webhookBase = process.env.NEXT_PUBLIC_APP_URL || 'https://luarys.com.br';
+      // "www" é obrigatório aqui — luarys.com.br (sem www) faz 308 redirect
+      // pra www.luarys.com.br, e a InfinitePay não segue redirect no POST do
+      // webhook (mesmo problema que já quebrou o webhook de assinatura Asaas).
+      const webhookBase = process.env.NEXT_PUBLIC_APP_URL || 'https://www.luarys.com.br';
 
       const bodyInfinitePay = {
         handle: handleLojista,
