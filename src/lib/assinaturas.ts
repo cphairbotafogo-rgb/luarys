@@ -79,12 +79,17 @@ export async function registrarPagamentoAssinatura({
   // H2: registra pagamento como 'pending' primeiro — só marca 'approved' depois
   // de ativar o módulo. Se a ativação falhar, fica 'pending' e o webhook pode
   // ser reenviado. Evita estado inconsistente (pago mas módulo inativo).
-  await supabaseAdmin
+  // Depende de pagamento_externo_id ter constraint única (ver migração
+  // 20260725_pagamentos_assinatura_unique_externo.sql) — sem ela, o upsert
+  // falha com "42P10 no unique constraint" e, sem checar o erro, a tabela
+  // fica vazia silenciosamente (era exatamente o que acontecia antes).
+  const { error: erroUpsertPagamento } = await supabaseAdmin
     .from('pagamentos_assinatura')
     .upsert(
       { salao_id: salaoId, modulo_chave: moduloChave, valor, status: status === 'approved' ? 'pending' : status, gateway, pagamento_externo_id: pagamentoExternoId },
       { onConflict: 'pagamento_externo_id' }
     );
+  if (erroUpsertPagamento) console.error('[registrarPagamentoAssinatura] Erro ao gravar pagamento pendente:', erroUpsertPagamento.message);
 
   // Info do salão para notificações
   const { data: salao, error: erroSalaoInfo } = await supabaseAdmin
@@ -174,9 +179,10 @@ export async function registrarPagamentoAssinatura({
     });
 
     // H2: só marca como 'approved' depois da ativação ter sucesso
-    await supabaseAdmin.from('pagamentos_assinatura')
+    const { error: erroAprovarPlano } = await supabaseAdmin.from('pagamentos_assinatura')
       .update({ status: 'approved' })
       .eq('pagamento_externo_id', pagamentoExternoId);
+    if (erroAprovarPlano) console.error('[registrarPagamentoAssinatura] Erro ao marcar pagamento (plano) como approved:', erroAprovarPlano.message);
 
     return { registrado: true, ativado: true, tipo: 'plano', periodo };
   }
@@ -205,9 +211,10 @@ export async function registrarPagamentoAssinatura({
   if (erroModulo) return { registrado: true, ativado: false, erro: erroModulo.message };
 
   // H2: só marca como 'approved' depois da ativação ter sucesso
-  await supabaseAdmin.from('pagamentos_assinatura')
+  const { error: erroAprovarModulo } = await supabaseAdmin.from('pagamentos_assinatura')
     .update({ status: 'approved' })
     .eq('pagamento_externo_id', pagamentoExternoId);
+  if (erroAprovarModulo) console.error('[registrarPagamentoAssinatura] Erro ao marcar pagamento (módulo) como approved:', erroAprovarModulo.message);
 
   return { registrado: true, ativado: true, tipo: 'modulo', periodo };
 }
