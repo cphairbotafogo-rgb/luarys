@@ -9,14 +9,26 @@ const supabaseAdmin = createClient(
 );
 
 export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: boolean; erro?: string }> {
+  // "agendamentos" não tem coluna "servico" (só "servico_id") — pedir essa
+  // coluna fazia a query INTEIRA falhar (erro "column agendamentos.servico
+  // does not exist") e, como o erro caía direto no "não encontrado" abaixo
+  // sem log, a confirmação de sinal falhava silenciosamente pra qualquer
+  // salão que cobra sinal — sinal_pago nunca era gravado.
   const { data: ag, error: erroAg } = await supabaseAdmin
     .from('agendamentos')
-    .select('id, salao_id, cliente_id, cliente_nome, servico, data, inicio, valor_sinal, status, sinal_pago, forma_pagamento_sinal, parcelas_sinal')
+    .select('id, salao_id, cliente_id, cliente_nome, servico_id, data, inicio, valor_sinal, status, sinal_pago, forma_pagamento_sinal, parcelas_sinal')
     .eq('id', agendamentoId)
     .maybeSingle();
 
+  if (erroAg) console.error('[confirmarSinalPago] Erro ao buscar agendamento:', erroAg.message);
   if (erroAg || !ag) {
     return { ok: false, erro: 'Agendamento não encontrado.' };
+  }
+
+  let nomeServico = 'Serviço';
+  if (ag.servico_id) {
+    const { data: servico } = await supabaseAdmin.from('servicos').select('nome_servico').eq('id', ag.servico_id).maybeSingle();
+    if (servico?.nome_servico) nomeServico = servico.nome_servico;
   }
 
   // Idempotência — ignora se já foi processado
@@ -56,7 +68,7 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
     supabaseAdmin.from('financeiro').insert({
       salao_id: ag.salao_id,
       cliente_nome: ag.cliente_nome,
-      descricao: `Sinal de Reserva — ${ag.servico}`,
+      descricao: `Sinal de Reserva — ${nomeServico}`,
       tipo: 'entrada',
       categoria: 'Sinal de Reserva',
       valor: Number(ag.valor_sinal),
@@ -80,7 +92,7 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       tipo: 'sinal_confirmado',
       titulo: 'Sinal de reserva confirmado',
       mensagem: (() => {
-        const base = `${ag.cliente_nome} pagou o sinal de ${ag.servico} em ${dataFormatada} às ${ag.inicio}.`;
+        const base = `${ag.cliente_nome} pagou o sinal de ${nomeServico} em ${dataFormatada} às ${ag.inicio}.`;
         if (!ag.forma_pagamento_sinal) return base;
         const parcelas = ag.parcelas_sinal && ag.parcelas_sinal > 1 ? ` em ${ag.parcelas_sinal}x` : '';
         return `${base} Pagamento: ${ag.forma_pagamento_sinal}${parcelas}.`;
@@ -107,13 +119,13 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
         destinatario_id: cliente.usuario_portal_id,
         tipo: 'sinal_confirmado',
         titulo: 'Reserva confirmada!',
-        mensagem: `Seu pagamento foi recebido. Agendamento de ${ag.servico} em ${dataFormatada} às ${ag.inicio} está confirmado.`,
+        mensagem: `Seu pagamento foi recebido. Agendamento de ${nomeServico} em ${dataFormatada} às ${ag.inicio} está confirmado.`,
         agendamento_id: ag.id,
       });
 
       await enviarPushPortal(cliente.usuario_portal_id, {
         titulo: `✅ ${nomeSalao} — Reserva confirmada!`,
-        corpo: `${ag.servico} em ${dataFormatada} às ${ag.inicio}. Sinal recebido com sucesso.`,
+        corpo: `${nomeServico} em ${dataFormatada} às ${ag.inicio}. Sinal recebido com sucesso.`,
         tag: `sinal-${ag.id}`,
         url: '/portal',
       });

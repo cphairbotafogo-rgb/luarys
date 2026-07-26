@@ -16,14 +16,21 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
 
   useEffect(() => {
     if (!editandoAg?.cliente_id || !editandoAg?.data) return;
+    // "agendamentos" não tem coluna "servico" (só "servico_id") — pedir essa
+    // coluna fazia a query INTEIRA falhar (erro "column agendamentos.servico
+    // does not exist") e, sem checar o erro, a lista sempre ficava vazia —
+    // a seleção múltipla nunca aparecia, mesmo com vários serviços no dia.
     supabase
       .from('agendamentos')
-      .select('id, cliente_nome, profissional_id, servico, servico_id, valor_sinal, data, inicio, status')
+      .select('id, cliente_nome, profissional_id, servico_id, valor_sinal, data, inicio, status, servicos(nome_servico)')
       .eq('cliente_id', editandoAg.cliente_id)
       .eq('data', editandoAg.data)
       .not('status', 'in', '("Cancelado","Faltou")')
       .order('inicio')
-      .then(({ data }) => { if (data) setOutrosAgendamentosDia(data); });
+      .then(({ data, error }) => {
+        if (error) console.error('[ModalCancelamento] Erro ao buscar agendamentos do dia:', error.message);
+        if (data) setOutrosAgendamentosDia(data);
+      });
   }, [editandoAg?.cliente_id, editandoAg?.data]);
 
   const temMaisDeUm = outrosAgendamentosDia.length > 1;
@@ -40,6 +47,13 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
     setIdsSelecionados(new Set(outrosAgendamentosDia.map(a => a.id)));
   }
 
+  // O embed servicos(nome_servico) vem como objeto (relação N:1) mas o
+  // PostgREST às vezes devolve array — normaliza os dois formatos.
+  function nomeServicoDe(a: any): string {
+    const rel = Array.isArray(a.servicos) ? a.servicos[0] : a.servicos;
+    return rel?.nome_servico || 'Serviço';
+  }
+
   function confirmar() {
     if (!temMaisDeUm) { confirmarCancelamento(); return; }
     // Mapeia pro mesmo formato de editandoAg (cliente/id_prof) que
@@ -48,7 +62,7 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
       .filter(a => idsSelecionados.has(a.id))
       .map(a => ({
         id: a.id, cliente: a.cliente_nome, id_prof: a.profissional_id,
-        servico: a.servico, servico_id: a.servico_id, valor_sinal: a.valor_sinal,
+        servico: nomeServicoDe(a), servico_id: a.servico_id, valor_sinal: a.valor_sinal,
         data: a.data, inicio: a.inicio, status: a.status,
       }));
     confirmarCancelamento(selecionados.length > 0 ? selecionados : undefined);
@@ -97,7 +111,7 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
                   >
                     {marcado ? <FiCheckSquare size={15} color={C.dangerText} /> : <FiSquare size={15} color={C.textLight} />}
                     <span style={{ fontSize: 12, fontWeight: 700, color: marcado ? C.dangerText : C.textMain }}>{a.inicio}</span>
-                    <span style={{ fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{a.servico}</span>
+                    <span style={{ fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{nomeServicoDe(a)}</span>
                   </button>
                 );
               })}

@@ -27,20 +27,26 @@ const TEMPLATE_CONFIRMACAO = process.env.WHATSAPP_TEMPLATE_CONFIRMACAO_AGENDAMEN
 
 export async function notificarConfirmacaoAgendamento(agendamentoId: string): Promise<void> {
   try {
+    // "agendamentos" não tem coluna "servico" (só "servico_id") — pedir essa
+    // coluna faz a query INTEIRA falhar (ver mesmo bug corrigido em
+    // confirmarSinalPago.ts). Nome do serviço vem de uma busca separada.
     const { data: ag, error: erroAg } = await supabaseAdmin
       .from('agendamentos')
-      .select('salao_id, cliente_id, data, inicio, servico, profissional_id')
+      .select('salao_id, cliente_id, data, inicio, servico_id, profissional_id')
       .eq('id', agendamentoId)
       .maybeSingle();
     if (erroAg) console.error('[notificarConfirmacaoAgendamento] Erro ao buscar agendamento:', erroAg.message);
     if (!ag?.cliente_id) return;
 
-    const [{ data: cliente }, { data: salao }, resProf] = await Promise.all([
+    const [{ data: cliente }, { data: salao }, resProf, resServico] = await Promise.all([
       supabaseAdmin.from('clientes').select('nome_completo, telefone_whatsapp, email, canal_notificacao_preferido').eq('id', ag.cliente_id).maybeSingle(),
       supabaseAdmin.from('saloes').select('nome_fantasia, razao_social').eq('id', ag.salao_id).maybeSingle(),
       ag.profissional_id
         ? supabaseAdmin.from('profissionais').select('nome').eq('id', ag.profissional_id).maybeSingle()
         : Promise.resolve({ data: null } as { data: { nome: string } | null }),
+      ag.servico_id
+        ? supabaseAdmin.from('servicos').select('nome_servico').eq('id', ag.servico_id).maybeSingle()
+        : Promise.resolve({ data: null } as { data: { nome_servico: string } | null }),
     ]);
     if (!cliente) return;
 
@@ -55,7 +61,7 @@ export async function notificarConfirmacaoAgendamento(agendamentoId: string): Pr
     const salaoId = ag.salao_id;
     const clienteIdAg = ag.cliente_id;
     const horario = ag.inicio;
-    const servico = ag.servico;
+    const servico = resServico?.data?.nome_servico || 'Serviço';
     const nomeCliente = cliente.nome_completo;
     const telefoneCliente = cliente.telefone_whatsapp;
     const emailCliente = cliente.email;
