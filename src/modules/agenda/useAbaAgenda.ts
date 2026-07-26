@@ -290,14 +290,16 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
     setNovaTag({ nome: '', cor: '#8B5CF6' });
   }
 
-  async function confirmarCancelamento() {
-    const ehFaltou = dadosCancelamento.tipoAcao === 'faltou';
+  // Cancela/marca falta em UM agendamento — extraído pra poder ser chamado
+  // em loop quando o cliente tem vários agendamentos no mesmo dia e mais de
+  // um é selecionado no ModalCancelamento.
+  async function cancelarUmAgendamento(ag: any, ehFaltou: boolean) {
     const payload = { status: ehFaltou ? 'Faltou' : 'Cancelado', cor: '#EF4444', cancelado_por: ehFaltou ? 'cliente_faltou' : (dadosCancelamento.quem || '').toLowerCase(), motivo_cancelamento: dadosCancelamento.motivo || '' };
-    await supabase.from('agendamentos').update(payload).eq('id', editandoAg.id);
+    await supabase.from('agendamentos').update(payload).eq('id', ag.id);
 
     // Cancelamento com sinal pago → cria lançamento de saída para rastrear o reembolso
     if (!ehFaltou) {
-      const valorSinal = Number(editandoAg.valor_sinal) || 0;
+      const valorSinal = Number(ag.valor_sinal) || 0;
       if (valorSinal > 0) {
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         await supabase.from('financeiro').insert({
@@ -305,31 +307,31 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
           tipo: 'saida',
           categoria: 'Reembolso de Sinal',
           valor: valorSinal,
-          cliente_nome: editandoAg.cliente,
+          cliente_nome: ag.cliente,
           status: 'Pendente',
           descricao: `Sinal a devolver — cancelamento por ${dadosCancelamento.quem || 'recepcionista'}: ${dadosCancelamento.motivo || 'sem motivo'}`,
           data_movimentacao: new Date().toISOString(),
-          agendamento_ids: UUID_RE.test(String(editandoAg.id)) ? [editandoAg.id] : null,
+          agendamento_ids: UUID_RE.test(String(ag.id)) ? [ag.id] : null,
         });
       }
     }
     try {
-      await supabase.from('auditoria_log').insert([{ salao_id: perfil.salao_id, usuario_id: perfil.id, tabela: 'agendamentos_cancelamento', operacao: 'CANCELAMENTO', registro_id: editandoAg.id, dados_antigos: { cliente_nome: editandoAg.cliente, profissional_id: editandoAg.id_prof, data_hora_inicio: `${editandoAg.data}T${editandoAg.inicio}:00`, servico: editandoAg.servico, status_anterior: editandoAg.status }, dados_novos: { status: payload.status, cancelado_por: payload.cancelado_por, motivo: payload.motivo_cancelamento, tipo: ehFaltou ? 'faltou' : 'cancelado' } }]);
+      await supabase.from('auditoria_log').insert([{ salao_id: perfil.salao_id, usuario_id: perfil.id, tabela: 'agendamentos_cancelamento', operacao: 'CANCELAMENTO', registro_id: ag.id, dados_antigos: { cliente_nome: ag.cliente, profissional_id: ag.id_prof, data_hora_inicio: `${ag.data}T${ag.inicio}:00`, servico: ag.servico, status_anterior: ag.status }, dados_novos: { status: payload.status, cancelado_por: payload.cancelado_por, motivo: payload.motivo_cancelamento, tipo: ehFaltou ? 'faltou' : 'cancelado' } }]);
     } catch(e) { console.warn('auditoria_log:', e); }
 
     // Distribuição do sinal entre os profissionais (apenas no-show com sinal confirmado)
     if (ehFaltou) {
       try {
-        const { data: ag } = await supabase
+        const { data: agFresco } = await supabase
           .from('agendamentos')
           .select('valor_sinal, sinal_pago, servico_id, profissional_id')
-          .eq('id', editandoAg.id)
+          .eq('id', ag.id)
           .maybeSingle();
 
-        const valorSinal = Number(ag?.valor_sinal) || 0;
-        const sinalPago = ag?.sinal_pago === true;
-        const servicoId = ag?.servico_id || editandoAg.servico_id;
-        const profissionalId = ag?.profissional_id || editandoAg.id_prof;
+        const valorSinal = Number(agFresco?.valor_sinal) || 0;
+        const sinalPago = agFresco?.sinal_pago === true;
+        const servicoId = agFresco?.servico_id || ag.servico_id;
+        const profissionalId = agFresco?.profissional_id || ag.id_prof;
 
         if (sinalPago && valorSinal > 0 && profissionalId) {
           // Busca % de comissão do profissional para este serviço
@@ -348,17 +350,31 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
               salao_id: perfil.salao_id,
               profissional_id: profissionalId,
               id_prof: profissionalId,
-              agendamento_id: editandoAg.id,
+              agendamento_id: ag.id,
               status: 'Pendente',
               valor_servico: valorSinal,
               porcentagem_comissao: percentual,
               valor_comissao: valorComissao,
               tipo: 'no_show',
-              servico_nome: `Retenção No-Show — ${editandoAg.servico || ''}`,
+              servico_nome: `Retenção No-Show — ${ag.servico || ''}`,
             });
           }
         }
       } catch (e) { console.warn('[no-show] Erro ao lançar comissão:', e); }
+    }
+  }
+
+  // agendamentosSelecionados: quando o cliente tem mais de um agendamento no
+  // mesmo dia e o usuário escolheu quais cancelar no ModalCancelamento.
+  // Sem isso, cancela só o agendamento que estava sendo editado (comportamento de sempre).
+  async function confirmarCancelamento(agendamentosSelecionados?: any[]) {
+    const ehFaltou = dadosCancelamento.tipoAcao === 'faltou';
+    const lista = agendamentosSelecionados && agendamentosSelecionados.length > 0
+      ? agendamentosSelecionados
+      : [editandoAg];
+
+    for (const ag of lista) {
+      await cancelarUmAgendamento(ag, ehFaltou);
     }
 
     setModalCancelamentoAberto(false);
