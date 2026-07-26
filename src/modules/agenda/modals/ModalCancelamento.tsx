@@ -22,7 +22,7 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
     // a seleção múltipla nunca aparecia, mesmo com vários serviços no dia.
     supabase
       .from('agendamentos')
-      .select('id, cliente_nome, profissional_id, servico_id, valor_sinal, data, inicio, status, servicos(nome_servico)')
+      .select('id, cliente_nome, profissional_id, servico_id, valor_sinal, valor_final, duracao_min, data, inicio, status, servicos(nome_servico), profissionais(nome)')
       .eq('cliente_id', editandoAg.cliente_id)
       .eq('data', editandoAg.data)
       .not('status', 'in', '("Cancelado","Faltou")')
@@ -34,6 +34,7 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
   }, [editandoAg?.cliente_id, editandoAg?.data]);
 
   const temMaisDeUm = outrosAgendamentosDia.length > 1;
+  const todosSelecionados = temMaisDeUm && idsSelecionados.size === outrosAgendamentosDia.length;
 
   function alternarSelecao(id: string) {
     setIdsSelecionados(prev => {
@@ -43,16 +44,15 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
     });
   }
 
-  function selecionarTodos() {
-    setIdsSelecionados(new Set(outrosAgendamentosDia.map(a => a.id)));
+  function alternarTodos() {
+    setIdsSelecionados(todosSelecionados ? new Set() : new Set(outrosAgendamentosDia.map(a => a.id)));
   }
 
-  // O embed servicos(nome_servico) vem como objeto (relação N:1) mas o
-  // PostgREST às vezes devolve array — normaliza os dois formatos.
-  function nomeServicoDe(a: any): string {
-    const rel = Array.isArray(a.servicos) ? a.servicos[0] : a.servicos;
-    return rel?.nome_servico || 'Serviço';
-  }
+  // Os embeds servicos(nome_servico)/profissionais(nome) vêm como objeto
+  // (relação N:1) mas o PostgREST às vezes devolve array — normaliza os dois formatos.
+  function relacaoUnica(rel: any) { return Array.isArray(rel) ? rel[0] : rel; }
+  function nomeServicoDe(a: any): string { return relacaoUnica(a.servicos)?.nome_servico || 'Serviço'; }
+  function nomeProfissionalDe(a: any): string { return relacaoUnica(a.profissionais)?.nome || '—'; }
 
   function confirmar() {
     if (!temMaisDeUm) { confirmarCancelamento(); return; }
@@ -70,7 +70,7 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
 
   return (
     <div className="font-body" style={{ ...overlayModal, zIndex: 1000 }}>
-      <div style={{ ...containerModalPerigo, padding: 32, width: "100%", maxWidth: 450 }}>
+      <div style={{ ...containerModalPerigo, padding: 32, width: "100%", maxWidth: temMaisDeUm ? 720 : 450 }}>
 
         <h3 className="font-title uppercase tracking-widest" style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: C.danger, display: "flex", alignItems: "center", gap: 10 }}>
           <FiAlertTriangle size={20} /> O que aconteceu?
@@ -82,39 +82,53 @@ export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCance
 
         {/* Cliente com mais de um agendamento no dia — escolher quais cancelar */}
         {temMaisDeUm && (
-          <div style={{ marginBottom: 20, padding: 12, borderRadius: RAIO_MD, background: C.bg, border: `1px solid ${C.borderMid}` }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <label className="font-title" style={{ ...labelStyle, color: C.textMain, marginBottom: 0 }}>
-                {editandoAg?.cliente} tem {outrosAgendamentosDia.length} agendamentos hoje — quais cancelar?
-              </label>
-              <button
-                onClick={selecionarTodos}
-                style={{ fontSize: 11, fontWeight: 700, color: C.danger, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap", marginLeft: 8 }}
-              >
-                Selecionar todos
-              </button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {outrosAgendamentosDia.map(a => {
-                const marcado = idsSelecionados.has(a.id);
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => alternarSelecao(a.id)}
-                    className="transition-all"
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", textAlign: "left" as const,
-                      borderRadius: RAIO_SM, cursor: "pointer", fontFamily: FONTE_CORPO,
-                      background: marcado ? C.dangerBg : "#fff",
-                      border: `1px solid ${marcado ? "#FCA5A5" : C.borderMid}`,
-                    }}
-                  >
-                    {marcado ? <FiCheckSquare size={15} color={C.dangerText} /> : <FiSquare size={15} color={C.textLight} />}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: marcado ? C.dangerText : C.textMain }}>{a.inicio}</span>
-                    <span style={{ fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{nomeServicoDe(a)}</span>
-                  </button>
-                );
-              })}
+          <div style={{ marginBottom: 20 }}>
+            <label className="font-title" style={{ ...labelStyle, color: C.textMain, display: "block", marginBottom: 8 }}>
+              {editandoAg?.cliente} tem {outrosAgendamentosDia.length} serviços agendados hoje — quais cancelar?
+            </label>
+            <div style={{ borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONTE_CORPO }}>
+                <thead>
+                  <tr style={{ background: C.bg, borderBottom: `1px solid ${C.borderMid}` }}>
+                    <th style={{ width: 32, padding: "8px 10px", textAlign: "center" as const }}>
+                      <button onClick={alternarTodos} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                        {todosSelecionados ? <FiCheckSquare size={15} color={C.danger} /> : <FiSquare size={15} color={C.textLight} />}
+                      </button>
+                    </th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Serviço</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Horário</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Duração</th>
+                    <th style={{ padding: "8px 10px", textAlign: "right" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Valor</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Profissional</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left" as const, fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" as const }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outrosAgendamentosDia.map(a => {
+                    const marcado = idsSelecionados.has(a.id);
+                    return (
+                      <tr
+                        key={a.id}
+                        onClick={() => alternarSelecao(a.id)}
+                        className="transition-all"
+                        style={{ cursor: "pointer", background: marcado ? C.dangerBg : "#fff", borderBottom: `1px solid ${C.border}` }}
+                      >
+                        <td style={{ padding: "8px 10px", textAlign: "center" as const }}>
+                          {marcado ? <FiCheckSquare size={15} color={C.dangerText} /> : <FiSquare size={15} color={C.textLight} />}
+                        </td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, fontWeight: 700, color: marcado ? C.dangerText : C.textMain }}>{nomeServicoDe(a)}</td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{(a.inicio || '').substring(0, 5)}</td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{a.duracao_min ? `${a.duracao_min} min` : '—'}</td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, color: marcado ? C.dangerText : C.textMuted, textAlign: "right" as const }}>
+                          {a.valor_final != null ? `R$ ${Number(a.valor_final).toFixed(2)}` : '—'}
+                        </td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{nomeProfissionalDe(a)}</td>
+                        <td style={{ padding: "8px 10px", fontSize: 12, color: marcado ? C.dangerText : C.textMuted }}>{a.status}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
