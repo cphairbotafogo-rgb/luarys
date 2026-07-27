@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_SM, RAIO_XS } from '@/lib/estiloGlobal';
 import { supabase } from '@/lib/supabase';
-import { FiSearch, FiAlertCircle, FiUser, FiDollarSign, FiChevronDown } from 'react-icons/fi';
+import { FiSearch, FiAlertCircle, FiUser, FiDollarSign, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
 
 type Ordenacao = 'maior_debito' | 'nome_az';
 
@@ -23,8 +23,7 @@ export function GavetaClientesDebito({ perfil }: any) {
   const [busca, setBusca] = useState('');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('maior_debito');
 
-  useEffect(() => {
-    async function buscarDebitos() {
+  async function buscarDebitos() {
       setCarregando(true);
       try {
         const salaoId = perfil?.salao_id;
@@ -87,9 +86,19 @@ export function GavetaClientesDebito({ perfil }: any) {
       } finally {
         setCarregando(false);
       }
-    }
+  }
 
+  useEffect(() => {
     buscarDebitos();
+  }, [perfil?.salao_id]);
+
+  // A aba de relatórios fica montada em background (não desmonta ao trocar de
+  // aba) — sem isso, fechar a conta de um cliente em outra aba não atualiza
+  // esta lista até a página inteira ser recarregada.
+  useEffect(() => {
+    function aoFocar() { buscarDebitos(); }
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
   }, [perfil?.salao_id]);
 
   const filtrados = useMemo(() => {
@@ -149,6 +158,13 @@ export function GavetaClientesDebito({ perfil }: any) {
           </select>
           <FiChevronDown size={13} color={C.textLight} />
         </div>
+        <button
+          onClick={buscarDebitos}
+          title="Recarregar a lista de débitos"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: '7px 14px', fontSize: 13, fontWeight: 600, color: C.textMain, cursor: 'pointer' }}
+        >
+          <FiRefreshCw size={13} /> Atualizar
+        </button>
       </div>
 
       {/* CARDS DE RESUMO */}
