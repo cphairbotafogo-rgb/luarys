@@ -5,6 +5,8 @@ import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_SM, RAIO_XS } from '@/lib/estiloGlobal';
 import { supabase } from '@/lib/supabase';
 import { FiSearch, FiAlertCircle, FiUser, FiDollarSign, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
+import { ModalDetalhesTransacao } from '@/modules/financeiro/modals/ModalDetalhesTransacao';
+import { ModalDetalhesFinalizado } from '@/modules/agenda/modals/ModalDetalhesFinalizado';
 
 type Ordenacao = 'maior_debito' | 'nome_az';
 
@@ -15,6 +17,7 @@ interface RegistroDebito {
   valor: number;
   data: string;
   tipo: 'financeiro' | 'agendamento';
+  bruto: any; // linha original — alimenta o modal certo ao clicar em "Ver"
 }
 
 export function GavetaClientesDebito({ perfil }: any) {
@@ -22,6 +25,8 @@ export function GavetaClientesDebito({ perfil }: any) {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('maior_debito');
+  const [transacaoAberta, setTransacaoAberta] = useState<any>(null);
+  const [finalizadoAberto, setFinalizadoAberto] = useState<any>(null);
 
   async function buscarDebitos() {
       setCarregando(true);
@@ -33,7 +38,7 @@ export function GavetaClientesDebito({ perfil }: any) {
 
         const [{ data: financeiroData }, { data: agendamentosData }, { data: idsFinanceiro }] = await Promise.all([
           supabase.from('financeiro')
-            .select('id, descricao, valor, data_movimentacao')
+            .select('id, descricao, valor, data_movimentacao, status, tipo, categoria, forma_pagamento, metodo_pagamento, bandeira_cartao, comentario, profissional_nome')
             .eq('salao_id', salaoId)
             .eq('tipo', 'entrada')
             .in('status', statusPendente),
@@ -65,6 +70,7 @@ export function GavetaClientesDebito({ perfil }: any) {
             valor: Number(f.valor) || 0,
             data: f.data_movimentacao ?? '',
             tipo: 'financeiro',
+            bruto: f,
           });
         });
 
@@ -77,6 +83,7 @@ export function GavetaClientesDebito({ perfil }: any) {
             valor: Number(ag.valor_final) || 0,
             data: ag.data ?? '',
             tipo: 'agendamento',
+            bruto: ag,
           });
         });
 
@@ -230,9 +237,12 @@ export function GavetaClientesDebito({ perfil }: any) {
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: C.textMuted }}>{formatarData(r.data)}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                     <button
-                      disabled
-                      title="Em breve"
-                      style={{ padding: '5px 12px', borderRadius: RAIO_SM, border: `1px solid ${C.border}`, background: C.bg, color: C.textLight, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.6 }}
+                      onClick={() => {
+                        if (r.tipo === 'financeiro') setTransacaoAberta(r.bruto);
+                        else setFinalizadoAberto({ id: r.bruto.id, cliente: r.bruto.cliente_nome, data: r.bruto.data });
+                      }}
+                      title={r.tipo === 'financeiro' ? 'Ver e confirmar pagamento' : 'Ver detalhes e reabrir para fechar conta'}
+                      style={{ padding: '5px 12px', borderRadius: RAIO_SM, border: `1px solid ${C.borderMid}`, background: C.bgCard, color: C.sidebarBg, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                     >
                       Ver
                     </button>
@@ -243,6 +253,24 @@ export function GavetaClientesDebito({ perfil }: any) {
           </table>
         )}
       </div>
+
+      {transacaoAberta && (
+        <ModalDetalhesTransacao
+          transacao={transacaoAberta}
+          perfil={perfil}
+          onClose={() => setTransacaoAberta(null)}
+          aoAtualizar={() => { buscarDebitos(); setTransacaoAberta(null); }}
+        />
+      )}
+
+      {finalizadoAberto && (
+        <ModalDetalhesFinalizado
+          agendamento={finalizadoAberto}
+          perfil={perfil}
+          onClose={() => setFinalizadoAberto(null)}
+          onAtualizar={buscarDebitos}
+        />
+      )}
     </div>
   );
 }
