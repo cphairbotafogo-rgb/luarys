@@ -189,6 +189,24 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ erro: 'Pedido não encontrado ou já processado.' }, { status: 400 });
     }
 
+    // Configuração de pagamento do salão — busca UMA vez aqui (nunca por
+    // branch) pra poder validar o `gateway` do body contra o que está de
+    // fato configurado, e o token_pagamento pra saber se é modo teste real.
+    const { data: salaoPag } = await supabaseAdmin
+      .from('saloes')
+      .select('token_pagamento, gateway_pagamento')
+      .eq('id', pedido.salao_id)
+      .maybeSingle();
+
+    const emModoTeste = (salaoPag?.token_pagamento || '').toLowerCase() === 'teste';
+
+    if (gateway === 'simulador' && !emModoTeste) {
+      return NextResponse.json({ erro: 'Este salão não está em modo de teste.' }, { status: 403 });
+    }
+    if (gateway !== 'simulador' && gateway !== salaoPag?.gateway_pagamento) {
+      return NextResponse.json({ erro: 'Gateway informado não corresponde à configuração deste salão.' }, { status: 400 });
+    }
+
     // Se há sessão de portal, verifica que o cliente_id do pedido pertence ao usuário
     const bearerConfirm = (request as any).headers?.get?.('authorization')?.replace('Bearer ', '');
     if (bearerConfirm) {
@@ -203,6 +221,7 @@ export async function PATCH(request: Request) {
 
     // Verifica o pagamento direto no gateway (nunca confia só no frontend)
     let aprovado = false;
+    const valorEsperado = Number(pedido.total || 0);
 
     if (gateway === 'simulador') {
       aprovado = true;
@@ -211,22 +230,24 @@ export async function PATCH(request: Request) {
       if (!idNumerico || idNumerico <= 0 || String(idNumerico) !== String(id_transacao)) {
         return NextResponse.json({ erro: 'id_transacao inválido.' }, { status: 400 });
       }
-      const { data: salao } = await supabaseAdmin.from('saloes').select('token_pagamento').eq('id', pedido.salao_id).single();
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${idNumerico}`, {
-        headers: { Authorization: `Bearer ${salao?.token_pagamento}` },
+        headers: { Authorization: `Bearer ${salaoPag?.token_pagamento}` },
       });
       const mpData = await mpRes.json();
-      aprovado = mpData.status === 'approved';
+      const valorPago = Number(mpData.transaction_amount || 0);
+      aprovado = mpData.status === 'approved' && (valorEsperado === 0 || Math.abs(valorPago - valorEsperado) <= 0.01);
     } else if (gateway === 'infinitepay' && order_nsu) {
-      const { data: salao } = await supabaseAdmin.from('saloes').select('token_pagamento').eq('id', pedido.salao_id).single();
-      const handle = (salao?.token_pagamento || '').replace('@', '').replace('$', '').trim();
+      const handle = (salaoPag?.token_pagamento || '').replace('@', '').replace('$', '').trim();
       const ipRes = await fetch('https://api.checkout.infinitepay.io/payment_check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ handle, order_nsu, transaction_nsu, slug }),
       });
       const ipData = await ipRes.json();
-      aprovado = ipData.success === true && ipData.paid === true;
+      // InfinitePay não assina o webhook/payment_check (confirmado com o
+      // suporte deles) — a defesa real é conferir o valor pago aqui.
+      const valorPago = ipData.paid_amount != null ? Number(ipData.paid_amount) / 100 : (ipData.amount != null ? Number(ipData.amount) / 100 : 0);
+      aprovado = ipData.success === true && ipData.paid === true && (valorEsperado === 0 || Math.abs(valorPago - valorEsperado) <= 0.01);
     }
 
     if (!aprovado) {
