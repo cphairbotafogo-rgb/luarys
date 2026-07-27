@@ -90,7 +90,7 @@ export function ModalFichaCliente({
     : null;
 
   return (
-    <div className="font-body" style={{ ...overlayModal, zIndex: 1100 }}>
+    <div className="font-body" style={{ ...overlayModal, zIndex: 10000 }}>
       <div style={{
         ...containerModal, width: '100%',
         maxWidth: 700, maxHeight: '92vh',
