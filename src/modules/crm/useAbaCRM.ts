@@ -1,18 +1,14 @@
 // src/modules/crm/useAbaCRM.ts
 // Hook central do módulo CRM.
-// Concentra: fetches, estado de lista/modal, salvar, upload, status e handlers de ação.
+// Concentra: fetches, estado de lista/modal e handlers de ação da listagem.
+// Cadastro/edição de cliente em si vive em ModalFichaCliente +
+// useFichaCliente.ts (compartilhado com a Agenda — ver "Editar cadastro").
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/Toast';
 
 export { DDIS as LISTA_DDIS } from '@/lib/ddis';
-
-const FORM_VAZIO = {
-  nome: '', ddi: '+55', telefone: '', email: '', genero: '', cpf: '',
-  nascimento: '', instagram: '', como_conheceu: '', observacoes: '',
-  notificacoes: true, campanhas: true, ativo: true, foto_url: '', anamnese: '',
-};
 
 const POR_PAGINA = 50;
 
@@ -32,16 +28,6 @@ export function useAbaCRM(perfil: any) {
   // ── Modal ───────────────────────────────────────────────────────────────────
   const [modalAberto, setModalAberto]               = useState(false);
   const [editandoIdGlobal, setEditandoIdGlobal]     = useState<string | null>(null);
-  const [editandoCrmId, setEditandoCrmId]           = useState<string | null>(null);
-  const [clienteConflito, setClienteConflito]       = useState<any>(null);
-  const [abaModal, setAbaModal]                     = useState('dados');
-  const [subindoFoto, setSubindoFoto]               = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [historicoAgendamentos, setHistoricoAgendamentos] = useState<any[]>([]);
-  const [carregandoHistorico, setCarregandoHistorico]     = useState(false);
-  const [comprasProdutos, setComprasProdutos]             = useState<any[]>([]);
-  const [form, setForm]                             = useState({ ...FORM_VAZIO });
 
   // Stats calculados ao vivo a partir dos agendamentos (não dependem dos campos desnormalizados)
   const [statsCliente, setStatsCliente] = useState<{ ultima_visita: string | null; total_visitas: number; total_gasto: number } | null>(null);
@@ -139,147 +125,15 @@ export function useAbaCRM(perfil: any) {
     return () => { ativo = false; };
   }, [sel, perfil?.salao_id]);
 
-  // ── Histórico ───────────────────────────────────────────────────────────────
-  async function carregarHistorico(clienteIdGlobal: string) {
-    if (!clienteIdGlobal) return;
-    setCarregandoHistorico(true);
-    const [resAgs, resCompras] = await Promise.all([
-      supabase.from('agendamentos')
-        .select('id, data, inicio, status, valor_final, servicos(nome_servico)')
-        .eq('salao_id', perfil.salao_id)
-        .eq('cliente_id', clienteIdGlobal)
-        .order('data', { ascending: false }),
-      // Compras de produtos (venda de balcão) vinculadas a este cliente
-      supabase.from('caixa_transacoes')
-        .select('id, data_hora, valor_total, forma_pagamento, itens')
-        .eq('salao_id', perfil.salao_id)
-        .eq('cliente_id', clienteIdGlobal)
-        .not('itens', 'is', null)
-        .order('data_hora', { ascending: false })
-        .limit(100),
-    ]);
-    if (resAgs.data) setHistoricoAgendamentos(resAgs.data);
-    setComprasProdutos(resCompras.data || []);
-    setCarregandoHistorico(false);
-  }
-
-  // ── Upload de foto ──────────────────────────────────────────────────────────
-  async function handleUploadFoto(e: any) {
-    const file = e.target.files?.[0];
-    if (!file || !perfil?.salao_id) return;
-    if (file.size > 2 * 1024 * 1024) { toast.aviso('Foto muito grande. Máximo 2MB.'); return; }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.aviso('Envie apenas imagens JPG, PNG ou WebP.'); return; }
-    setSubindoFoto(true);
-    const ext  = file.name.split('.').pop();
-    const path = `avatares/${perfil.salao_id}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('clientes-fotos').upload(path, file, { upsert: true });
-    if (!error) {
-      const { data } = supabase.storage.from('clientes-fotos').getPublicUrl(path);
-      setForm(f => ({ ...f, foto_url: data.publicUrl }));
-    }
-    setSubindoFoto(false);
-  }
-
-  // ── Alternar status ─────────────────────────────────────────────────────────
-  async function handleAlternarStatusCliente() {
-    if (!editandoCrmId) return;
-    const { error } = await supabase.from('crm_clientes').update({ ativo: !form.ativo }).eq('id', editandoCrmId);
-    if (!error) fecharEAtualizar('');
-    else toast.erro('Erro ao alterar status: ' + error.message);
-  }
-
-  // ── Salvar cliente ──────────────────────────────────────────────────────────
-  async function salvarCliente() {
-    if (!form.nome || !form.telefone) { toast.aviso('Nome e telefone são obrigatórios.'); return; }
-    const cpfLimpo         = form.cpf.replace(/\D/g, '');
-    const telefoneCompleto = `${form.ddi} ${form.telefone.trim()}`;
-    const dadosGlobais = {
-      nome_completo: form.nome, telefone_whatsapp: telefoneCompleto,
-      email: form.email || null, cpf: cpfLimpo || null, foto_url: form.foto_url || null,
-      genero: form.genero || null, nascimento: form.nascimento || null,
-      instagram: form.instagram || null, como_conheceu: form.como_conheceu || null,
-    };
-    const dadosLocais = {
-      observacoes: form.observacoes || null, anamnese: form.anamnese || null,
-      aceita_notificacoes: form.notificacoes, aceita_campanhas: form.campanhas, ativo: form.ativo,
-    };
-    try {
-      if (!editandoIdGlobal) {
-        // Verificar duplicata
-        let qDup = supabase.from('clientes').select('id, nome_completo');
-        if (cpfLimpo && form.email) qDup = qDup.or(`cpf.eq.${cpfLimpo},email.eq.${form.email}`);
-        else if (cpfLimpo)  qDup = qDup.eq('cpf', cpfLimpo);
-        else if (form.email) qDup = qDup.eq('email', form.email);
-        else qDup = qDup.eq('telefone_whatsapp', telefoneCompleto);
-
-        const { data: existente } = await qDup.maybeSingle();
-        if (existente) {
-          const { data: vinculo } = await supabase.from('crm_clientes').select('id').eq('cliente_id', existente.id).eq('salao_id', perfil.salao_id).maybeSingle();
-          if (vinculo) { setClienteConflito(existente); return; }
-          const { error } = await supabase.from('crm_clientes').insert([{ cliente_id: existente.id, salao_id: perfil.salao_id, ...dadosLocais }]);
-          if (error) throw error;
-          fecharEAtualizar('Cliente vinculado a esta unidade com sucesso!'); return;
-        }
-        const { data: novo, error: erroG } = await supabase.from('clientes').insert([dadosGlobais]).select('id').single();
-        if (erroG) throw erroG;
-        const { error: erroC } = await supabase.from('crm_clientes').insert([{ cliente_id: novo.id, salao_id: perfil.salao_id, ...dadosLocais }]);
-        if (erroC) throw erroC;
-      } else {
-        const { error: erroG } = await supabase.from('clientes').update(dadosGlobais).eq('id', editandoIdGlobal);
-        if (erroG) throw erroG;
-        if (editandoCrmId) {
-          const { error: erroC } = await supabase.from('crm_clientes').update(dadosLocais).eq('id', editandoCrmId);
-          if (erroC) throw erroC;
-        }
-      }
-      fecharEAtualizar('Ficha salva com sucesso!');
-    } catch (err: any) { toast.erro('Erro ao gravar: ' + err.message); }
-  }
-
-  // ── Helpers de UI ───────────────────────────────────────────────────────────
-  function fecharEAtualizar(m: string) {
-    if (m) toast.info(m);
-    setModalAberto(false); setClienteConflito(null);
-    setForm({ ...FORM_VAZIO }); setEditandoIdGlobal(null); setEditandoCrmId(null);
-    carregarClientes();
-  }
-
+  // ── Abrir modal (cadastro/edição em si vive em ModalFichaCliente) ───────────
   function abrirNovoCliente() {
-    setForm({ ...FORM_VAZIO }); setEditandoIdGlobal(null); setEditandoCrmId(null);
-    setAbaModal('dados'); setModalAberto(true);
+    setEditandoIdGlobal(null);
+    setModalAberto(true);
   }
 
   function abrirEdicao(c: any) {
-    // Parse robusto do telefone: aceita tanto o formato canônico "+55 21999999999"
-    // (cadastro manual) quanto o CRU da importação "96981198434" / "5596981198434"
-    // (sem prefixo/espaço). Antes, o split(' ') jogava o número inteiro no ddi e
-    // deixava o campo vazio nas fichas de clientes importados.
-    const bruto = (c.telefone_whatsapp || '').trim();
-    let ddi = '+55';
-    let telefone = '';
-    if (bruto.startsWith('+') && bruto.includes(' ')) {
-      const partes = bruto.split(' ');
-      ddi = partes[0] || '+55';
-      telefone = partes.slice(1).join(' ').trim();
-    } else if (bruto) {
-      let dig = bruto.replace(/\D/g, '');
-      if (dig.length > 11 && dig.startsWith('55')) dig = dig.slice(2); // remove DDI 55 embutido
-      telefone = dig;
-    }
-    setForm({
-      nome: c.nome_completo || '', ddi, telefone,
-      email: c.email || '', genero: c.genero || '', cpf: c.cpf || '',
-      nascimento: c.nascimento || '', instagram: c.instagram || '',
-      como_conheceu: c.como_conheceu || '', observacoes: c.observacoes || '',
-      notificacoes: c.aceita_notificacoes !== false, campanhas: c.aceita_campanhas !== false,
-      ativo: c.ativo !== false, foto_url: c.foto_url || '', anamnese: c.anamnese || '',
-    });
     setEditandoIdGlobal(c._global_id || c.id);
-    setEditandoCrmId(c._crm_id || null);
-    setHistoricoAgendamentos([]);
-    setComprasProdutos([]);
-    carregarHistorico(c._global_id || c.id);
-    setAbaModal('dados'); setModalAberto(true);
+    setModalAberto(true);
   }
 
   function abrirWhatsApp(e: any, c: any) {
@@ -368,14 +222,9 @@ export function useAbaCRM(perfil: any) {
     busca, setBusca, abaLista, setAbaLista, sel, setSel,
     clientesReais, lista, listaPaginada, carregando,
     pagina, setPagina, totalPaginas, POR_PAGINA,
-    modalAberto, setModalAberto,
-    editandoIdGlobal, editandoCrmId, clienteConflito, setClienteConflito,
-    abaModal, setAbaModal, subindoFoto, fileInputRef,
-    historicoAgendamentos, carregandoHistorico, comprasProdutos,
-    form, setForm,
+    modalAberto, setModalAberto, editandoIdGlobal,
     statsCliente,
-    carregarClientes, handleUploadFoto, handleAlternarStatusCliente,
-    salvarCliente, fecharEAtualizar, abrirNovoCliente, abrirEdicao,
+    carregarClientes, abrirNovoCliente, abrirEdicao,
     abrirWhatsApp, abrirAgendamento,
   };
 }

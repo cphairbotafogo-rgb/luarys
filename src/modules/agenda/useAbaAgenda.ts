@@ -381,38 +381,10 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
     carregarDadosParaAgenda();
   }
 
-  async function salvarFichaCliente() {
-    // Remove campos que não pertencem à tabela clientes antes do update
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { obs_fixa, etiquetas, _crm_id, ...clienteParaSalvar } = formCliente;
-    const { error: erroCliente } = await supabase.from('clientes').update(clienteParaSalvar).eq('id', formCliente.id);
-    if (erroCliente) {
-      // Nunca fechar o modal como se tivesse salvo — já aconteceu de um campo
-      // sem coluna correspondente (ex.: tipo_cliente/cnpj) derrubar o UPDATE
-      // inteiro em silêncio, e o dono achar que a ficha foi salva.
-      console.error('[salvarFichaCliente] Erro ao atualizar clientes:', erroCliente.message);
-      toast.erro('Não foi possível salvar a ficha: ' + erroCliente.message);
-      return;
-    }
-    if (formCliente.id) {
-      const { error: erroCrm } = await supabase.from('crm_clientes').update({
-        etiquetas: formCliente.etiquetas || [],
-        observacoes: formCliente.observacoes || null,
-      }).eq('cliente_id', formCliente.id).eq('salao_id', perfil.salao_id);
-      if (erroCrm) console.error('[salvarFichaCliente] Erro ao atualizar crm_clientes:', erroCrm.message);
-      // Propaga o nome atualizado para todos os agendamentos existentes deste cliente
-      if (formCliente.nome_completo) {
-        const { error: erroAg } = await supabase.from('agendamentos')
-          .update({ cliente_nome: formCliente.nome_completo })
-          .eq('cliente_id', formCliente.id)
-          .eq('salao_id', perfil.salao_id);
-        if (erroAg) console.error('[salvarFichaCliente] Erro ao propagar nome nos agendamentos:', erroAg.message);
-      }
-    }
-    toast.sucesso('Ficha do cliente salva com sucesso!');
-    setModalEdicaoCliente(false);
-    carregarDadosParaAgenda();
-  }
+  // Salvar/arquivar/histórico da ficha de cliente agora vivem dentro de
+  // useFichaCliente.ts (usado por ModalFichaCliente) — unificado com o CRM,
+  // que tinha seu próprio modelo de dados (crm_clientes por unidade) que
+  // este fluxo da Agenda não respeitava antes.
 
   return {
     // dados
@@ -463,7 +435,7 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
     salvarEdicaoAgendamento, salvarAusencia, excluirAusencia,
     handleAbrirWhatsApp, handleAbrirEmail,
     removerEtiqueta, adicionarEtiqueta, salvarNovaEtiqueta,
-    confirmarCancelamento, salvarFichaCliente,
+    confirmarCancelamento,
     somarMinutos, verificarAniversario,
   };
 }

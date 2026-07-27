@@ -106,11 +106,10 @@ export function AgendaModais({ ag }: { ag: ReturnType<any> }) {
 
       {ag.modalEdicaoCliente && (
         <ModalFichaCliente
-          formCliente={ag.formCliente} setFormCliente={ag.setFormCliente}
-          abaAtivaCrm={ag.abaAtivaCrm} setAbaAtivaCrm={ag.setAbaAtivaCrm}
+          clienteId={ag.formCliente?.id || null}
+          abaInicial={ag.abaAtivaCrm === 'historico' ? 'historico' : 'identidade'}
           onClose={() => ag.setModalEdicaoCliente(false)}
-          etiquetasDb={ag.etiquetasDb}
-          salvarFichaCompleta={ag.salvarFichaCliente}
+          onSalvo={ag.carregarDadosParaAgenda}
           perfil={ag.perfil}
         />
       )}

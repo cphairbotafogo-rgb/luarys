@@ -7,7 +7,7 @@ import { RAIO_XS, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { Card } from '@/components/ui';
 import { FiUser, FiArchive, FiSearch, FiMessageCircle, FiCalendar, FiEdit2, FiAlertTriangle, FiPlus, FiChevronDown, FiGlobe, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useAbaCRM } from './useAbaCRM';
-import { ModalCliente } from './ModalCliente';
+import { ModalFichaCliente } from '@/modules/agenda/modals/ModalFichaCliente';
 
 const formatarData = (d: string) => {
   if (!d) return '—';
@@ -208,7 +208,14 @@ export function AbaCRM({ perfil }: any) {
         </div>
       )}
 
-      <ModalCliente crm={crm} perfil={perfil} />
+      {crm.modalAberto && (
+        <ModalFichaCliente
+          clienteId={crm.editandoIdGlobal}
+          perfil={perfil}
+          onClose={() => crm.setModalAberto(false)}
+          onSalvo={crm.carregarClientes}
+        />
+      )}
     </div>
   );
 }
