@@ -385,20 +385,31 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
     // Remove campos que não pertencem à tabela clientes antes do update
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { obs_fixa, etiquetas, _crm_id, ...clienteParaSalvar } = formCliente;
-    await supabase.from('clientes').update(clienteParaSalvar).eq('id', formCliente.id);
+    const { error: erroCliente } = await supabase.from('clientes').update(clienteParaSalvar).eq('id', formCliente.id);
+    if (erroCliente) {
+      // Nunca fechar o modal como se tivesse salvo — já aconteceu de um campo
+      // sem coluna correspondente (ex.: tipo_cliente/cnpj) derrubar o UPDATE
+      // inteiro em silêncio, e o dono achar que a ficha foi salva.
+      console.error('[salvarFichaCliente] Erro ao atualizar clientes:', erroCliente.message);
+      toast.erro('Não foi possível salvar a ficha: ' + erroCliente.message);
+      return;
+    }
     if (formCliente.id) {
-      await supabase.from('crm_clientes').update({
+      const { error: erroCrm } = await supabase.from('crm_clientes').update({
         etiquetas: formCliente.etiquetas || [],
         observacoes: formCliente.observacoes || null,
       }).eq('cliente_id', formCliente.id).eq('salao_id', perfil.salao_id);
+      if (erroCrm) console.error('[salvarFichaCliente] Erro ao atualizar crm_clientes:', erroCrm.message);
       // Propaga o nome atualizado para todos os agendamentos existentes deste cliente
       if (formCliente.nome_completo) {
-        await supabase.from('agendamentos')
+        const { error: erroAg } = await supabase.from('agendamentos')
           .update({ cliente_nome: formCliente.nome_completo })
           .eq('cliente_id', formCliente.id)
           .eq('salao_id', perfil.salao_id);
+        if (erroAg) console.error('[salvarFichaCliente] Erro ao propagar nome nos agendamentos:', erroAg.message);
       }
     }
+    toast.sucesso('Ficha do cliente salva com sucesso!');
     setModalEdicaoCliente(false);
     carregarDadosParaAgenda();
   }
