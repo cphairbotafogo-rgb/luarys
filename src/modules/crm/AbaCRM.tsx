@@ -1,6 +1,6 @@
 // src/modules/crm/AbaCRM.tsx
 // Shell da aba CRM — lista de clientes com busca e ações rápidas.
-// Toda lógica: useAbaCRM | Modal: ModalCliente.
+// Toda lógica: useAbaCRM | Modal: ModalFichaCliente (compartilhado com a Agenda).
 'use client'
 import { C, brl } from '@/lib/constants';
 import { RAIO_XS, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';

@@ -75,6 +75,7 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
   const [crmId, setCrmId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(!!clienteId);
   const [salvando, setSalvando] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [etiquetasDb, setEtiquetasDb] = useState<any[]>([]);
   const [clienteConflito, setClienteConflito] = useState<any>(null);
   const [historicoAgendamentos, setHistoricoAgendamentos] = useState<any[]>([]);
@@ -306,6 +307,7 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
   async function buscarCep(cep: string) {
     const limpo = cep.replace(/\D/g, '');
     if (limpo.length !== 8) return;
+    setBuscandoCep(true);
     try {
       const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
       const data = await res.json();
@@ -320,12 +322,14 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
       }
     } catch (erro) {
       console.error('[useFichaCliente] Erro ao buscar CEP:', erro);
+    } finally {
+      setBuscandoCep(false);
     }
   }
 
   return {
     formCliente, setFormCliente, set, setAnamnese, toggleEtiqueta,
-    crmId, carregando, salvando, etiquetasDb,
+    crmId, carregando, salvando, buscandoCep, etiquetasDb,
     clienteConflito, setClienteConflito,
     historicoAgendamentos, comprasProdutos, carregandoHistorico,
     handleUploadFoto, salvar, alternarArquivado, buscarCep,
