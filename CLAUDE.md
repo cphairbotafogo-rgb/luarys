@@ -93,6 +93,8 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - **RLS obrigatório.** Toda query usa `auth_salao_id()` RPC. Nunca expor dados de outro salão. Nunca `TO anon USING (true)`.
 - **UUID guard** antes de passar arrays para colunas `uuid[]` no Postgres — `String(null) === "null"` passa pelo `filter(Boolean)` e quebra o cast.
 - **Toda função/tabela SQL nova exige arquivo em `supabase/migrations/`.** Nada de criar só pelo SQL Editor (ver "Drift de schema").
+- **Nunca espalhar (`...form`) um objeto de formulário inteiro direto num `.update()`/`.insert()`.** Montar sempre uma lista explícita de campos. Bug histórico real: `ModalFichaCliente` antigo mandava o form inteiro pra `clientes.update()`; um campo sem coluna correspondente (`tipo_cliente`, `cnpj`, `pais`) derrubava a operação inteira com 42703 — silenciosamente, porque a chamada não checava `error`. **Toda chamada a `.update()`/`.insert()` tem que checar `error` e mostrar toast de falha** — nunca fechar modal/dar sucesso sem essa checagem.
+- **Modal que abre por cima de outro modal já aberto** (ex.: "Editar cadastro" clicado de dentro do Novo Agendamento): usar `zIndex: 10000` (ou `10500` se precisar ficar acima de tudo, como `ConfirmacaoGlobal`). O padrão normal de modal é `9999`; usar 10000+ só quando o modal de baixo precisa continuar visível/aberto atrás.
 
 ## Padrões Supabase (peculiaridades reais do banco)
 - `gerar_numero_os` falha fora de contexto auth → `os_numero` deve ser nullable.
@@ -155,6 +157,13 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - **Nota Carioca (RJ) — piloto real é afetado diretamente**: desde 01/01/2026 o município do Rio deixou de aceitar emissão nova de NFS-e pela Nota Carioca; ela segue só para consulta/cancelamento/substituição de notas de até dez/2025. Emissão nova é *exclusivamente* pelo Emissor Nacional (gov.br). `inscricao_municipal` e `codigo_ibge` continuam existindo como conceito (cadastro municipal não foi extinto, só passou a alimentar o repositório nacional) — não remover esses campos do schema.
 - Focus NFe já tem produto/API dedicado para NFS-e Nacional (confirmado publicamente); Brasil NFe ainda não confirmado — perguntar por escrito antes de decidir provedor único.
 - Antes de qualquer decisão fiscal, consultar a skill `fiscal-brasil-luarys` e, se o dado citado aqui tiver mais de ~30 dias, reconfirmar na internet antes de agir (regra muda rápido nesta fase de transição).
+
+### Ficha de cliente (Agenda + CRM compartilham o mesmo modal)
+`ModalFichaCliente.tsx` + `useFichaCliente.ts` (em `src/modules/agenda/modals/fichaCliente/`) é o **único** modal de cadastro/edição de cliente do sistema — usado tanto pela Agenda ("Editar cadastro"/"Ver histórico") quanto pelo CRM ("Abrir Ficha"/"Novo Cliente"). Antes eram dois modais com modelos de dados diferentes (`ModalCliente.tsx` do CRM, removido, vs a versão antiga deste); nunca recriar um modal de cliente separado por módulo.
+- Duas tabelas por trás de UM cliente: `clientes` (identidade global — nome, documento, contato, endereço; `salao_id` sempre preenchido na criação porque a busca de cliente da Agenda filtra por ele) e `crm_clientes` (overlay por unidade — `ativo`, `observacoes`, `anamnese`, `aceita_notificacoes`, `aceita_campanhas`, `etiquetas`, stats). Cliente legado pode não ter `crm_clientes` ainda — criar na hora de salvar/arquivar, nunca assumir que existe.
+- `crm_clientes.anamnese` é **`text`**, não `jsonb` — sempre `JSON.stringify` ao salvar e `JSON.parse` (com fallback pra texto livre legado) ao ler.
+- Criar etiqueta nova existe em dois lugares por design (`ModalEdicao.tsx`/agendamento via `useAbaAgenda.salvarNovaEtiqueta`, e `AbaPreferencias.tsx`/ficha via `useFichaCliente.criarEtiqueta`) — mesma tabela `etiquetas`, sem sincronização especial necessária, mas mudança de schema em `etiquetas` exige atualizar os dois.
+- Duplicidade de cliente é checada por CPF/CNPJ, ou e-mail, ou telefone (nessa ordem) — só dentro do mesmo `salao_id`.
 
 ### WhatsApp — dois planos, comportamentos opostos
 - **Plano B (gestao_meta)**: credenciais do próprio salão (`whatsapp_config_plano`, token criptografado via `whatsappCrypto`) — Meta cobra o salão, **sem** débito de saldo aqui.
