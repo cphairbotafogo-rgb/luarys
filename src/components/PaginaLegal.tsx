@@ -34,7 +34,7 @@ export function PaginaLegal({ titulo, atualizadoEm, children }: { titulo: string
       </main>
 
       <footer style={S.footer}>
-        © 2026 Luarys Tecnologia · &nbsp;
+        © 2026 Luarys Software e Sistemas Ltda · &nbsp;
         <a href="/termos" style={{ color: '#718096' }}>Termos de Uso</a>
         &nbsp;·&nbsp;
         <a href="/privacidade" style={{ color: '#718096' }}>Política de Privacidade</a>

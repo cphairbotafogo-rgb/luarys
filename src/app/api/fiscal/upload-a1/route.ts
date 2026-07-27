@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
 import { encryptarSegredo } from '@/lib/cripto';
+import { limparCnpj } from '@/lib/cnpj';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
         .eq('id', salaoId)
         .maybeSingle();
 
-      const cnpj = salao?.cnpj?.replace(/\D/g, ''); // somente dígitos
+      const cnpj = limparCnpj(salao?.cnpj); // mantém letras — CNPJ alfanumérico (IN RFB 2.229/2024)
 
       if (cnpj) {
         const certBase64 = Buffer.from(bytes).toString('base64');

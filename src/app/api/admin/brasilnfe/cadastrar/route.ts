@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { baseUrl } from '@/lib/nfse/brasilnfe';
+import { limparCnpj } from '@/lib/cnpj';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Salão não encontrado.' }, { status: 404 });
   }
 
-  const cnpj = (salao.cnpj || '').replace(/\D/g, '');
+  const cnpj = limparCnpj(salao.cnpj); // mantém letras — CNPJ alfanumérico (IN RFB 2.229/2024)
   if (cnpj.length !== 14) {
     return NextResponse.json({ erro: 'CNPJ do salão inválido ou não cadastrado.' }, { status: 422 });
   }

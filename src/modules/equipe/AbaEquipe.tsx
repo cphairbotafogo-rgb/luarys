@@ -23,14 +23,15 @@ import { ModalColaborador } from "./modal/ModalColaborador";
 import { ModalAdiantamento } from "./modal/ModalAdiantamento";
 import { ModalFuncoes } from "./modal/ModalFuncoes";
 import { ModalLimitePlano } from "./modal/ModalLimitePlano";
+import { limparCnpj } from '@/lib/cnpj';
 
 // Deriva o regime fiscal do profissional a partir do tipo de contrato e CNPJ.
 // Usada em salvarProfissional — coluna tipo_parceiro é consultável no banco.
 function derivarTipoParceiro(tipoContrato: string, cnpj: string): string {
   const t = tipoContrato || '';
   if (t.includes('Parceiro')) {
-    const digits = (cnpj || '').replace(/\D/g, '');
-    return digits.length === 14 ? 'parceiro_cnpj' : 'parceiro_cpf';
+    const doc = limparCnpj(cnpj); // mantém letras — CNPJ alfanumérico conta 14 posições
+    return doc.length === 14 ? 'parceiro_cnpj' : 'parceiro_cpf';
   }
   if (t === 'CLT') return 'clt';
   if (t.includes('PJ') || t.includes('MEI') || t.includes('Prestador')) return 'pj';

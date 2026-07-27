@@ -14,6 +14,7 @@ import { useGuardModulo } from "@/lib/useGuardModulo";
 import { BloqueioModulo } from "@/components/BloqueioModulo";
 import { ESTADO0, reducer, API, S } from "./nfce/tipos";
 import { AbaEmitirNFCe } from "./nfce/AbaEmitirNFCe";
+import { AbaHistoricoNFCe } from "./nfce/AbaHistoricoNFCe";
 import { AbaConfiguracoesFiscais } from "./nfce/AbaConfiguracoesFiscais";
 import { PainelCertificado } from "./nfce/PainelCertificado";
 
@@ -124,6 +125,10 @@ export function SistemaNFCe({ perfil }: any) {
 
       {state.aba === "emitir" && (
         <AbaEmitirNFCe state={state} dispatch={dispatch} bancoProdutos={bancoProdutos} salaoId={salaoId} toast={mostrarToast} />
+      )}
+
+      {state.aba === "historico" && (
+        <AbaHistoricoNFCe salaoId={salaoId} toast={mostrarToast} />
       )}
 
       {/* ─── ABA: CONFIGURAÇÕES FISCAIS (ESPELHADA E BLINDADA) ─── */}

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiPrinter, FiX } from 'react-icons/fi';
+import { formatarCnpj as fmtCnpj } from '@/lib/cnpj';
 
 const INSS_PERC = 0.11;
 const MESES_EXT = [
@@ -12,11 +13,6 @@ const MESES_EXT = [
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
 
-function fmtCnpj(v: string) {
-  const d = v.replace(/\D/g, '');
-  if (d.length !== 14) return v;
-  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
-}
 function fmtCpf(v: string) {
   const d = v.replace(/\D/g, '');
   if (d.length !== 11) return v;

@@ -7,6 +7,7 @@ import { RAIO_MD, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiAlertTriangle, FiCheckCircle, FiDownload, FiLoader, FiPrinter, FiShield } from 'react-icons/fi';
 import { gerarCSV, estiloCard, estiloBtnCSV, MESES } from '../tipos';
 import { ModalRpa } from '../../ModalRpa';
+import { limparCnpj } from '@/lib/cnpj';
 
 const INSS_PERC = 0.11;
 
@@ -19,7 +20,7 @@ interface LinhaParceiro {
 }
 
 function BadgeTipo({ tipo, cnpj }: { tipo: string | null; cnpj: string | null }) {
-  const temCnpj = (cnpj || '').replace(/\D/g, '').length === 14;
+  const temCnpj = limparCnpj(cnpj).length === 14; // mantém letras — CNPJ alfanumérico
   if (tipo === 'parceiro_cnpj' || (!tipo && temCnpj))
     return <span style={{ background: '#DCFCE7', color: '#166534', borderRadius: RAIO_XS, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>CNPJ</span>;
   if (tipo === 'parceiro_cpf' || (!tipo && !temCnpj))
@@ -84,7 +85,7 @@ export function RelatorioFiscalParceiros({ perfil, mes, ano, mesAnoLabel }: Prop
   const totais = useMemo(() => {
     let cnpj = 0, cpf = 0;
     for (const l of linhas) {
-      const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && (l.cnpj || '').replace(/\D/g, '').length === 14);
+      const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && limparCnpj(l.cnpj).length === 14);
       if (ehCnpj) cnpj += l.cotaBruta; else cpf += l.cotaBruta;
     }
     return { cnpj, cpf, inss: cpf * INSS_PERC, basePgdas: cpf };
@@ -93,7 +94,7 @@ export function RelatorioFiscalParceiros({ perfil, mes, ano, mesAnoLabel }: Prop
   function exportarCSV() {
     const mesStr = String(mes + 1).padStart(2, '0');
     const linhasCpf = linhas.filter(l => {
-      const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && (l.cnpj || '').replace(/\D/g, '').length === 14);
+      const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && limparCnpj(l.cnpj).length === 14);
       return !ehCnpj;
     });
     gerarCSV(
@@ -138,7 +139,7 @@ export function RelatorioFiscalParceiros({ perfil, mes, ano, mesAnoLabel }: Prop
           </div>
         </div>
         {linhas.some(l => {
-          const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && (l.cnpj || '').replace(/\D/g, '').length === 14);
+          const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && limparCnpj(l.cnpj).length === 14);
           return !ehCnpj;
         }) && (
           <button style={estiloBtnCSV as any} onClick={exportarCSV}>
@@ -192,7 +193,7 @@ export function RelatorioFiscalParceiros({ perfil, mes, ano, mesAnoLabel }: Prop
               </thead>
               <tbody>
                 {linhas.map(l => {
-                  const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && (l.cnpj || '').replace(/\D/g, '').length === 14);
+                  const ehCnpj = l.tipo === 'parceiro_cnpj' || (!l.tipo && limparCnpj(l.cnpj).length === 14);
                   const inss   = ehCnpj ? 0 : l.cotaBruta * INSS_PERC;
                   return (
                     <tr key={l.nome}>

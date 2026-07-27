@@ -7,6 +7,7 @@ import { Card } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { FiFileText, FiSave, FiEye, FiEyeOff, FiUserPlus, FiCheckCircle } from "react-icons/fi";
 import { GavetaFiscalSaloes } from "./GavetaFiscalSaloes";
+import { limparCnpj } from '@/lib/cnpj';
 
 export function AbaNFSeConfig() {
   const toast = useToast();
@@ -61,7 +62,7 @@ export function AbaNFSeConfig() {
     try {
       const { error } = await supabase.from('plataforma_nfse_config').upsert({
         id: 1,
-        cnpj: cnpj.replace(/\D/g, ''),
+        cnpj: limparCnpj(cnpj), // mantém letras — CNPJ alfanumérico
         razao_social: razaoSocial.trim() || null,
         inscricao_municipal: im.trim() || null,
         codigo_ibge: ibge.trim() || null,

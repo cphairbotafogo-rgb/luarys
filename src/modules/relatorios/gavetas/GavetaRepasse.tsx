@@ -6,6 +6,7 @@ import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiAlertTriangle, FiCheckCircle, FiInfo, FiLoader, FiFileText, FiPrinter } from 'react-icons/fi';
 import { ModalRpa } from './ModalRpa';
+import { limparCnpj, formatarCnpj } from '@/lib/cnpj';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -21,17 +22,10 @@ interface LinhaRepasse {
 
 const INSS_PERC = 0.11;
 
-function fmtCnpj(v: string | null) {
-  if (!v) return null;
-  const d = v.replace(/\D/g, '');
-  if (d.length !== 14) return v;
-  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
-}
-
 // ─── Badge tipo de parceiro ───────────────────────────────────────────────────
 
 function BadgeTipo({ tipo, cnpj }: { tipo: string | null; cnpj: string | null }) {
-  const temCnpj = (cnpj || '').replace(/\D/g, '').length === 14;
+  const temCnpj = limparCnpj(cnpj).length === 14; // mantém letras — CNPJ alfanumérico
   if (tipo === 'parceiro_cnpj' || (tipo === null && temCnpj)) {
     return (
       <span style={{ background: '#DCFCE7', color: '#166534', borderRadius: RAIO_XS,
@@ -60,7 +54,7 @@ function CardRepasse({ linha, salaoId, mes, ano }: {
   const [rpaAberto, setRpaAberto] = useState(false);
 
   const ehCnpj = linha.tipo_parceiro === 'parceiro_cnpj'
-    || (linha.tipo_parceiro === null && (linha.cnpj_profissional || '').replace(/\D/g, '').length === 14);
+    || (linha.tipo_parceiro === null && limparCnpj(linha.cnpj_profissional).length === 14);
   const ehCpf = linha.tipo_parceiro === 'parceiro_cpf'
     || (linha.tipo_parceiro === null && !ehCnpj);
 
@@ -134,7 +128,7 @@ function CardRepasse({ linha, salaoId, mes, ano }: {
           <div style={{ fontSize: 12, color: '#166534', lineHeight: 1.6 }}>
             <strong>Profissional deve emitir NFS-e ao salão</strong> pelo valor {brl(linha.total_cota)} como prestação de serviço (cota-parte).
             {linha.cnpj_profissional && (
-              <> CNPJ do prestador: <strong>{fmtCnpj(linha.cnpj_profissional)}</strong>.</>
+              <> CNPJ do prestador: <strong>{formatarCnpj(linha.cnpj_profissional)}</strong>.</>
             )}
             {' '}Após receber a nota, o salão registra como despesa e exclui esse valor da receita bruta no PGDAS-D.
           </div>
@@ -224,7 +218,7 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
     let cnpj = 0, cpf = 0;
     for (const l of linhas) {
       const ehCnpj = l.tipo_parceiro === 'parceiro_cnpj'
-        || (l.tipo_parceiro === null && (l.cnpj_profissional || '').replace(/\D/g, '').length === 14);
+        || (l.tipo_parceiro === null && limparCnpj(l.cnpj_profissional).length === 14);
       if (ehCnpj) cnpj += l.total_cota;
       else cpf += l.total_cota;
     }

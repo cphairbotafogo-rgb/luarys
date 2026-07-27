@@ -151,7 +151,10 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - **NFS-e (serviço)** → tabela `notas_fiscais` (criada em `lancarOS.ts`; emissão em lote ou automática por `api/nfse/emitir`). A **cota mensal de 150 notas conta linhas dessa tabela** — por isso a NFC-e NÃO grava nela.
 - **NFC-e (produto/PDV)** → tabela própria `nfce_emissoes` (migration `20260727_nfce_numero_atomico_persistencia.sql`). Numeração via RPC atômica `obter_proximo_numero_nfce` — **nunca** ler `proximo_numero` e atualizar em dois passos. Toda emissão grava registro ANTES de chamar a Focus (status `processando`) e atualiza depois — nota autorizada na SEFAZ sem registro local é falha fiscal grave (XML recuperável por 5 anos).
 - Provedores NFS-e roteados por `config_fiscal.provedor_nfse` (`src/lib/nfse/index.ts` — focusnfe | brasilnfe); token por provedor via `resolverToken`.
-- **Prazo crítico: 1º/set/2026** — Simples Nacional obrigado ao Emissor Nacional (Ambiente Nacional/SEFIN). Antes de qualquer decisão fiscal, consultar a skill `fiscal-brasil-luarys`.
+- **NFS-e Nacional já é obrigatória para TODO prestador desde 01/01/2026** (Lei Complementar 214/2025) — não é mais "prazo futuro", já está em vigor. Exceção: ME/EPP optante do Simples Nacional tem prazo prorrogado até **1º/set/2026** só para essa faixa. MEI já é obrigatório desde 2023.
+- **Nota Carioca (RJ) — piloto real é afetado diretamente**: desde 01/01/2026 o município do Rio deixou de aceitar emissão nova de NFS-e pela Nota Carioca; ela segue só para consulta/cancelamento/substituição de notas de até dez/2025. Emissão nova é *exclusivamente* pelo Emissor Nacional (gov.br). `inscricao_municipal` e `codigo_ibge` continuam existindo como conceito (cadastro municipal não foi extinto, só passou a alimentar o repositório nacional) — não remover esses campos do schema.
+- Focus NFe já tem produto/API dedicado para NFS-e Nacional (confirmado publicamente); Brasil NFe ainda não confirmado — perguntar por escrito antes de decidir provedor único.
+- Antes de qualquer decisão fiscal, consultar a skill `fiscal-brasil-luarys` e, se o dado citado aqui tiver mais de ~30 dias, reconfirmar na internet antes de agir (regra muda rápido nesta fase de transição).
 
 ### WhatsApp — dois planos, comportamentos opostos
 - **Plano B (gestao_meta)**: credenciais do próprio salão (`whatsapp_config_plano`, token criptografado via `whatsappCrypto`) — Meta cobra o salão, **sem** débito de saldo aqui.
@@ -189,14 +192,13 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - **Modularização progressiva:** concluída — todos os módulos abaixo de 400 linhas. Manter o padrão em código novo.
 - **Agenda:** tooltip hover (WhatsApp) + menu de clique direito (status, fechar conta, faltou, cancelar). Cores automáticas via `corPorStatus()`.
 - **Automações N8N:** hub central planejado para WhatsApp, e-mail e Google Reviews integrados à agenda real.
-- **NFS-e:** rotas funcionais via Focus NFe/Brasil NFe (`emitir`, `consultar`, `cancelar`, `upload-a1`, `webhook-brasilnfe`). Pendente: decisão final de provedor com integração SEFIN Nacional (prazo 1º/set/2026) e try/catch por nota no lote.
+- **NFS-e:** rotas funcionais via Focus NFe/Brasil NFe (`emitir`, `consultar`, `cancelar`, `upload-a1`, `webhook-brasilnfe`). **Urgente, não mais "futuro"**: NFS-e Nacional já é lei desde 01/01/2026 (LC 214/2025) e a Nota Carioca (RJ, onde fica o piloto real) já não aceita emissão nova — só Emissor Nacional. Pendente: confirmar se o fluxo atual já emite corretamente no padrão nacional para RJ (Focus NFe já tem API própria pra isso), decisão final de provedor único, e try/catch por nota no lote.
 - **NFC-e:** rota de emissão funcional (Focus NFe) com numeração atômica e persistência em `nfce_emissoes`. Pendente: telas lerem de `nfce_emissoes` e reconciliação de notas `processando` via consultar.
 - **WhatsApp:** envio (Planos A/B), carteira, compra de créditos via Asaas (avulso + recorrente) e webhook Meta fail-closed — funcionais. Pendente: segredos no ambiente de produção e registro do webhook na Meta (URL com www).
 
-## Drift de schema (pendência ativa)
-Estas RPCs são chamadas no código mas **não têm migration versionada** (existem só no banco vivo). Exportar do banco e versionar:
-`debitar_credito_whatsapp` · `restaurar_credito_whatsapp` · `admin_ativar_modulo_fiscal` · `obter_status_fiscal` · `obter_saldo_whatsapp` · `obter_consumo_whatsapp_mes` · `baixar_estoque_vitrine` · `resgatar_premio_fidelidade`
-Enquanto não versionadas, não dá para recriar o banco do zero nem auditar idempotência (ex.: `restaurar_credito_whatsapp` precisa ser idempotente por `wamid` — a Meta reenvia eventos de status).
+## Drift de schema (resolvido — jul/2026)
+As RPCs que só existiam no banco vivo (`debitar_credito_whatsapp`, `restaurar_credito_whatsapp`, `admin_ativar_modulo_fiscal`, `obter_status_fiscal`, `obter_saldo_whatsapp`, `obter_consumo_whatsapp_mes`, `baixar_estoque_vitrine`, `resgatar_premio_fidelidade`, `buscar_agendamentos_para_lembrete`) foram versionadas em `supabase/migrations/20260727_versionar_rpcs_legado_e_permissoes.sql` e `20260728e_resgatar_premio_lock_concorrencia.sql`. No caminho, dois achados de segurança reais foram corrigidos: `buscar_agendamentos_para_lembrete` estava executável por `anon` (vazava dados de cliente de todos os salões) e `resgatar_premio_fidelidade` confiava no `salao_id` do body (fraude cross-tenant) — ambos fechados, com trava `pg_advisory_xact_lock` contra resgate em dobro por concorrência. `nfe_config_empresa`/`nfe_emissoes_log` (só existiam em `src/lib/migrations/`, pasta legada) versionadas em `20260728f_nfe_config_empresa_versionar.sql`.
+Se descobrir uma função nova chamada no código sem arquivo em `supabase/migrations/`, tratar como o mesmo padrão de risco — nunca assumir que "já deve estar certo" só porque funciona ao vivo.
 
 ## Checklist antes de mexer em rota de dinheiro, crédito ou nota fiscal
 1. `autenticarRota()` presente? `salao_id` vem do perfil (nunca do body)?

@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiDownload, FiInfo, FiAlertTriangle, FiLoader, FiCheck } from 'react-icons/fi';
+import { limparCnpj } from '@/lib/cnpj';
 
 // ─── Constantes fiscais ────────────────────────────────────────────────────────
 

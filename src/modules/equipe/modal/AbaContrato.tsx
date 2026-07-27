@@ -7,9 +7,10 @@ import { FiInfo, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 import { C } from "@/lib/constants";
 import { RAIO_XL, RAIO_MD } from "@/lib/estiloGlobal";
 import { labelStyle, inputStyle } from "./estilosCompartilhados";
+import { limparCnpj } from '@/lib/cnpj';
 
 function BannerFiscal({ tipo, cnpj }: { tipo: string; cnpj: string }) {
-  const temCnpj = (cnpj || '').replace(/\D/g, '').length === 14;
+  const temCnpj = limparCnpj(cnpj).length === 14; // mantém letras — CNPJ alfanumérico
 
   if (tipo.includes('Parceiro') && temCnpj) {
     return (
