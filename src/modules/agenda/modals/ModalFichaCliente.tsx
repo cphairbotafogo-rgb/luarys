@@ -47,7 +47,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fc = useFichaCliente(clienteId, perfil, onSalvo, onClose);
-  const { formCliente, set, setAnamnese, toggleEtiqueta, etiquetasDb, carregando, salvando, buscarCep, buscandoCep } = fc;
+  const { formCliente, set, setAnamnese, toggleEtiqueta, criarEtiqueta, etiquetasDb, carregando, salvando, buscarCep, buscandoCep } = fc;
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -163,7 +163,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
             <>
               {abaAtiva === 'identidade'   && <AbaIdentidade formCliente={formCliente} set={set} />}
               {abaAtiva === 'contatos'     && <AbaContatos formCliente={formCliente} set={set} />}
-              {abaAtiva === 'preferencias' && <AbaPreferencias formCliente={formCliente} set={set} etiquetasDb={etiquetasDb} toggleEtiqueta={toggleEtiqueta} />}
+              {abaAtiva === 'preferencias' && <AbaPreferencias formCliente={formCliente} set={set} etiquetasDb={etiquetasDb} toggleEtiqueta={toggleEtiqueta} criarEtiqueta={criarEtiqueta} />}
               {abaAtiva === 'endereco'     && <AbaEndereco formCliente={formCliente} set={set} buscarCep={buscarCep} buscandoCep={buscandoCep} />}
               {abaAtiva === 'anamnese'     && <AbaAnamnese formCliente={formCliente} setAnamnese={setAnamnese} />}
               {abaAtiva === 'historico'    && <AbaHistorico carregando={fc.carregandoHistorico} historicoAgendamentos={fc.historicoAgendamentos} comprasProdutos={fc.comprasProdutos} />}

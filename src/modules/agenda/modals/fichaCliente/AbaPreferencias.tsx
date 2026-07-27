@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { C } from '@/lib/constants';
-import { FONTE_CORPO, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
-import { FiTag } from 'react-icons/fi';
+import { FONTE_CORPO, RAIO_MD, RAIO_SM, RAIO_XL } from '@/lib/estiloGlobal';
+import { FiTag, FiPlus } from 'react-icons/fi';
 
 const inp = {
   padding: '11px 14px', borderRadius: RAIO_MD,
@@ -18,17 +19,52 @@ interface Props {
   set: (campo: string, valor: any) => void;
   etiquetasDb: any[];
   toggleEtiqueta: (tag: any) => void;
+  criarEtiqueta: (nome: string, cor: string) => void;
 }
 
-export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta }: Props) {
+export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta, criarEtiqueta }: Props) {
   const etiquetasCliente: any[] = formCliente.etiquetas || [];
+  const [mostrandoNova, setMostrandoNova] = useState(false);
+  const [novaTag, setNovaTag] = useState({ nome: '', cor: '#F26522' });
+
+  function handleSalvarNovaTag() {
+    if (!novaTag.nome.trim()) return;
+    criarEtiqueta(novaTag.nome, novaTag.cor);
+    setNovaTag({ nome: '', cor: '#F26522' });
+    setMostrandoNova(false);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6 }}><FiTag size={12} /> Etiquetas do Cliente</label>
-        {etiquetasDb.length === 0
-          ? <p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>Nenhuma etiqueta criada ainda. Crie pelo modal de agendamento.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: etiquetasDb.length === 0 ? 8 : 10 }}>
+          <label style={{ ...lbl, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><FiTag size={12} /> Etiquetas do Cliente</label>
+          {!mostrandoNova && (
+            <button type="button" onClick={() => setMostrandoNova(true)}
+              style={{ color: C.sidebarBg, fontWeight: 700, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FiPlus size={14} /> Nova etiqueta
+            </button>
+          )}
+        </div>
+        {mostrandoNova && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input style={{ ...inp, flex: 1, padding: '9px 12px' }} placeholder="Nome da etiqueta" autoFocus
+              value={novaTag.nome} onChange={e => setNovaTag({ ...novaTag, nome: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') handleSalvarNovaTag(); if (e.key === 'Escape') setMostrandoNova(false); }} />
+            <input type="color" style={{ width: 40, height: 40, padding: 0, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_SM, cursor: 'pointer' }}
+              value={novaTag.cor} onChange={e => setNovaTag({ ...novaTag, cor: e.target.value })} />
+            <button type="button" onClick={handleSalvarNovaTag}
+              style={{ background: C.sidebarBg, color: '#fff', border: 'none', borderRadius: RAIO_MD, padding: '0 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              Salvar
+            </button>
+            <button type="button" onClick={() => setMostrandoNova(false)}
+              style={{ background: 'transparent', color: C.textMuted, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: '0 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        )}
+        {etiquetasDb.length === 0 && !mostrandoNova
+          ? <p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>Nenhuma etiqueta criada ainda.</p>
           : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {etiquetasDb.map((tag: any) => {

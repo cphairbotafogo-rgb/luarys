@@ -95,6 +95,14 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
     });
   }
 
+  async function criarEtiqueta(nome: string, cor: string) {
+    if (!nome.trim() || !perfil?.salao_id) return;
+    const { data, error } = await supabase.from('etiquetas').insert([{ nome: nome.trim(), cor, salao_id: perfil.salao_id }]).select('*').single();
+    if (error) { toast.erro('Erro ao criar etiqueta: ' + error.message); return; }
+    setEtiquetasDb((prev: any[]) => [...prev, data]);
+    setFormClienteState((f: any) => ({ ...f, etiquetas: [...(f.etiquetas || []), data] }));
+  }
+
   useEffect(() => {
     if (!perfil?.salao_id) return;
     supabase.from('etiquetas').select('*').eq('salao_id', perfil.salao_id).order('nome')
@@ -328,7 +336,7 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
   }
 
   return {
-    formCliente, setFormCliente, set, setAnamnese, toggleEtiqueta,
+    formCliente, setFormCliente, set, setAnamnese, toggleEtiqueta, criarEtiqueta,
     crmId, carregando, salvando, buscandoCep, etiquetasDb,
     clienteConflito, setClienteConflito,
     historicoAgendamentos, comprasProdutos, carregandoHistorico,
