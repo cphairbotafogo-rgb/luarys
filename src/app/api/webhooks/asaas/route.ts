@@ -99,11 +99,31 @@ export async function POST(request: NextRequest) {
 
     const pagamento = await pagResp.json();
 
-    // Compra avulsa de créditos WhatsApp ("whatsapp::salaoId::pacoteId") —
-    // checada ANTES de parseReferencia, que não reconhece esse formato e
-    // (por só validar salaoId/moduloChave não-vazios) interpretaria "whatsapp"
-    // como salaoId sem erro, corrompendo o fluxo de assinatura.
-    const refCreditos = parseReferenciaWhatsappCreditos(pagamento.externalReference);
+    // Resolve a referência do pagamento ANTES de qualquer coisa — cobranças
+    // geradas automaticamente por uma subscription (ciclos recorrentes após o
+    // primeiro, inclusive nas assinaturas mensais de créditos WhatsApp) nem
+    // sempre repetem o externalReference da fatura original. O Asaas garante
+    // isso no external reference da SUBSCRIPTION, então cai pra buscar por lá
+    // quando a fatura não tiver um de forma direta. Precisa vir antes do
+    // branch whatsapp x assinatura, senão uma renovação mensal de crédito
+    // sem externalReference na fatura nunca seria identificada como tal.
+    let referenciaBruta: string | undefined = pagamento.externalReference;
+    if (!referenciaBruta && pagamento.subscription) {
+      const subResp = await fetch(`${asaasBase}/subscriptions/${pagamento.subscription}`, {
+        headers: { 'access_token': asaasKey },
+      });
+      if (subResp.ok) {
+        const subData = await subResp.json();
+        referenciaBruta = subData.externalReference;
+      }
+    }
+
+    // Compra de créditos WhatsApp (avulsa OU assinatura mensal —
+    // "whatsapp::salaoId::pacoteId") — checada ANTES de parseReferencia, que
+    // não reconhece esse formato e (por só validar salaoId/moduloChave
+    // não-vazios) interpretaria "whatsapp" como salaoId sem erro, corrompendo
+    // o fluxo de assinatura de módulo/plano.
+    const refCreditos = parseReferenciaWhatsappCreditos(referenciaBruta);
     if (refCreditos) {
       const statusFinal = eAprovado;
       const resultadoCreditos = await registrarCompraCreditosWhatsapp({
@@ -116,21 +136,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ recebido: true, ...resultadoCreditos });
     }
 
-    let referencia = parseReferencia(pagamento.externalReference);
-
-    // Cobranças geradas automaticamente por uma subscription (ciclos recorrentes
-    // após o primeiro) nem sempre repetem o externalReference da fatura original
-    // — o Asaas garante isso no external reference da SUBSCRIPTION, então caímos
-    // para buscar por lá quando a fatura não tiver um de forma direta.
-    if (!referencia && pagamento.subscription) {
-      const subResp = await fetch(`${asaasBase}/subscriptions/${pagamento.subscription}`, {
-        headers: { 'access_token': asaasKey },
-      });
-      if (subResp.ok) {
-        const subData = await subResp.json();
-        referencia = parseReferencia(subData.externalReference);
-      }
-    }
+    const referencia = parseReferencia(referenciaBruta);
 
     if (!referencia) {
       // Cobrança sem referência — não é do sistema de assinaturas

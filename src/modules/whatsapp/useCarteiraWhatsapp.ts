@@ -17,7 +17,7 @@ interface UseCarteiraWhatsappRetorno {
   comprando: boolean;
   erro: string | null;
   recarregar: () => Promise<void>;
-  comprarPacote: (pacoteId: string, meioPagamento: MeioPagamento) => Promise<boolean>;
+  comprarPacote: (pacoteId: string, meioPagamento: MeioPagamento, tipoCompra?: 'unico' | 'assinatura') => Promise<boolean>;
 }
 
 /**
@@ -86,7 +86,7 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
   }, []);
 
   const comprarPacote = useCallback(
-    async (pacoteId: string, meioPagamento: MeioPagamento): Promise<boolean> => {
+    async (pacoteId: string, meioPagamento: MeioPagamento, tipoCompra: 'unico' | 'assinatura' = 'unico'): Promise<boolean> => {
       setComprando(true);
       setErro(null);
 
@@ -106,7 +106,7 @@ export function useCarteiraWhatsapp(): UseCarteiraWhatsappRetorno {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ pacoteId, meioPagamento }),
+        body: JSON.stringify({ pacoteId, meioPagamento, tipoCompra }),
       });
       const json = await res.json().catch(() => ({}));
 

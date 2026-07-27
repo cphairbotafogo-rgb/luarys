@@ -51,17 +51,20 @@ export function PainelCarteiraWhatsapp() {
 
   const [pacoteSelecionado, setPacoteSelecionado] = useState<PacoteWhatsapp | null>(null);
   const [mostrarLoja, setMostrarLoja] = useState(false);
+  const [tipoCompra, setTipoCompra] = useState<'unico' | 'assinatura'>('unico');
 
   const pacotesAtendimento = pacotes.filter(p => p.tipo === 'atendimento');
   const pacotesCampanha    = pacotes.filter(p => p.tipo === 'campanha');
 
   async function confirmarCompra(meio: MeioPagamento) {
     if (!pacoteSelecionado) return;
-    const ok = await comprarPacote(pacoteSelecionado.id, meio);
+    const ok = await comprarPacote(pacoteSelecionado.id, meio, tipoCompra);
     if (ok) {
       setPacoteSelecionado(null);
       setMostrarLoja(false);
-      toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
+      toast.sucesso(tipoCompra === 'assinatura'
+        ? 'Assinatura aberta em uma nova aba — cadastre o cartão para ativar a recorrência mensal.'
+        : 'Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
     } else {
       toast.erro('Erro ao processar a compra. Tente novamente.');
     }
@@ -171,13 +174,40 @@ export function PainelCarteiraWhatsapp() {
 
           {pacoteSelecionado && (
             <div style={{ background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_XL, padding: 16 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                {([
+                  { valor: 'unico' as const, label: 'Pagamento único' },
+                  { valor: 'assinatura' as const, label: 'Assinatura mensal' },
+                ]).map(op => (
+                  <button
+                    key={op.valor}
+                    onClick={() => setTipoCompra(op.valor)}
+                    style={{
+                      flex: 1, padding: '7px 4px', borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      background: tipoCompra === op.valor ? C.sidebarBg : '#fff',
+                      color: tipoCompra === op.valor ? '#fff' : C.textMuted,
+                      border: `1px solid ${tipoCompra === op.valor ? C.sidebarBg : C.borderMid}`,
+                    }}
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
+              {tipoCompra === 'assinatura' && (
+                <p style={{ margin: '0 0 8px', fontSize: 10, color: C.textLight, lineHeight: 1.4 }}>
+                  Cobrado todo mês no cartão, com os créditos renovando automaticamente. Cancele quando quiser.
+                </p>
+              )}
+
               <p style={{ margin: '0 0 10px', fontSize: 12, color: C.textMuted }}>
-                Pagar <strong style={{ color: C.textMain }}>{brl(pacoteSelecionado.preco)}</strong> via:
+                Pagar <strong style={{ color: C.textMain }}>{brl(pacoteSelecionado.preco)}</strong>{tipoCompra === 'assinatura' ? '/mês' : ''} via:
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button disabled={comprando} onClick={() => confirmarCompra('pix')} style={btnSt('#15803D', comprando)}>
-                  PIX
-                </button>
+                {tipoCompra === 'unico' && (
+                  <button disabled={comprando} onClick={() => confirmarCompra('pix')} style={btnSt('#15803D', comprando)}>
+                    PIX
+                  </button>
+                )}
                 <button disabled={comprando} onClick={() => confirmarCompra('cartao_credito')} style={btnSt(C.sidebarBg, comprando)}>
                   Cartão de crédito
                 </button>

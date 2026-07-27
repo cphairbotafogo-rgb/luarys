@@ -28,6 +28,7 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
   const [selecionado, setSelecionado] = useState<Pacote | null>(null);
   const [mostrarLoja, setMostrarLoja] = useState(false);
   const [comprando, setComprando] = useState(false);
+  const [tipoCompra, setTipoCompra] = useState<'unico' | 'assinatura'>('unico');
 
   useEffect(() => {
     supabase
@@ -71,13 +72,15 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
     const res = await fetch('/api/whatsapp/comprar-creditos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ pacoteId, meioPagamento: meio }),
+      body: JSON.stringify({ pacoteId, meioPagamento: meio, tipoCompra }),
     });
     const json = await res.json().catch(() => ({}));
     setComprando(false);
     if (!res.ok || !json.checkoutUrl) { toast.erro(json.erro || 'Erro ao processar a compra.'); return; }
     window.open(json.checkoutUrl, '_blank');
-    toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
+    toast.sucesso(tipoCompra === 'assinatura'
+      ? 'Assinatura aberta em uma nova aba — cadastre o cartão para ativar a recorrência mensal.'
+      : 'Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o saldo é atualizado automaticamente.');
     setSelecionado(null);
     setMostrarLoja(false);
   }
@@ -166,17 +169,45 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
 
           {selecionado && (
             <div style={{ background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: 12 }}>
+              {/* Único x Assinatura mensal */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                {([
+                  { valor: 'unico' as const, label: 'Pagamento único' },
+                  { valor: 'assinatura' as const, label: 'Assinatura mensal' },
+                ]).map(op => (
+                  <button
+                    key={op.valor}
+                    onClick={() => setTipoCompra(op.valor)}
+                    style={{
+                      flex: 1, padding: '7px 4px', borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      background: tipoCompra === op.valor ? C.sidebarBg : '#fff',
+                      color: tipoCompra === op.valor ? '#fff' : C.textMuted,
+                      border: `1px solid ${tipoCompra === op.valor ? C.sidebarBg : C.borderMid}`,
+                    }}
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
+              {tipoCompra === 'assinatura' && (
+                <p style={{ margin: '0 0 8px', fontSize: 10, color: C.textLight, lineHeight: 1.4 }}>
+                  Cobrado todo mês no cartão, com os créditos renovando automaticamente. Cancele quando quiser.
+                </p>
+              )}
+
               <p style={{ margin: '0 0 8px', fontSize: 12, color: C.textMuted }}>
-                Pagar <strong style={{ color: C.textMain }}>{brl(selecionado.preco)}</strong> via:
+                Pagar <strong style={{ color: C.textMain }}>{brl(selecionado.preco)}</strong>{tipoCompra === 'assinatura' ? '/mês' : ''} via:
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  disabled={comprando}
-                  onClick={() => comprar('pix')}
-                  style={{ flex: 1, padding: '10px', borderRadius: RAIO_MD, border: 'none', background: comprando ? C.borderMid : '#15803D', color: '#fff', fontSize: 12, fontWeight: 700, cursor: comprando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  {comprando ? <FiLoader className="animate-spin" size={12} /> : 'PIX'}
-                </button>
+                {tipoCompra === 'unico' && (
+                  <button
+                    disabled={comprando}
+                    onClick={() => comprar('pix')}
+                    style={{ flex: 1, padding: '10px', borderRadius: RAIO_MD, border: 'none', background: comprando ? C.borderMid : '#15803D', color: '#fff', fontSize: 12, fontWeight: 700, cursor: comprando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    {comprando ? <FiLoader className="animate-spin" size={12} /> : 'PIX'}
+                  </button>
+                )}
                 <button
                   disabled={comprando}
                   onClick={() => comprar('cartao_credito')}

@@ -1,10 +1,16 @@
 /**
  * POST /api/whatsapp/comprar-creditos
  *
- * Gera uma cobrança AVULSA (não recorrente) no Asaas para compra de créditos
- * de WhatsApp — PIX ou cartão de crédito à vista. O saldo só é creditado
- * quando o webhook /api/webhooks/asaas confirmar o pagamento (ver
- * src/lib/whatsappCreditos.ts).
+ * Compra de créditos de WhatsApp — o salão escolhe entre:
+ *   - tipoCompra "unico"      → cobrança avulsa (PIX ou cartão à vista).
+ *   - tipoCompra "assinatura" → assinatura mensal recorrente no Asaas (só
+ *     cartão — recorrência automática de verdade exige cartão salvo; PIX
+ *     "recorrente" ainda exigiria o cliente pagar manualmente todo mês).
+ *
+ * Em ambos os casos o saldo só é creditado quando o webhook
+ * /api/webhooks/asaas confirmar o pagamento (ver src/lib/whatsappCreditos.ts)
+ * — cada fatura (inclusive as renovações mensais) tem um id de pagamento
+ * próprio, então o crédito se repete a cada ciclo naturalmente.
  *
  * Substitui /api/whatsapp/comprar-creditos-teste (que credita direto, sem
  * confirmar pagamento real, e por isso fica desabilitada por padrão em
@@ -23,6 +29,7 @@ const supabaseAdmin = createClient(
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MEIOS_VALIDOS = ['pix', 'cartao_credito'] as const;
+const TIPOS_COMPRA = ['unico', 'assinatura'] as const;
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,13 +41,17 @@ export async function POST(request: NextRequest) {
     const { user, perfil, erro } = await autenticarRota(request, 'POST /api/whatsapp/comprar-creditos');
     if (erro) return erro;
 
-    const { pacoteId, meioPagamento } = await request.json();
+    const { pacoteId, meioPagamento, tipoCompra: tipoCompraRaw } = await request.json();
+    const tipoCompra: 'unico' | 'assinatura' = TIPOS_COMPRA.includes(tipoCompraRaw) ? tipoCompraRaw : 'unico';
 
     if (!UUID_RE.test(String(pacoteId))) {
       return NextResponse.json({ erro: 'Pacote inválido.' }, { status: 400 });
     }
     if (!MEIOS_VALIDOS.includes(meioPagamento)) {
       return NextResponse.json({ erro: 'Meio de pagamento inválido.' }, { status: 400 });
+    }
+    if (tipoCompra === 'assinatura' && meioPagamento !== 'cartao_credito') {
+      return NextResponse.json({ erro: 'Assinatura mensal só pode ser paga no cartão de crédito.' }, { status: 400 });
     }
 
     // Aceita dono (perfis_usuarios) ou funcionário com salao_id — mesmo
@@ -67,6 +78,21 @@ export async function POST(request: NextRequest) {
 
     if (!pacote?.ativo) {
       return NextResponse.json({ erro: 'Pacote não encontrado ou indisponível.' }, { status: 404 });
+    }
+
+    // Bloqueia criar uma SEGUNDA assinatura recorrente pro mesmo pacote —
+    // mesma proteção usada em criar-checkout pros módulos/planos.
+    if (tipoCompra === 'assinatura') {
+      const { data: assinaturaExistente } = await supabaseAdmin
+        .from('whatsapp_assinaturas_creditos')
+        .select('id')
+        .eq('salao_id', salaoId)
+        .eq('pacote_id', pacoteId)
+        .eq('ativa', true)
+        .maybeSingle();
+      if (assinaturaExistente) {
+        return NextResponse.json({ erro: 'Já existe uma assinatura recorrente ativa para este pacote. Cancele a atual antes de criar uma nova.' }, { status: 409 });
+      }
     }
 
     const { data: salao, error: erroSalao } = await supabaseAdmin
@@ -144,31 +170,81 @@ export async function POST(request: NextRequest) {
 
     const nomePacote = `${pacote.quantidade} créditos de ${pacote.tipo === 'campanha' ? 'campanha' : 'atendimento'}`;
     const descricao = `Luarys — Créditos WhatsApp — ${nomePacote} (${salao.nome_fantasia || salao.razao_social || salaoId})`;
+    const referencia = formatarReferenciaWhatsappCreditos(salaoId, pacote.id);
 
-    const paymentResp = await fetch(`${asaasBase}/payments`, {
+    // ─── PAGAMENTO ÚNICO (avulso) ───
+    if (tipoCompra === 'unico') {
+      const paymentResp = await fetch(`${asaasBase}/payments`, {
+        method: 'POST',
+        headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer:          asaasCustomerId,
+          billingType:       meioPagamento === 'pix' ? 'PIX' : 'CREDIT_CARD',
+          value:             Number(pacote.preco),
+          dueDate:           vencStr,
+          description:       descricao,
+          externalReference: referencia,
+          // Não enviar installmentCount aqui: ele ativa o modo parcelado da
+          // API do Asaas, que exige installmentValue/totalValue junto — sem
+          // isso dá "O valor da parcela deve ser informado". Um pagamento
+          // à vista simples é só "value" sem nenhum campo de parcelamento.
+        }),
+      });
+
+      const paymentData = await paymentResp.json();
+      if (!paymentResp.ok || !paymentData.id) {
+        return NextResponse.json({ erro: 'Falha ao gerar cobrança no Asaas: ' + (paymentData.errors?.[0]?.description || JSON.stringify(paymentData)) }, { status: 400 });
+      }
+
+      return NextResponse.json({ sucesso: true, checkoutUrl: paymentData.invoiceUrl });
+    }
+
+    // ─── ASSINATURA MENSAL (recorrente) ───
+    const assinaturaResp = await fetch(`${asaasBase}/subscriptions`, {
       method: 'POST',
       headers: { 'access_token': asaasKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customer:          asaasCustomerId,
-        billingType:       meioPagamento === 'pix' ? 'PIX' : 'CREDIT_CARD',
+        billingType:       'CREDIT_CARD',
+        cycle:             'MONTHLY',
         value:             Number(pacote.preco),
-        dueDate:           vencStr,
+        nextDueDate:       vencStr,
         description:       descricao,
-        externalReference: formatarReferenciaWhatsappCreditos(salaoId, pacote.id),
-        // Não enviar installmentCount aqui: ele ativa o modo parcelado da
-        // API do Asaas, que exige installmentValue/totalValue junto — sem
-        // isso dá "O valor da parcela deve ser informado". Um pagamento
-        // à vista simples é só "value" sem nenhum campo de parcelamento.
+        externalReference: referencia,
       }),
     });
 
-    const paymentData = await paymentResp.json();
-
-    if (!paymentResp.ok || !paymentData.id) {
-      return NextResponse.json({ erro: 'Falha ao gerar cobrança no Asaas: ' + (paymentData.errors?.[0]?.description || JSON.stringify(paymentData)) }, { status: 400 });
+    const assinaturaData = await assinaturaResp.json();
+    if (!assinaturaResp.ok || !assinaturaData.id) {
+      return NextResponse.json({ erro: 'Falha ao criar assinatura no Asaas: ' + (assinaturaData.errors?.[0]?.description || JSON.stringify(assinaturaData)) }, { status: 400 });
     }
 
-    return NextResponse.json({ sucesso: true, checkoutUrl: paymentData.invoiceUrl });
+    // Busca a primeira fatura gerada pela subscription pra pegar a invoiceUrl
+    // (onde o salão vai cadastrar o cartão) — a subscription em si não retorna isso.
+    const faturasResp = await fetch(`${asaasBase}/payments?subscription=${assinaturaData.id}`, {
+      headers: { 'access_token': asaasKey },
+    });
+    const faturasData = await faturasResp.json();
+    const primeiraFatura = faturasData?.data?.[0];
+
+    if (!faturasResp.ok || !primeiraFatura?.invoiceUrl) {
+      // Assinatura criada, mas sem link de pagamento — evita deixar uma
+      // subscription órfã sem checkout possível.
+      await fetch(`${asaasBase}/subscriptions/${assinaturaData.id}`, {
+        method: 'DELETE',
+        headers: { 'access_token': asaasKey },
+      }).catch(() => {});
+      return NextResponse.json({ erro: 'Assinatura criada no Asaas, mas não foi possível obter o link de pagamento da primeira fatura.' }, { status: 500 });
+    }
+
+    const { error: erroRegistro } = await supabaseAdmin.from('whatsapp_assinaturas_creditos').insert({
+      salao_id: salaoId,
+      pacote_id: pacote.id,
+      asaas_subscription_id: assinaturaData.id,
+    });
+    if (erroRegistro) console.error('[whatsapp/comprar-creditos] Erro ao registrar assinatura:', erroRegistro.message);
+
+    return NextResponse.json({ sucesso: true, checkoutUrl: primeiraFatura.invoiceUrl });
 
   } catch (err: any) {
     console.error('[whatsapp/comprar-creditos] Erro interno:', err);
