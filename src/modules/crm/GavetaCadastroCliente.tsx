@@ -198,11 +198,11 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
             </div>
           </div>
 
-          {/* Canal preferido para confirmações */}
+          {/* Canal preferido para confirmações — só WhatsApp por enquanto */}
           <div>
             <label style={labelStyle}>
               Canal de confirmação
-              <IconeAjuda texto={"Como o cliente prefere receber a confirmação do agendamento.\nSe escolher e-mail mas não preencher o campo acima, o sistema usa WhatsApp."} posicao="baixo" />
+              <IconeAjuda texto={"Como o cliente recebe a confirmação do agendamento.\nPor enquanto só via WhatsApp — e-mail individual por salão chega em breve."} posicao="baixo" />
             </label>
             <select
               style={{ ...inputStyle, maxWidth: 220 }}
@@ -210,7 +210,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
               onChange={e => set('canal_notificacao_preferido', e.target.value)}
             >
               <option value="whatsapp">WhatsApp</option>
-              <option value="email">E-mail</option>
+              <option value="email" disabled>E-mail (em breve)</option>
             </select>
           </div>
 
