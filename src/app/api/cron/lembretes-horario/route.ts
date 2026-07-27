@@ -123,13 +123,17 @@ function montarMensagem(
 export async function GET(request: NextRequest) {
   // Vercel injeta "Authorization: Bearer <CRON_SECRET>" automaticamente.
   // Em testes manuais, passe o mesmo header.
+  // Fail-closed: segredo ausente = requisição rejeitada — sem isso, qualquer
+  // um na internet podia disparar lembretes em massa pra clientes de todos os salões.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization') ?? '';
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    if (token !== cronSecret) {
-      return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
-    }
+  if (!cronSecret) {
+    console.error('[cron/lembretes] CRON_SECRET não configurado — requisição bloqueada.');
+    return NextResponse.json({ erro: 'Configuração ausente.' }, { status: 503 });
+  }
+  const authHeader = request.headers.get('authorization') ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (token !== cronSecret) {
+    return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
   }
 
   // Janela de ±35 min → cobre qualquer agendamento entre as execuções horárias

@@ -123,6 +123,30 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // ── Autenticação: o salao_id vem sempre do perfil do usuário logado no
+    // token, nunca "porque o body disse" — sem isso, qualquer chamada com um
+    // JWT válido (de QUALQUER salão) podia disparar o relatório financeiro de
+    // OUTRO salão para o e-mail do contador dele.
+    const jwt = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: 'Não autorizado.' }), { status: 401, headers: CORS });
+    }
+
+    const { data: userData, error: erroUser } = await supabase.auth.getUser(jwt);
+    if (erroUser || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Sessão inválida.' }), { status: 401, headers: CORS });
+    }
+
+    const { data: perfil } = await supabase
+      .from('perfis_usuarios')
+      .select('salao_id')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+
+    if (!perfil?.salao_id || perfil.salao_id !== salao_id) {
+      return new Response(JSON.stringify({ error: 'Você não tem permissão para gerar o relatório deste salão.' }), { status: 403, headers: CORS });
+    }
+
     // Dados do salão
     const { data: salao } = await supabase
       .from('saloes')
@@ -162,7 +186,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const emailPayload = {
-      from: `${nomeEmpresa} via Eleva <relatorios@eleva.app>`,
+      // Domínio luarys.com.br precisa estar verificado no Resend para o envio
+      // funcionar — mesma dependência já documentada em src/lib/email.ts.
+      from: `${nomeEmpresa} via Luarys <relatorios@luarys.com.br>`,
       to: [salao.email_contador],
       subject: `Relatório Contábil – ${nomeEmpresa} – ${mesLabel.replace('-', '/')}`,
       html: `
@@ -190,7 +216,7 @@ Deno.serve(async (req: Request) => {
               </tr>
             </table>
             <p style="margin:20px 0 0;font-size:12px;color:#94a3b8">
-              Enviado automaticamente pelo sistema Eleva · ${new Date().toLocaleString('pt-BR')}
+              Enviado automaticamente pelo sistema Luarys · ${new Date().toLocaleString('pt-BR')}
             </p>
           </div>
         </div>

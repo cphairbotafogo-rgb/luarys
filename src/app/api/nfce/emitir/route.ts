@@ -1,3 +1,15 @@
+// Correções em relação à versão anterior:
+//  1. Numeração via RPC atômica obter_proximo_numero_nfce (UPDATE ... RETURNING)
+//     — a versão antiga lia proximo_numero e gravava numero + 1 em dois passos,
+//     e duas emissões simultâneas recebiam o MESMO número (rejeição na SEFAZ).
+//  2. Persistência: TODA tentativa de emissão vira uma linha em nfce_emissoes
+//     ANTES de chamar a Focus NFe (status 'processando') e é atualizada com o
+//     resultado. Antes, uma nota autorizada na SEFAZ podia não deixar nenhum
+//     rastro no banco se o navegador fechasse no meio.
+//  3. Falha de rede após o envio não perde a nota: a linha 'processando' fica
+//     registrada e pode ser reconciliada depois via /api/nfce/consultar.
+// Depende da migration 20260727_nfce_numero_atomico_persistencia.sql.
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { emitirNFCe, buildPayloadNFCe } from '@/lib/nfce/focusnfe';
@@ -8,18 +20,23 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/** Converte "1.234,56" ou número em float — mesma convenção do buildPayloadNFCe. */
+function moedaParaFloat(v: string | number): number {
+  return parseFloat(String(v).replace(/\./g, '').replace(',', '.')) || 0;
+}
+
 export async function POST(req: NextRequest) {
-  const { user, perfil, erro } = await autenticarRota(req, 'POST /api/nfce/emitir');
+  const { perfil, erro } = await autenticarRota(req, 'POST /api/nfce/emitir');
   if (erro) return erro;
 
-  const body = await req.json();
-  const { itens, consumidor, pagamentos, desconto = 0 } = body;
+  const body = await req.json().catch(() => ({}));
+  const { itens, consumidor, pagamentos, desconto = 0, os_numero } = body;
 
   if (!Array.isArray(itens) || itens.length === 0) {
     return NextResponse.json({ erro: 'Nenhum item informado' }, { status: 400 });
   }
 
-  // Busca dados do salão
+  // ── Dados do salão ──────────────────────────────────────────────────────────
   const { data: salao } = await supabaseAdmin
     .from('saloes')
     .select('cnpj, inscricao_estadual, razao_social, nome_fantasia, logradouro, numero, complemento, bairro, cidade, estado, cep, codigo_ibge, telefone, config_fiscal')
@@ -31,10 +48,10 @@ export async function POST(req: NextRequest) {
   if (!salao?.cnpj) return NextResponse.json({ erro: 'CNPJ não cadastrado. Configure em Dados da Empresa.' }, { status: 422 });
   if (!salao?.codigo_ibge) return NextResponse.json({ erro: 'Código IBGE não cadastrado. Configure em Dados da Empresa.' }, { status: 422 });
 
-  // Busca config NFC-e e incrementa número atomicamente
+  // ── Config NFC-e ─────────────────────────────────────────────────────────────
   const { data: configNfce } = await supabaseAdmin
     .from('configuracoes_nfce_produtos')
-    .select('crt, serie, csc_token, csc_id, proximo_numero')
+    .select('crt, serie, csc_token, csc_id')
     .eq('salao_id', perfil.salao_id)
     .maybeSingle();
 
@@ -42,27 +59,77 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Token CSC não configurado. Configure em NFC-e → Configuração Fiscal.' }, { status: 422 });
   }
 
-  const numero = configNfce.proximo_numero || 1;
+  // ── Reserva do número: atômico, uma única instrução no banco ────────────────
+  const { data: numeroReservado, error: erroNumero } = await supabaseAdmin
+    .rpc('obter_proximo_numero_nfce', { p_salao_id: perfil.salao_id });
 
-  // Incrementa antes de emitir (evita duplicata em caso de falha de rede)
-  await supabaseAdmin
-    .from('configuracoes_nfce_produtos')
-    .update({ proximo_numero: numero + 1 })
-    .eq('salao_id', perfil.salao_id);
+  if (erroNumero || !numeroReservado) {
+    console.error('[nfce/emitir] Falha ao reservar número:', erroNumero?.message);
+    return NextResponse.json({ erro: 'Não foi possível reservar o número da NFC-e. Tente novamente.' }, { status: 500 });
+  }
 
+  const numero: number = numeroReservado;
   const referencia = `nfce-${perfil.salao_id}-${numero}`;
 
   const payload = buildPayloadNFCe({
     numero,
     salao,
-    config: configNfce,
+    config: configNfce as any,
     itens,
     consumidor,
     pagamentos,
     desconto,
   });
 
+  const valorTotal =
+    itens.reduce((acc: number, it: any) => acc + moedaParaFloat(it.vProd), 0)
+    - moedaParaFloat(desconto);
+
+  // ── Registro ANTES da emissão (nunca ter nota na SEFAZ sem rastro local) ────
+  const { error: erroRegistro } = await supabaseAdmin.from('nfce_emissoes').insert({
+    salao_id: perfil.salao_id,
+    referencia,
+    numero,
+    serie: configNfce.serie || '1',
+    status: 'processando',
+    valor_total: Math.max(0, valorTotal),
+    payload,
+    os_numero: typeof os_numero === 'string' ? os_numero : null,
+  });
+
+  if (erroRegistro) {
+    // Sem registro local não emitimos: o número reservado fica "queimado"
+    // (pulo de numeração é aceitável; nota sem rastro não é).
+    console.error('[nfce/emitir] Falha ao registrar emissão:', erroRegistro.message);
+    return NextResponse.json({ erro: 'Não foi possível registrar a emissão. Tente novamente.' }, { status: 500 });
+  }
+
+  // ── Emissão na Focus NFe ─────────────────────────────────────────────────────
   const resultado = await emitirNFCe(referencia, payload, tokenFocus);
+
+  // ── Atualiza o registro com o resultado ──────────────────────────────────────
+  const statusInterno =
+    resultado.status === 'autorizado' ? 'autorizado' :
+    resultado.status === 'processando' ? 'processando' :
+    'erro';
+
+  const { error: erroUpdate } = await supabaseAdmin
+    .from('nfce_emissoes')
+    .update({
+      status: statusInterno,
+      chave_acesso: (resultado as any).chave ?? null,
+      link_danfe: (resultado as any).link_danfe ?? null,
+      link_xml: (resultado as any).link_xml ?? null,
+      mensagem_erro: resultado.status === 'erro' ? (resultado.mensagem_erro ?? null) : null,
+    })
+    .eq('referencia', referencia)
+    .eq('salao_id', perfil.salao_id);
+
+  if (erroUpdate) {
+    console.error('[nfce/emitir] Emissão feita mas falhou ao atualizar registro:', erroUpdate.message);
+    // Não devolve erro ao usuário: a nota existe e a linha 'processando'
+    // permite reconciliar depois via /api/nfce/consultar.
+  }
 
   return NextResponse.json({ ...resultado, referencia, numero });
 }

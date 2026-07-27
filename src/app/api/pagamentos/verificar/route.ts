@@ -39,12 +39,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ erro: 'ID de salão inválido.' }, { status: 400 });
     }
 
-    // ─── SIMULADOR ────────────────────────────────────────────────────────────
-    if (gateway === 'simulador') {
-      await salvarFormaPagamento(agendamento_id, salao_id, 'Simulador (PIX)', 1);
-      return NextResponse.json({ aprovado: true, formaPagamento: 'Simulador (PIX)', parcelas: 1 });
-    }
-
+    // Busca a configuração de pagamento do salão ANTES de decidir qualquer
+    // branch — o `gateway` do body é só o que o front ACHA que está usando;
+    // quem manda é o que está configurado no banco para este salao_id.
     const { data: salao, error } = await supabaseAdmin
       .from('saloes')
       .select('token_pagamento, gateway_pagamento')
@@ -56,6 +53,30 @@ export async function POST(request: Request) {
     }
 
     const token = salao.token_pagamento;
+    const emModoTeste = token.toLowerCase() === 'teste';
+
+    // ─── SIMULADOR ────────────────────────────────────────────────────────────
+    // Só existe de verdade quando o PRÓPRIO salão está com token_pagamento='teste'
+    // (mesma condição usada em /api/pagamentos/pix para decidir o modo simulado).
+    // Sem esta checagem, qualquer chamada com gateway:'simulador' e um salao_id
+    // real marcava o sinal como pago sem checar pagamento nenhum.
+    if (gateway === 'simulador') {
+      if (!emModoTeste) {
+        return NextResponse.json({ erro: 'Este salão não está em modo de teste.' }, { status: 403 });
+      }
+      await salvarFormaPagamento(agendamento_id, salao_id, 'Simulador (PIX)', 1);
+      return NextResponse.json({ aprovado: true, formaPagamento: 'Simulador (PIX)', parcelas: 1 });
+    }
+
+    if (emModoTeste) {
+      return NextResponse.json({ erro: 'Este salão está em modo de teste — use gateway "simulador".' }, { status: 400 });
+    }
+
+    // O gateway informado precisa bater com o que está de fato configurado
+    // para o salão — nunca decidir a rota de verificação pelo que o body pede.
+    if (gateway !== salao.gateway_pagamento) {
+      return NextResponse.json({ erro: 'Gateway informado não corresponde à configuração deste salão.' }, { status: 400 });
+    }
 
     // ─── MERCADO PAGO ─────────────────────────────────────────────────────────
     if (gateway === 'mercadopago') {
@@ -94,7 +115,7 @@ export async function POST(request: Request) {
 
       const { data: ag } = await supabaseAdmin
         .from('agendamentos')
-        .select('salao_id')
+        .select('salao_id, valor_sinal')
         .eq('id', agendamento_id)
         .maybeSingle();
 
@@ -114,7 +135,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ erro: 'Falha ao consultar InfinitePay.' }, { status: 400 });
       }
       const checkData = await checkRes.json();
-      const aprovado  = checkData.success === true && checkData.paid === true;
+      let aprovado  = checkData.success === true && checkData.paid === true;
+
+      // InfinitePay não assina o webhook/payment_check (confirmado com o suporte
+      // deles, protocolo 2607271011228) — a única defesa real contra um valor
+      // divergente é conferir o pago contra o valor_sinal esperado aqui.
+      if (aprovado) {
+        const valorPago = checkData.paid_amount != null
+          ? Number(checkData.paid_amount) / 100
+          : (checkData.amount != null ? Number(checkData.amount) / 100 : 0);
+        const valorEsperado = Number(ag.valor_sinal || 0);
+        if (valorEsperado > 0 && Math.abs(valorPago - valorEsperado) > 0.01) {
+          console.error(`[pagamentos/verificar] Valor pago (${valorPago}) não bate com valor_sinal (${valorEsperado}) — agendamento ${agendamento_id}.`);
+          aprovado = false;
+        }
+      }
 
       const formaPagamento = formatarFormaPagamentoIP(checkData);
       const parcelas       = checkData.installments ?? 1;
