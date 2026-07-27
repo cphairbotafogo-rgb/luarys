@@ -150,11 +150,8 @@ export function AbaComunicacao({ perfil }: any) {
               <button style={btnCanalStyle(canal === 'whatsapp')} onClick={() => setCanal('whatsapp')}>
                 <FiMessageCircle size={24} /> WhatsApp
               </button>
-              <button style={btnCanalStyle(canal === 'email')} onClick={() => setCanal('email')}>
-                <FiMail size={24} /> E-mail
-              </button>
-              <button style={{...btnCanalStyle(canal === 'sms'), opacity: 0.5}} disabled>
-                <FiMessageSquare size={24} /> SMS (Breve)
+              <button style={{...btnCanalStyle(canal === 'email'), opacity: 0.5}} disabled title="Em breve">
+                <FiMail size={24} /> E-mail (Breve)
               </button>
             </div>
 
