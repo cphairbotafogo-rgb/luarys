@@ -7,11 +7,16 @@ import { Card } from "@/components/ui";
 import { thStyle, tdStyle, ToggleBtn, PrecoInput, DescricaoInput, NomeInput } from "../shared";
 import { LiberarModulosPorSalao } from "./LiberarModulosPorSalao";
 import { PromocoesGlobais } from "./PromocoesGlobais";
+import { useToast } from "@/components/Toast";
+import { confirmarAcaoGlobal } from "@/components/ConfirmacaoGlobal";
+import { FiRefreshCw } from "react-icons/fi";
 
 export function AbaCatalogo() {
+  const toast = useToast();
   const [planos, setPlanos] = useState<any[]>([]);
   const [catalogo, setCatalogo] = useState<any[]>([]);
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
+  const [reajustandoId, setReajustandoId] = useState<string | null>(null);
 
   useEffect(() => {
     carregarPlanos();
@@ -127,6 +132,56 @@ export function AbaCatalogo() {
     setSalvandoId(null);
   }
 
+  // Reajusta o valor das PRÓXIMAS cobranças de quem já assina — mudar o
+  // preço aqui em cima não propaga sozinho pra Asaas (a subscription já
+  // criada fica "congelada" no valor de quando foi contratada).
+  async function reajustarAssinantes(tipo: 'plano' | 'modulo', chave: string, nome: string) {
+    setReajustandoId(chave);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` };
+
+      const respPreview = await fetch('/api/admin/reajustar-assinaturas', {
+        method: 'POST', headers, body: JSON.stringify({ tipo, chave, preview: true }),
+      });
+      const preview = await respPreview.json();
+      if (!respPreview.ok) { toast.erro(preview.erro || 'Erro ao consultar assinantes.'); return; }
+
+      if (!preview.total_afetados) {
+        toast.info(`Nenhuma assinatura ativa de "${nome}" no Asaas — nada para reajustar.`);
+        return;
+      }
+
+      const precos = Array.from(new Set((preview.afetados || []).map((a: any) => `R$ ${Number(a.novo_preco).toFixed(2)} (${a.periodo})`))).join(', ');
+      const semPreco = preview.sem_preco_configurado?.length || 0;
+      const confirmou = await confirmarAcaoGlobal({
+        titulo: `Reajustar ${preview.afetados.length} assinante(s) de "${nome}"?`,
+        descricao: `As próximas cobranças passam a ser: ${precos}. Faturas já geradas não são alteradas.` +
+          (semPreco ? ` ${semPreco} salão(ões) ficará(ão) de fora por falta de preço configurado pro período dele(s).` : ''),
+        perigoso: true,
+        rotuloCta: 'Reajustar agora',
+      });
+      if (!confirmou) return;
+
+      const respExec = await fetch('/api/admin/reajustar-assinaturas', {
+        method: 'POST', headers, body: JSON.stringify({ tipo, chave }),
+      });
+      const resultado = await respExec.json();
+      if (!respExec.ok) { toast.erro(resultado.erro || 'Erro ao reajustar.'); return; }
+
+      if (resultado.falhas?.length > 0) {
+        console.error('[reajustarAssinantes] Falhas:', resultado.falhas);
+        toast.aviso(`${resultado.atualizados} reajustado(s), ${resultado.falhas.length} falharam (veja o console).`);
+      } else {
+        toast.sucesso(`${resultado.atualizados} assinante(s) reajustado(s) com sucesso!`);
+      }
+    } catch (e: any) {
+      toast.erro('Erro: ' + e.message);
+    } finally {
+      setReajustandoId(null);
+    }
+  }
+
   const modulosAtivos   = catalogo.filter(m => !m.chave.startsWith('pacote_profissionais_') && m.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
   const modulosInativos = catalogo.filter(m => !m.chave.startsWith('pacote_profissionais_') && !m.ativo).sort((a, b) => a.nome.localeCompare(b.nome));
   const modulosAdicionais = [...modulosAtivos, ...modulosInativos];
@@ -152,6 +207,7 @@ export function AbaCatalogo() {
                 <th style={{ ...thStyle, textAlign: "right" }}>Preço/mês</th>
                 <th style={{ ...thStyle, textAlign: "right" }}>Preço/ano</th>
                 <th style={{ ...thStyle, textAlign: "right" }}>Ativo</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Assinantes</th>
               </tr>
             </thead>
             <tbody>
@@ -178,10 +234,20 @@ export function AbaCatalogo() {
                   <td style={{ ...tdStyle, textAlign: "right" }}>
                     <ToggleBtn ativo={!!p.ativo} carregando={salvandoId === `plano-${p.chave}-ativo`} onClick={() => alternarAtivoPlano(p)} />
                   </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    <button
+                      onClick={() => reajustarAssinantes('plano', p.chave, p.nome)}
+                      disabled={reajustandoId === p.chave}
+                      title="Aplica o preço atual às assinaturas já ativas no Asaas"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, background: C.bgCard, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: reajustandoId === p.chave ? "wait" : "pointer" }}
+                    >
+                      <FiRefreshCw size={12} className={reajustandoId === p.chave ? "animate-spin" : ""} /> Reajustar
+                    </button>
+                  </td>
                 </tr>
               ))}
               {planos.length === 0 && (
-                <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum plano.</td></tr>
+                <tr><td colSpan={6} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum plano.</td></tr>
               )}
             </tbody>
           </table>
@@ -204,11 +270,12 @@ export function AbaCatalogo() {
                 <th style={{ ...thStyle, textAlign: "right" }}>Preço/mês</th>
                 <th style={{ ...thStyle, textAlign: "right" }}>Preço/ano</th>
                 <th style={{ ...thStyle, textAlign: "right" }}>Ativo</th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Assinantes</th>
               </tr>
             </thead>
             <tbody>
               {modulosAtivos.length === 0 && (
-                <tr><td colSpan={4} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum módulo ativo.</td></tr>
+                <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum módulo ativo.</td></tr>
               )}
               {modulosAdicionais.map(m => (
                 <tr key={m.chave} style={{ borderBottom: `1px solid ${C.border}`, opacity: m.ativo ? 1 : 0.35 }}>
@@ -225,6 +292,18 @@ export function AbaCatalogo() {
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right" }}>
                     <ToggleBtn ativo={!!m.ativo} carregando={salvandoId === `catalogo-${m.chave}-ativo`} onClick={() => alternarAtivoModulo(m)} />
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    {m.ativo && (
+                      <button
+                        onClick={() => reajustarAssinantes('modulo', m.chave, m.nome)}
+                        disabled={reajustandoId === m.chave}
+                        title="Aplica o preço atual às assinaturas já ativas no Asaas"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, background: C.bgCard, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: reajustandoId === m.chave ? "wait" : "pointer" }}
+                      >
+                        <FiRefreshCw size={12} className={reajustandoId === m.chave ? "animate-spin" : ""} /> Reajustar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
