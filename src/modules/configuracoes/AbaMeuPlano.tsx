@@ -48,7 +48,7 @@ export function AbaMeuPlano({ perfil }: any) {
     setCarregando(true);
 
     const [resSalao, resPlanos, resCatalogo, resSalaoModulos, resProfs] = await Promise.all([
-      supabase.from('saloes').select('acesso_total, limite_profissionais, modulo_fiscal_liberado, api_whatsapp_liberada, plano_chave, plano_periodo, preco_legado').eq('id', perfil.salao_id).maybeSingle(),
+      supabase.from('saloes').select('acesso_total, limite_profissionais, modulo_fiscal_liberado, api_whatsapp_liberada, plano_chave, plano_periodo, preco_legado, plano_renovacao_em, cancelamento_agendado, asaas_subscription_id').eq('id', perfil.salao_id).maybeSingle(),
       supabase.from('planos').select('chave, nome, descricao, limite_profissionais, preco_mensal, preco_anual, ordem').eq('ativo', true).order('ordem'),
       supabase.from('modulos_catalogo').select('chave, nome, descricao, preco_mensal, preco_anual, ativo').eq('ativo', true),
       supabase.from('salao_modulos').select('modulo_chave, ativo, renovacao_em, cancelamento_agendado, periodo').eq('salao_id', perfil.salao_id).eq('ativo', true),
@@ -88,6 +88,58 @@ export function AbaMeuPlano({ perfil }: any) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
         body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: moduloChave, periodo }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar checkout.');
+      if (!data.checkoutUrl) throw new Error('URL de pagamento não retornada. Tente novamente.');
+      window.open(data.checkoutUrl, '_blank');
+      toast.sucesso('Pagamento aberto em uma nova aba. Depois de concluir, volte para esta aba — o status é atualizado automaticamente.');
+    } catch (e: any) {
+      toast.erro(e.message);
+    } finally {
+      setProcessandoChave(null);
+    }
+  }
+
+  // Só pro PLANO BASE (não módulos): se já existe assinatura recorrente
+  // ativa, troca o valor da MESMA subscription no Asaas (upgrade/downgrade)
+  // em vez de abrir um checkout novo — o salão não precisa recadastrar o
+  // cartão. Sem assinatura ativa ainda (trial), cai no checkout normal.
+  async function assinarPlano(planoChave: string, nomePlano: string, precoItem: number) {
+    if (!perfil?.salao_id) return;
+    const labelPeriodo = periodo === 'anual' ? 'por ano' : 'por mês';
+    const trocando = !!salao?.asaas_subscription_id;
+
+    const confirmou = await confirmarAcaoGlobal({
+      titulo: trocando ? `Trocar para o plano ${nomePlano}?` : `Assinar ${nomePlano}?`,
+      descricao: trocando
+        ? `A cobrança recorrente passa a ser de ${brl(precoItem)} ${labelPeriodo}, usando o cartão já cadastrado — sem precisar recadastrar nada.`
+        : `Ao confirmar, você concorda com os Termos de Uso do Luarys e autoriza a cobrança de ${brl(precoItem)} ${labelPeriodo} pelo plano "${nomePlano}". Pode ser cancelado a qualquer momento.`,
+      rotuloCta: trocando ? 'Confirmar troca' : 'Concordar e Assinar',
+      perigoso: false,
+    });
+    if (!confirmou) return;
+
+    setProcessandoChave(planoChave);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` };
+
+      if (trocando) {
+        const resp = await fetch('/api/assinatura/trocar-plano', {
+          method: 'POST', headers,
+          body: JSON.stringify({ salao_id: perfil.salao_id, novo_plano_chave: planoChave, periodo }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao trocar de plano.');
+        toast.sucesso(`Plano trocado para ${nomePlano}!`);
+        carregarDados();
+        return;
+      }
+
+      const resp = await fetch('/api/assinatura/criar-checkout', {
+        method: 'POST', headers,
+        body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: planoChave, periodo }),
       });
       const data = await resp.json();
       if (!resp.ok || !data.sucesso) throw new Error(data.erro || 'Erro ao gerar checkout.');
@@ -154,6 +206,58 @@ export function AbaMeuPlano({ perfil }: any) {
     setProcessandoChave(null);
     if (error) { toast.erro('Erro ao reativar: ' + error.message); return; }
     toast.sucesso('Cancelamento desfeito — módulo continua ativo normalmente.');
+    carregarDados();
+  }
+
+  // Mesma lógica de desativarModulo/reativarModulo, mas pro PLANO BASE
+  // (saloes.cancelamento_agendado em vez de salao_modulos.cancelamento_agendado).
+  async function desativarPlano(plano: any) {
+    const dataFormatada = salao?.plano_renovacao_em ? new Date(salao.plano_renovacao_em + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+    const mensagem = dataFormatada
+      ? `Cancelar o plano "${plano.nome}"? Você continua com acesso normalmente até ${dataFormatada} (fim do período já pago) — depois disso o acesso ao sistema é suspenso.`
+      : `Cancelar o plano "${plano.nome}"? O acesso será encerrado ao final do período já pago.`;
+
+    if (!await confirmarAcaoGlobal({ titulo: `Cancelar o plano "${plano.nome}"?`, descricao: mensagem, perigoso: true, rotuloCta: 'Cancelar plano' })) return;
+
+    setProcessandoChave(plano.chave);
+    const { error } = await supabase.from('saloes')
+      .update({ cancelamento_agendado: true })
+      .eq('id', perfil.salao_id);
+
+    if (error) { setProcessandoChave(null); toast.erro('Erro ao cancelar: ' + error.message); return; }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const respRecorrencia = await fetch('/api/assinatura/cancelar-recorrencia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: plano.chave }),
+        });
+        if (!respRecorrencia.ok) {
+          const j = await respRecorrencia.json().catch(() => ({}));
+          console.error('[AbaMeuPlano] Falha ao cancelar recorrência do plano no Asaas:', j?.erro);
+          toast.aviso('Plano cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
+        }
+      }
+    } catch (e) {
+      console.error('[AbaMeuPlano] Erro ao cancelar recorrência do plano no Asaas:', e);
+      toast.aviso('Plano cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
+    }
+
+    setProcessandoChave(null);
+    toast.sucesso('Cancelamento agendado. Seu acesso continua até o fim do período pago.');
+    carregarDados();
+  }
+
+  async function reativarPlano(plano: any) {
+    setProcessandoChave(plano.chave);
+    const { error } = await supabase.from('saloes')
+      .update({ cancelamento_agendado: false })
+      .eq('id', perfil.salao_id);
+    setProcessandoChave(null);
+    if (error) { toast.erro('Erro ao reativar: ' + error.message); return; }
+    toast.sucesso('Cancelamento desfeito — plano continua ativo normalmente.');
     carregarDados();
   }
 
@@ -297,7 +401,9 @@ export function AbaMeuPlano({ perfil }: any) {
                         {p.limite_profissionais != null ? `Até ${p.limite_profissionais} vagas` : "Vagas personalizadas"}
                       </h4>
                     </div>
-                    {economia && periodo === 'anual' && (
+                    {isAtual && salao?.cancelamento_agendado ? (
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "#B45309", background: "#FFFBEB", padding: "3px 8px", borderRadius: RAIO_XL, textTransform: "uppercase", whiteSpace: "nowrap" }}>Cancelamento agendado</span>
+                    ) : economia && periodo === 'anual' && (
                       <span style={{ fontSize: 10, fontWeight: 800, color: "#15803D", background: "#DCFCE7", padding: "3px 7px", borderRadius: RAIO_MD, whiteSpace: "nowrap" }}>-{economia}%</span>
                     )}
                   </div>
@@ -310,8 +416,23 @@ export function AbaMeuPlano({ perfil }: any) {
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.textLight, fontStyle: "italic" }}>Sob consulta</p>
                   ) : null}
 
+                  {isAtual && salao?.cancelamento_agendado && (
+                    <p style={{ margin: 0, fontSize: 11, color: "#B45309" }}>
+                      Acesso garantido até <strong>{salao?.plano_renovacao_em ? new Date(salao.plano_renovacao_em + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</strong>
+                    </p>
+                  )}
                   {isAtual ? (
-                    <button disabled style={btnAtivo}><FiCheckCircle size={14} /> Plano Atual</button>
+                    acessoTotal ? (
+                      <button disabled style={btnAtivo}><FiCheckCircle size={14} /> Plano Atual</button>
+                    ) : salao?.cancelamento_agendado ? (
+                      <button onClick={() => reativarPlano(p)} disabled={!!processandoChave} style={btnPrimary}>
+                        {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : "Manter Assinatura"}
+                      </button>
+                    ) : (
+                      <button onClick={() => desativarPlano(p)} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
+                        {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <><FiCheckCircle size={14} /> Plano Atual — Cancelar</>}
+                      </button>
+                    )
                   ) : isEnterprise ? (
                     <button disabled title="Fale com a nossa equipe para configurar um plano sob medida." style={btnDisabled}>Fale com a gente</button>
                   ) : bloqueadoPorVagas ? (
@@ -319,8 +440,12 @@ export function AbaMeuPlano({ perfil }: any) {
                       <FiLock size={12} /> Inative {vagasUsadas - (p.limite_profissionais || 0)} antes
                     </button>
                   ) : (
-                    <button onClick={() => assinar(p.chave, p.nome, preco)} disabled={!!processandoChave} style={btnPrimary}>
-                      {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <>Assinar <FiArrowRight size={14} /></>}
+                    <button onClick={() => assinarPlano(p.chave, p.nome, preco)} disabled={!!processandoChave} style={btnPrimary}>
+                      {carregandoEste
+                        ? <FiLoader className="animate-spin" size={14} />
+                        : salao?.asaas_subscription_id
+                          ? <>Trocar para este <FiArrowRight size={14} /></>
+                          : <>Assinar <FiArrowRight size={14} /></>}
                     </button>
                   )}
                 </div>

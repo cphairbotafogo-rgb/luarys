@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     .from('saloes')
     .select(`id, nome_fantasia, razao_social, email_contato, plano_chave, plano_periodo,
              plano_renovacao_em, plano_aviso_enviado_em, plano_segundo_aviso_enviado_em,
-             status_assinatura, acesso_total`)
+             status_assinatura, acesso_total, cancelamento_agendado`)
     .not('plano_renovacao_em', 'is', null)
     .eq('acesso_total', false)
     .neq('status_assinatura', 'suspenso');
@@ -113,6 +113,23 @@ export async function POST(req: NextRequest) {
       const renovacao = new Date(s.plano_renovacao_em);
       const diasAteVencer = (renovacao.getTime() - agora.getTime()) / 86_400_000;
       const horasAposVencer = (agora.getTime() - renovacao.getTime()) / 3_600_000;
+
+      // Cancelamento pedido pelo próprio salão (AbaMeuPlano → "Cancelar
+      // Plano") — ao vencer o período já pago, só suspende, sem os avisos de
+      // "pagamento atrasado"/"cobrança em risco": não é atraso, foi decisão
+      // do salão, e a subscription no Asaas já foi cancelada na hora
+      // (ver desativarPlano em AbaMeuPlano.tsx).
+      if (s.cancelamento_agendado) {
+        if (horasAposVencer > 0) {
+          await supabaseAdmin.from('saloes').update({
+            status_assinatura: 'suspenso',
+            plano_renovacao_em: null,
+          }).eq('id', s.id);
+          resultado.planos.bloqueados++;
+        }
+        continue;
+      }
+
       const basePayload: Omit<NotificacaoCobranca, 'evento'> = {
         salao_id: s.id,
         salao_nome: s.nome_fantasia || s.razao_social || s.id,
@@ -174,7 +191,7 @@ export async function POST(req: NextRequest) {
 
   const { data: modulos } = await supabaseAdmin
     .from('salao_modulos')
-    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo')
+    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo, cancelamento_agendado')
     .not('renovacao_em', 'is', null)
     .eq('ativo', true);
 
@@ -200,6 +217,18 @@ export async function POST(req: NextRequest) {
       const renovacao = new Date(mod.renovacao_em);
       const diasAteVencer = (renovacao.getTime() - agora.getTime()) / 86_400_000;
       const horasAposVencer = (agora.getTime() - renovacao.getTime()) / 3_600_000;
+
+      // Mesma lógica do cancelamento de plano: quem cancelou o módulo não
+      // deve receber aviso de "pagamento atrasado" — só desativa ao vencer.
+      if (mod.cancelamento_agendado) {
+        if (horasAposVencer > 0) {
+          await supabaseAdmin.from('salao_modulos').update({ ativo: false })
+            .eq('salao_id', mod.salao_id)
+            .eq('modulo_chave', mod.modulo_chave);
+          resultado.modulos.bloqueados++;
+        }
+        continue;
+      }
 
       const basePayload: Omit<NotificacaoCobranca, 'evento'> = {
         salao_id: mod.salao_id,
