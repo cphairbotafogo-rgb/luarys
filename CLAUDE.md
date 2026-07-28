@@ -165,6 +165,13 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - Criar etiqueta nova existe em dois lugares por design (`ModalEdicao.tsx`/agendamento via `useAbaAgenda.salvarNovaEtiqueta`, e `AbaPreferencias.tsx`/ficha via `useFichaCliente.criarEtiqueta`) — mesma tabela `etiquetas`, sem sincronização especial necessária, mas mudança de schema em `etiquetas` exige atualizar os dois.
 - Duplicidade de cliente é checada por CPF/CNPJ, ou e-mail, ou telefone (nessa ordem) — só dentro do mesmo `salao_id`.
 
+### "Em Risco" (Luarys Cresce) usa prazo de retorno por serviço
+`classificarClientes` (`src/modules/crescimento/tipos.ts`) recebe `servicos` e, pra cada cliente, olha o **serviço mais frequente** dele no período — se esse serviço tiver `servicos.dias_retorno_medio` preenchido (nova coluna, migration `20260728_servicos_dias_retorno_medio.sql`, editável em "Editar Ficha de Serviço"), usa esse valor como limiar (`fiel` até 1x o prazo, `em risco` até 2x, `perdido` depois) **no lugar** da janela genérica derivada do período do relatório. Serviço sem esse campo configurado cai de volta na regra antiga — nunca assumir que todo serviço tem o campo preenchido.
+- `GavetaEvolucao.tsx` (aba "Relatórios Gerencial") é o único lugar com tendência multi-período (dia/mês/ano) de serviços/profissionais/produtos — `GavetaRankings.tsx` (mesma aba, movida de "Equipe & Clientes") só compara dois períodos (A vs B), não é uma série temporal.
+
+### Crédito de cliente — módulo existe na tela, não no banco
+`GavetaCreditoCliente.tsx` e o aviso de `src/lib/useAvisoFinanceiroCliente.ts` (banner no agendamento e no fechamento) já leem a tabela `creditos_clientes`, mas ela **não existe** — as duas telas degradam graciosamente (erro 42P01 tratado, mostra "não configurado"/nada). Se um dia esse módulo for construído de verdade, criar a tabela com migration + RLS já habilita os dois avisos automaticamente, sem precisar mexer no código deles.
+
 ### WhatsApp — dois planos, comportamentos opostos
 - **Plano B (gestao_meta)**: credenciais do próprio salão (`whatsapp_config_plano`, token criptografado via `whatsappCrypto`) — Meta cobra o salão, **sem** débito de saldo aqui.
 - **Plano A (mestre Luarys)**: `plataforma_whatsapp_config` + carteira `whatsapp_carteira_creditos`. Texto livre = grátis; template marketing debita `saldo_campanha`; utilidade/autenticação debita `saldo_atendimento`.
