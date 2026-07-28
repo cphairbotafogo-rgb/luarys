@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { C, brl } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, RAIO_SM, FONTE_TITULO, SOMBRA_SUAVE } from "@/lib/estiloGlobal";
-import { FiScissors, FiPlus, FiEdit2, FiTrash2, FiCheckSquare, FiPercent, FiArrowUpRight, FiArrowDownRight, FiTrendingUp, FiList, FiShield, FiSave, FiCopy, FiSearch, FiX, FiAlertTriangle, FiUsers } from "react-icons/fi";
+import { FiScissors, FiPlus, FiEdit2, FiTrash2, FiCheckSquare, FiPercent, FiArrowUpRight, FiArrowDownRight, FiTrendingUp, FiList, FiShield, FiSave, FiCopy, FiSearch, FiX, FiAlertTriangle, FiUsers, FiClock } from "react-icons/fi";
 import { confirmarAcaoGlobal } from '@/components/ConfirmacaoGlobal';
 import { useServicos } from "@/modules/servicos/hooks/useServicos";
 import { ModalServicos } from "@/modules/servicos/modals/ModalServicos";
@@ -23,10 +23,11 @@ export function AbaServicos({ perfil }: any) {
     servicos, produtosEstoque, carregando, carregarDados,
     tributosLote, setTributosLote, salvandoTributos, salvarTodosTributos,
     setorLote, setSetorLote, salvandoSetores, salvarTodosSetores,
+    retornoLote, setRetornoLote, salvandoRetorno, salvarTodosRetorno,
     selecionados, setSelecionados, processandoLote, aplicarReajusteEmLote, excluirServico
   } = useServicos(perfil);
 
-  const [subAba, setSubAba] = useState<'catalogo' | 'reajuste' | 'tributacao' | 'setor'>('catalogo');
+  const [subAba, setSubAba] = useState<'catalogo' | 'reajuste' | 'tributacao' | 'setor' | 'retorno'>('catalogo');
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<any>(null);
   const [buscaCatalogo, setBuscaCatalogo] = useState('');
@@ -34,6 +35,7 @@ export function AbaServicos({ perfil }: any) {
   const [reajusteValor, setReajusteValor] = useState<string>("");
   const [reajusteTipo, setReajusteTipo] = useState<'aumento' | 'desconto'>('aumento');
   const [valoresGrupo, setValoresGrupo] = useState<Record<string, { nbs: string; codigo_municipio: string; aliquota_iss: string }>>({});
+  const [valorGrupoRetorno, setValorGrupoRetorno] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const idParaEditar = new URLSearchParams(window.location.hash.split('?')[1] || '').get('editar');
@@ -109,6 +111,26 @@ export function AbaServicos({ perfil }: any) {
 
   const toggleSelecao = (id: number) => setSelecionados(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
+  function handleRetornoLoteChange(id: string, valor: string) {
+    setRetornoLote(prev => prev.map(r => r.id === id ? { ...r, dias_retorno_medio: valor } : r));
+  }
+
+  const setoresAgrupadosRetorno = retornoLote.reduce((acc: any, r: any) => {
+    const s = r.setor || 'Sem Setor';
+    if (!acc[s]) acc[s] = [];
+    acc[s].push(r);
+    return acc;
+  }, {});
+  const setoresOrdenadosRetorno = Object.keys(setoresAgrupadosRetorno).sort((a, b) =>
+    a === 'Sem Setor' ? 1 : b === 'Sem Setor' ? -1 : a.localeCompare(b, 'pt-BR')
+  );
+
+  function aplicarGrupoRetornoAoSetor(setor: string) {
+    const valor = valorGrupoRetorno[setor];
+    if (!valor) return;
+    setRetornoLote(prev => prev.map(r => (r.setor || 'Sem Setor') === setor ? { ...r, dias_retorno_medio: valor } : r));
+  }
+
   const inputStyle = { padding:"10px 14px", borderRadius: RAIO_MD, border:`1px solid ${C.borderMid}`, width:"100%", boxSizing:"border-box" as const, outlineColor: C.sidebarBg, fontSize: 13, color: C.textMain, backgroundColor: C.bgCard, fontWeight: 500 };
   const tabBtnStyle = (ativa: boolean) => ({ display: "flex", alignItems: "center", gap: 8, padding: "14px 20px", fontSize: 11, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: ativa ? `2px solid ${C.sidebarBg}` : "2px solid transparent", color: ativa ? C.sidebarBg : C.textLight, fontFamily: FONTE_TITULO, textTransform: "uppercase" as const, letterSpacing: "0.5px", transition: "all 0.2s" });
 
@@ -141,6 +163,7 @@ export function AbaServicos({ perfil }: any) {
         <button style={tabBtnStyle(subAba === 'reajuste')} onClick={() => setSubAba('reajuste')}><FiTrendingUp size={16} /> Reajuste em Lote</button>
         <button style={tabBtnStyle(subAba === 'tributacao')} onClick={() => setSubAba('tributacao')}><FiShield size={16} /> Edição Rápida Fiscal</button>
         <button style={tabBtnStyle(subAba === 'setor')} onClick={() => setSubAba('setor')}><FiUsers size={16} /> Setor em Lote</button>
+        <button style={tabBtnStyle(subAba === 'retorno')} onClick={() => setSubAba('retorno')}><FiClock size={16} /> Retorno em Lote</button>
       </div>
 
       {/* ================= ABA 1: CATÁLOGO ================= */}
@@ -402,6 +425,69 @@ export function AbaServicos({ perfil }: any) {
           salvandoSetores={salvandoSetores}
           salvarTodosSetores={salvarTodosSetores}
         />
+      )}
+
+      {/* ================= ABA 5: RETORNO EM LOTE ================= */}
+      {subAba === 'retorno' && (
+        <div style={{ animation: "fadeIn 0.2s ease-out", background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
+                <FiClock size={20} /> Retorno Médio Esperado em Lote
+              </h3>
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: C.textMuted }}>
+                De quanto em quanto tempo (em dias) o cliente costuma voltar pra repetir cada serviço. Usado pelo Luarys Cresce (card "Em Risco") pra avisar quando um cliente está demorando mais que o esperado.
+              </p>
+            </div>
+            <button onClick={salvarTodosRetorno} disabled={salvandoRetorno} style={{ background: C.success, color: "#fff", border: "none", padding: "12px 24px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: salvandoRetorno ? "not-allowed" : "pointer", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
+              <FiSave size={16} className="inline mr-2" /> Salvar Toda a Lista
+            </button>
+          </div>
+          <div style={{ overflowX: "auto", maxHeight: "60vh" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: "600px" }}>
+              <thead style={{ position: "sticky", top: 0, background: C.bgCard, zIndex: 1, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
+                <tr>
+                  <th style={{ padding: "14px 24px", fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Nome do Serviço</th>
+                  <th style={{ padding: "14px 24px", fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase", width: "220px" }}>Retorno Médio (dias)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {setoresOrdenadosRetorno.map(setor => {
+                  const itens = setoresAgrupadosRetorno[setor];
+                  const valorGrupo = valorGrupoRetorno[setor] || '';
+                  return (
+                    <React.Fragment key={`setor-retorno-${setor}`}>
+                      <tr style={{ background: '#EFF3F8', borderTop: `2px solid ${C.sidebarBg}` }}>
+                        <td style={{ padding: "10px 24px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "0.5px" }}>{setor}</span>
+                            <span style={{ background: C.sidebarBg, color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10 }}>{itens.length}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "8px 24px" }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input type="number" min="1" placeholder="Ex: 30" style={{ ...inputStyle, width: 100, padding: "6px 10px", fontSize: 12, background: valorGrupo ? "#EFF6FF" : undefined }} value={valorGrupo} onChange={e => setValorGrupoRetorno(prev => ({ ...prev, [setor]: e.target.value }))} />
+                            <button onClick={() => aplicarGrupoRetornoAoSetor(setor)} disabled={!valorGrupo}
+                              title={valorGrupo ? `Aplicar aos ${itens.length} serviços deste setor` : "Preencha um valor ao lado"}
+                              style={{ background: valorGrupo ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", borderRadius: RAIO_SM, padding: "6px 14px", cursor: valorGrupo ? "pointer" : "not-allowed", fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", transition: "0.2s" }}>
+                              Aplicar ao Setor
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {itens.map((r: any, index: number) => (
+                        <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}`, background: index % 2 === 0 ? C.bg : C.bgCard }}>
+                          <td style={{ padding: "12px 24px 12px 36px" }}><strong style={{ fontSize: 13, color: C.textMain }}>{r.nome_servico}</strong></td>
+                          <td style={{ padding: "12px 24px" }}><input type="number" min="1" placeholder="Ex: 30" style={{ ...inputStyle, width: "140px", padding: "8px 10px" }} value={r.dias_retorno_medio} onChange={e => handleRetornoLoteChange(r.id, e.target.value)} /></td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {modalAberto && (

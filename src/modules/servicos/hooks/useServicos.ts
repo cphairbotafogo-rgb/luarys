@@ -14,10 +14,12 @@ export function useServicos(perfil: any) {
   // Estados para Lote
   const [tributosLote, setTributosLote] = useState<any[]>([]);
   const [setorLote, setSetorLote]       = useState<any[]>([]);
+  const [retornoLote, setRetornoLote]   = useState<any[]>([]);
   const [selecionados, setSelecionados] = useState<number[]>([]);
   const [processandoLote, setProcessandoLote] = useState(false);
   const [salvandoTributos, setSalvandoTributos] = useState(false);
   const [salvandoSetores, setSalvandoSetores]   = useState(false);
+  const [salvandoRetorno, setSalvandoRetorno]   = useState(false);
 
   async function carregarDados() {
     if (!perfil?.salao_id) return;
@@ -37,6 +39,10 @@ export function useServicos(perfil: any) {
       })));
       setSetorLote(resServicos.data.map(s => ({
         id: s.id, nome_servico: s.nome_servico, categoria: s.categoria || 'Sem Categoria', setor: s.setor || '',
+      })));
+      setRetornoLote(resServicos.data.map(s => ({
+        id: s.id, nome_servico: s.nome_servico, categoria: s.categoria || 'Sem Categoria', setor: s.setor || 'Sem Setor',
+        dias_retorno_medio: s.dias_retorno_medio != null ? String(s.dias_retorno_medio) : '',
       })));
     }
 
@@ -144,10 +150,28 @@ export function useServicos(perfil: any) {
     }
   }
 
+  async function salvarTodosRetorno() {
+    setSalvandoRetorno(true);
+    try {
+      await Promise.all(retornoLote.map(r =>
+        supabase.from('servicos').update({
+          dias_retorno_medio: r.dias_retorno_medio === '' ? null : (parseInt(String(r.dias_retorno_medio)) || null),
+        }).eq('id', r.id)
+      ));
+      toast.sucesso('Prazo de retorno atualizado com sucesso!');
+      carregarDados();
+    } catch (e: any) {
+      toast.erro('Erro ao salvar prazos de retorno: ' + e.message);
+    } finally {
+      setSalvandoRetorno(false);
+    }
+  }
+
   return {
     servicos, produtosEstoque, carregando, carregarDados,
     tributosLote, setTributosLote, salvandoTributos, salvarTodosTributos,
     setorLote, setSetorLote, salvandoSetores, salvarTodosSetores,
+    retornoLote, setRetornoLote, salvandoRetorno, salvarTodosRetorno,
     selecionados, setSelecionados, processandoLote, aplicarReajusteEmLote,
     excluirServico
   };
