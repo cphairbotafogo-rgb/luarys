@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_MD, RAIO_LG, RAIO_XL, overlayModal, containerModal } from '@/lib/estiloGlobal';
-import { FiX, FiSave, FiUser, FiPhone, FiHeart, FiMapPin, FiFileText, FiGift, FiLock, FiClock, FiCamera, FiStar, FiAlertTriangle, FiArchive } from 'react-icons/fi';
+import { FiX, FiSave, FiUser, FiPhone, FiHeart, FiMapPin, FiFileText, FiGift, FiLock, FiClock, FiCamera, FiStar, FiAlertTriangle, FiArchive, FiAlertCircle } from 'react-icons/fi';
 import { ExtratoCliente } from '@/modules/fidelidade/ExtratoCliente';
 import { BloqueioModulo } from '@/components/BloqueioModulo';
 import { AbaAssinaturaCliente } from '@/modules/crm/assinatura/AbaAssinaturaCliente';
@@ -16,20 +16,22 @@ import { AbaPreferencias } from './fichaCliente/AbaPreferencias';
 import { AbaEndereco } from './fichaCliente/AbaEndereco';
 import { AbaAnamnese } from './fichaCliente/AbaAnamnese';
 import { AbaHistorico } from './fichaCliente/AbaHistorico';
+import { AbaDebito } from './fichaCliente/AbaDebito';
 import { useFichaCliente } from './fichaCliente/useFichaCliente';
 import { supabase } from '@/lib/supabase';
 
-type Aba = 'identidade' | 'contatos' | 'preferencias' | 'endereco' | 'anamnese' | 'historico' | 'assinatura' | 'fidelidade';
+type Aba = 'identidade' | 'contatos' | 'preferencias' | 'endereco' | 'anamnese' | 'historico' | 'debito' | 'assinatura' | 'fidelidade';
 
 const ABAS: { id: Aba; label: string; icon: any }[] = [
-  { id: 'identidade',   label: 'Identidade',   icon: FiUser     },
-  { id: 'contatos',     label: 'Contatos',     icon: FiPhone    },
-  { id: 'preferencias', label: 'Preferências', icon: FiHeart    },
-  { id: 'endereco',     label: 'Endereço',     icon: FiMapPin   },
-  { id: 'anamnese',     label: 'Anamnese',     icon: FiFileText },
-  { id: 'historico',    label: 'Histórico',    icon: FiClock    },
-  { id: 'assinatura',   label: 'Assinatura',   icon: FiStar     },
-  { id: 'fidelidade',   label: 'Fidelidade',   icon: FiGift     },
+  { id: 'identidade',   label: 'Identidade',   icon: FiUser        },
+  { id: 'contatos',     label: 'Contatos',     icon: FiPhone       },
+  { id: 'preferencias', label: 'Preferências', icon: FiHeart       },
+  { id: 'endereco',     label: 'Endereço',     icon: FiMapPin      },
+  { id: 'anamnese',     label: 'Anamnese',     icon: FiFileText    },
+  { id: 'historico',    label: 'Histórico',    icon: FiClock       },
+  { id: 'debito',       label: 'Débito',       icon: FiAlertCircle },
+  { id: 'assinatura',   label: 'Assinatura',   icon: FiStar        },
+  { id: 'fidelidade',   label: 'Fidelidade',   icon: FiGift        },
 ];
 
 interface Props {
@@ -135,7 +137,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
         <div style={{ display: 'flex', padding: '16px 28px 0', borderBottom: `1px solid ${C.border}`, overflowX: 'auto' }}>
           {ABAS.map(({ id, label, icon: Icon }) => {
             const bloqueada = id === 'fidelidade' && !fidelidadeAtiva;
-            const desabilitada = !formCliente.id && (id === 'historico' || id === 'assinatura' || id === 'fidelidade');
+            const desabilitada = !formCliente.id && (id === 'historico' || id === 'debito' || id === 'assinatura' || id === 'fidelidade');
             const ativa = abaAtiva === id;
             return (
               <button key={id} onClick={() => !desabilitada && setAbaAtiva(id)} className="font-title"
@@ -167,6 +169,9 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
               {abaAtiva === 'endereco'     && <AbaEndereco formCliente={formCliente} set={set} buscarCep={buscarCep} buscandoCep={buscandoCep} />}
               {abaAtiva === 'anamnese'     && <AbaAnamnese formCliente={formCliente} setAnamnese={setAnamnese} />}
               {abaAtiva === 'historico'    && <AbaHistorico carregando={fc.carregandoHistorico} historicoAgendamentos={fc.historicoAgendamentos} comprasProdutos={fc.comprasProdutos} />}
+              {abaAtiva === 'debito' && formCliente.id && (
+                <AbaDebito perfil={perfil} clienteId={formCliente.id} clienteNome={formCliente.nome_completo} />
+              )}
               {abaAtiva === 'assinatura' && formCliente.id && (
                 <AbaAssinaturaCliente perfil={perfil} clienteId={formCliente.id} />
               )}
