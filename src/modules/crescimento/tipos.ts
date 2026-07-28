@@ -23,6 +23,8 @@ export interface ClienteRisco {
   visitas: number;
   aceitaCampanhas: boolean;
   aceitaMarketing: boolean;
+  servicoReferencia?: string | null; // serviço mais frequente do cliente, quando usado pra calcular o prazo
+  diasEsperados?: number | null;     // dias_retorno_medio do serviço acima (quando configurado)
 }
 
 export interface ClassificacaoClientes {
@@ -82,7 +84,8 @@ export function classificarClientes(
   clientes: any[],
   crmClientes: any[],
   dataIni: string,
-  dataFim: string
+  dataFim: string,
+  servicos: any[] = []
 ): ClassificacaoClientes {
   const diasPeriodo = Math.max(1, Math.round(
     (new Date(dataFim + 'T12:00:00').getTime() - new Date(dataIni + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)
@@ -91,6 +94,12 @@ export function classificarClientes(
   const limRisco = diasPeriodo;
   const ultimaVisitaPorCliente: Record<string, string> = {};
   const visitasPorCliente: Record<string, number> = {};
+  // Frequência de serviço por cliente — usada pra descobrir o serviço mais
+  // frequente e, se ele tiver `dias_retorno_medio` configurado, usar esse
+  // prazo (em vez da janela genérica do período) pra decidir "em risco".
+  const servicosPorCliente: Record<string, Record<string, number>> = {};
+  const servicoPorId: Record<string, any> = {};
+  servicos.forEach(s => { servicoPorId[s.id] = s; });
 
   agendamentos
     .filter(ag => ag.status === 'Finalizado' && ag.cliente_id && ag.data && ag.data >= dataIni && ag.data <= dataFim)
@@ -98,7 +107,30 @@ export function classificarClientes(
       const atual = ultimaVisitaPorCliente[ag.cliente_id];
       if (!atual || ag.data > atual) ultimaVisitaPorCliente[ag.cliente_id] = ag.data;
       visitasPorCliente[ag.cliente_id] = (visitasPorCliente[ag.cliente_id] || 0) + 1;
+      if (ag.servico_id) {
+        if (!servicosPorCliente[ag.cliente_id]) servicosPorCliente[ag.cliente_id] = {};
+        servicosPorCliente[ag.cliente_id][ag.servico_id] = (servicosPorCliente[ag.cliente_id][ag.servico_id] || 0) + 1;
+      }
     });
+
+  // Descobre, pra um cliente, o serviço mais frequente com dias_retorno_medio
+  // configurado — se o serviço mais frequente de todos não tiver o campo
+  // preenchido, cai pro próximo mais frequente que tiver, antes de desistir
+  // e usar a janela genérica do período.
+  function limiarPorServico(clienteId: string): { limFiel: number; limRisco: number; servicoReferencia: string | null; diasEsperados: number | null } {
+    const contagem = servicosPorCliente[clienteId];
+    if (contagem) {
+      const ordenados = Object.entries(contagem).sort(([, a], [, b]) => b - a);
+      for (const [servicoId] of ordenados) {
+        const serv = servicoPorId[servicoId];
+        const dias = serv?.dias_retorno_medio;
+        if (dias != null && Number(dias) > 0) {
+          return { limFiel: Number(dias), limRisco: Number(dias) * 2, servicoReferencia: serv.nome_servico || null, diasEsperados: Number(dias) };
+        }
+      }
+    }
+    return { limFiel, limRisco, servicoReferencia: null, diasEsperados: null };
+  }
 
   // Só registra falso quando o campo for EXPLICITAMENTE false.
   // null / sem registro em crm_clientes = verde (cliente ainda não gerenciado pelo portal).
@@ -118,6 +150,7 @@ export function classificarClientes(
 
     const dias = diasDesde(ultima);
     const visitas = visitasPorCliente[c.id] || 0;
+    const limiar = limiarPorServico(c.id);
     const item: ClienteRisco = {
       id: c.id,
       nome: c.nome_completo || 'Cliente',
@@ -126,11 +159,13 @@ export function classificarClientes(
       visitas,
       aceitaCampanhas: aceitaCampanhasPorCliente[c.id] ?? true,
       aceitaMarketing: c.aceita_marketing ?? true,
+      servicoReferencia: limiar.servicoReferencia,
+      diasEsperados: limiar.diasEsperados,
     };
 
     if (visitas === 1) novos.push(item);
-    else if (dias <= limFiel) fieis.push(item);
-    else if (dias <= limRisco) emRisco.push(item);
+    else if (dias <= limiar.limFiel) fieis.push(item);
+    else if (dias <= limiar.limRisco) emRisco.push(item);
     else perdidos.push(item);
   });
 

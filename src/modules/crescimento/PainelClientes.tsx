@@ -200,7 +200,12 @@ export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, 
                       />
                     </div>
                     {c.telefone && (
-                      <span style={{ fontSize: 10, color: C.textLight }}>{c.telefone}</span>
+                      <span style={{ fontSize: 10, color: C.textLight, display: 'block' }}>{c.telefone}</span>
+                    )}
+                    {c.servicoReferencia && (
+                      <span style={{ fontSize: 10, color: C.textLight, display: 'block' }}>
+                        Prazo baseado em: {c.servicoReferencia} (~{c.diasEsperados}d)
+                      </span>
                     )}
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, color: corDias, whiteSpace: 'nowrap' }}>

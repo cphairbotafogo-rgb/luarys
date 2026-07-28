@@ -265,6 +265,22 @@ export function AbaCaixa({ perfil, setAba }: any) {
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: C.textMuted }}><span>Cartão de Débito</span> <span>{brl(cx.totalCartaoDeb)}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: C.textMuted }}><span>Dinheiro</span> <span>{brl(cx.totalDinheiro)}</span></div>
           </div>
+
+          {cx.faturamentoPorProfissional.length > 0 && (
+            <div style={{ borderTop: `1px dashed ${C.borderMid}`, paddingTop: 16, marginBottom: 20 }}>
+              <p style={{ margin: "0 0 10px", fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 6 }}>
+                <FiUser size={11} /> Faturamento por Profissional
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {cx.faturamentoPorProfissional.map((p: any) => (
+                  <div key={p.nome} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: C.textMain }}>
+                    <span>{p.nome}</span> <span style={{ fontWeight: 800 }}>{brl(p.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ borderTop: `1px dashed ${C.borderMid}`, paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase" }}>Total Caixa</span>
             <span style={{ fontSize: 20, fontWeight: 900, color: C.sidebarBg }}>{brl(cx.totalGeral)}</span>

@@ -37,6 +37,7 @@ import { GavetaPgdasd } from "./gavetas/GavetaPgdasd";
 import { GavetaEfdReinf } from "./gavetas/GavetaEfdReinf";
 import { GavetaGraficos } from "./gavetas/GavetaGraficos";
 import { GavetaClientes } from "./gavetas/GavetaClientes";
+import { GavetaEvolucao } from "./gavetas/GavetaEvolucao";
 
 export function AbaRelatorios({ perfil }: any) {
   const [relatorioAtivo, setRelatorioAtivo] = useState(() => {
@@ -143,6 +144,7 @@ export function AbaRelatorios({ perfil }: any) {
     'atendimentos':          'Relatório de Atendimentos',
     'ausencias':             'Bloqueios da Equipe',
     'produtividade':         'Radar de Produtividade',
+    'evolucao':              'Evolução (Serviços, Profissionais e Produtos)',
     'movimentacoes':         'Movimentações Financeiras',
     'fluxo_pagamento':       'Fluxo por Forma de Pagamento',
     'motivos_desconto':      'Motivos de Desconto',
@@ -222,6 +224,21 @@ export function AbaRelatorios({ perfil }: any) {
           </>)}
 
           <div style={{ height: 1, background: C.border, margin: '6px 0' }} />
+          <button onClick={() => toggleSec('gerencial')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', width: '100%' }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.textLight, textTransform: 'uppercase' as const, letterSpacing: '0.8px' }}>Relatórios Gerencial</span>
+            {secsColapsadas.has('gerencial') ? <FiChevronRight size={12} color={C.textLight} /> : <FiChevronDown size={12} color={C.textLight} />}
+          </button>
+
+          {!secsColapsadas.has('gerencial') && <>
+          <button style={menuBtnStyle(relatorioAtivo === 'performance')} onClick={() => setRelatorioAtivo('performance')}>
+            <FiAward size={16} /> Rankings de Performance
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'evolucao')} onClick={() => setRelatorioAtivo('evolucao')}>
+            <FiBarChart2 size={16} /> Evolução
+          </button>
+          </>}
+
+          <div style={{ height: 1, background: C.border, margin: '6px 0' }} />
           <button onClick={() => toggleSec('equipe')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', width: '100%' }}>
             <span style={{ fontSize: 9, fontWeight: 800, color: C.textLight, textTransform: 'uppercase' as const, letterSpacing: '0.8px' }}>Equipe & Clientes</span>
             {secsColapsadas.has('equipe') ? <FiChevronRight size={12} color={C.textLight} /> : <FiChevronDown size={12} color={C.textLight} />}
@@ -233,9 +250,6 @@ export function AbaRelatorios({ perfil }: any) {
           </button>
           <button style={menuBtnStyle(relatorioAtivo === 'termometro')} onClick={() => setRelatorioAtivo('termometro')}>
             <FiThermometer size={16} /> Termômetro de Fluxo
-          </button>
-          <button style={menuBtnStyle(relatorioAtivo === 'performance')} onClick={() => setRelatorioAtivo('performance')}>
-            <FiAward size={16} /> Rankings de Performance
           </button>
           <button style={menuBtnStyle(relatorioAtivo === 'atendimentos')} onClick={() => setRelatorioAtivo('atendimentos')}>
             <FiList size={16} /> Relatório de Atendimentos
@@ -353,6 +367,7 @@ export function AbaRelatorios({ perfil }: any) {
           {relatorioAtivo === 'balanco' && <GavetaBalanco dados={dadosBase} perfil={perfil} />}
           {relatorioAtivo === 'termometro' && <GavetaTermometro dados={dadosBase} />}
           {relatorioAtivo === 'performance' && <GavetaRankings dados={dadosBase} perfil={perfil} />}
+          {relatorioAtivo === 'evolucao' && <GavetaEvolucao dados={dadosBase} />}
           {relatorioAtivo === 'atendimentos' && <GavetaAtendimentos dados={dadosBase} perfil={perfil} />}
           {relatorioAtivo === 'ausencias' && <GavetaAusencias perfil={perfil} />}
           {relatorioAtivo === 'produtividade' && <GavetaProdutividade perfil={perfil} />}

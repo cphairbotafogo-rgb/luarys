@@ -53,7 +53,7 @@ export function AbaCrescimento({ perfil }: any) {
       supabase.from('clientes').select('id, nome_completo, telefone_whatsapp').eq('salao_id', salaoId),
       supabase.from('crm_clientes').select('cliente_id, aceita_campanhas, data_ultima_visita').eq('salao_id', salaoId),
       supabase.from('profissionais').select('id, nome, ativo, produtivo').eq('salao_id', salaoId),
-      supabase.from('servicos').select('id, preco_padrao').eq('salao_id', salaoId),
+      supabase.from('servicos').select('id, nome_servico, preco_padrao, dias_retorno_medio').eq('salao_id', salaoId),
       supabase.from('saloes').select('horarios_funcionamento').eq('id', salaoId).maybeSingle(),
       supabase.from('automacoes').select('mensagem_template').eq('salao_id', salaoId).eq('gatilho', 'cliente_inativo').eq('ativo', true).maybeSingle(),
     ]);
@@ -80,7 +80,7 @@ export function AbaCrescimento({ perfil }: any) {
     return <div style={{ textAlign: 'center', padding: 60, color: C.textMuted, fontSize: 13 }}>Carregando indicadores...</div>;
   }
 
-  const { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes, dataIni, dataFim);
+  const { fieis, emRisco, perdidos, novos, taxaRetencao, limFiel, limRisco } = classificarClientes(dados.agendamentos, dados.clientes, dados.crmClientes, dataIni, dataFim, dados.servicos);
   const celulasHorario = calcularHorariosOciosos(dados.agendamentos, dados.horariosFuncionamento, dataIni, dataFim);
   const desempenhoEquipe = calcularDesempenhoProfissionais(dados.agendamentos, dados.profissionais, dados.servicos, dataIni, dataFim);
 

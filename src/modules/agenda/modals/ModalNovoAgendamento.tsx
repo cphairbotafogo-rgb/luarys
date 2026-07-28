@@ -7,9 +7,12 @@ import { ItemLinhaAgendamento } from "./components/ItemLinhaAgendamento";
 import { useNovoAgendamento } from "./hooks/useNovoAgendamento";
 import { encontrarConflitosDeHorario, temConflitoPagamentoPortal } from "@/lib/agendaUtils";
 import { FiLock } from "react-icons/fi";
+import { useAvisoFinanceiroCliente } from "@/lib/useAvisoFinanceiroCliente";
+import { AvisoFinanceiroClienteBanner } from "@/components/AvisoFinanceiroClienteBanner";
 
 export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, onAbrirClienteRapido, agendamentosExistentes, onSalvarEFaturar, onVerHistorico, onEditarCadastro }: any) {
   const ctx = useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistentes, onClose, onSalvarEFaturar });
+  const avisoFinanceiro = useAvisoFinanceiroCliente(ctx.clienteSelecionado?.id, ctx.clienteSelecionado?.nome_completo, perfil?.salao_id);
 
   // Bloqueia salvar se qualquer item do agendamento conflita com pagamento em andamento no portal
   const conflitoPagamentoPortal = ctx.itensAgendamento?.some((item: any) =>
@@ -103,9 +106,11 @@ export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, onAbrirCl
             </div>
             {ctx.clienteSelecionado && (
               <>
-                <p style={{ margin: "8px 0 0 4px", fontSize: 11, color: C.success, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                <p style={{ margin: "8px 0 8px 4px", fontSize: 11, color: C.success, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
                   <FiCheck size={12} /> Cliente selecionado para a ficha.
                 </p>
+
+                <AvisoFinanceiroClienteBanner aviso={avisoFinanceiro} />
 
                 {/* Faixa de ações rápidas */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.border}` }}>

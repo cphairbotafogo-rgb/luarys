@@ -21,7 +21,7 @@ const formVazio = {
   exibir_online: true, custo_operacional: '', 
   tipo_despesa: 'Fixo', valor_despesa: '',
   codigo_municipio: '', nbs: '', aliquota_iss: '0.00',
-  comissao_padrao: '', eh_cortesia: false
+  comissao_padrao: '', eh_cortesia: false, dias_retorno_medio: ''
 };
 
 export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, categoriasUnicas }: any) {
@@ -53,7 +53,8 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
             tipo_despesa: servico.tipo_despesa || 'Fixo', valor_despesa: String(servico.valor_despesa || ''),
             codigo_municipio: servico.codigo_municipio || '', nbs: servico.nbs || '', aliquota_iss: servico.aliquota_iss?.toString() || '0.00',
             comissao_padrao: servico.comissao_padrao !== null && servico.comissao_padrao !== undefined ? String(servico.comissao_padrao) : '',
-            eh_cortesia: !!servico.eh_cortesia
+            eh_cortesia: !!servico.eh_cortesia,
+            dias_retorno_medio: servico.dias_retorno_medio !== null && servico.dias_retorno_medio !== undefined ? String(servico.dias_retorno_medio) : ''
           });
         }
         const { data: fichas } = await supabase.from('ficha_tecnica').select('produto_id, quantidade, produtos(nome_produto, custo_medio, unidade_medida)').eq('servico_id', editandoId);
@@ -99,7 +100,8 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
         tipo_despesa: form.tipo_despesa, valor_despesa: parseFloat(String(form.valor_despesa || 0).replace(',', '.')) || 0,
         codigo_municipio: form.codigo_municipio || null, nbs: form.nbs || null, aliquota_iss: parseFloat(String(form.aliquota_iss || 0).replace(',', '.')) || 0,
         comissao_padrao: form.comissao_padrao === '' ? null : (parseFloat(String(form.comissao_padrao).replace(',', '.')) || 0),
-        eh_cortesia: !!form.eh_cortesia
+        eh_cortesia: !!form.eh_cortesia,
+        dias_retorno_medio: form.dias_retorno_medio === '' ? null : (parseInt(String(form.dias_retorno_medio)) || null)
       };
 
       let servicoID = editandoId;
@@ -235,6 +237,13 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
             <div style={{ marginTop: 16 }}>
               <label style={labelStyle}>Comissão Padrão (%) — sugestão ao habilitar para um profissional novo</label>
               <input type="number" step="0.1" min="0" max="100" style={{ ...inputStyle, maxWidth: 200 }} value={form.comissao_padrao} onChange={e => setForm({...form, comissao_padrao: e.target.value})} placeholder="Ex: 40" />
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>
+                Retorno Médio Esperado (dias)
+                <IconeAjuda texto={"De quanto em quanto tempo o cliente costuma voltar pra repetir este serviço.\nEx: Corte Masculino ~30 dias, Corte Feminino ~90 dias.\nUsado pelo Luarys Cresce (card \"Em Risco\") pra avisar quando um cliente está demorando mais que o esperado pra retornar."} posicao="cima" />
+              </label>
+              <input type="number" min="1" style={{ ...inputStyle, maxWidth: 200 }} value={form.dias_retorno_medio} onChange={e => setForm({...form, dias_retorno_medio: e.target.value})} placeholder="Ex: 30" />
             </div>
           </div>
 

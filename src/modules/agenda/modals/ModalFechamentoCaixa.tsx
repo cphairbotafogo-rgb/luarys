@@ -50,6 +50,23 @@ export function ModalFechamentoCaixa({
       });
   }, [perfil?.salao_id, dadosCaixa.clienteNome]);
 
+  // Crédito ativo do cliente (módulo `creditos_clientes` — se a tabela ainda
+  // não existir no banco, o erro é ignorado e o aviso simplesmente não aparece).
+  const [creditoCliente, setCreditoCliente] = useState<number>(0);
+  useEffect(() => {
+    if (!perfil?.salao_id || !dadosCaixa.clienteId) { setCreditoCliente(0); return; }
+    supabase
+      .from('creditos_clientes')
+      .select('valor')
+      .eq('salao_id', perfil.salao_id)
+      .eq('cliente_id', dadosCaixa.clienteId)
+      .eq('status', 'ativo')
+      .then(({ data }) => {
+        const total = (data || []).reduce((acc: number, r: any) => acc + Number(r.valor || 0), 0);
+        setCreditoCliente(total);
+      });
+  }, [perfil?.salao_id, dadosCaixa.clienteId]);
+
   const [fidCheckout, setFidCheckout] = useState<any>(null);
   useEffect(() => {
     if (!perfil?.salao_id || !dadosCaixa.clienteId) { setFidCheckout(null); return; }
@@ -99,6 +116,21 @@ export function ModalFechamentoCaixa({
             </span>
             <span style={{ color: "#B91C1C", fontSize: 12, marginLeft: 4 }}>
               — Cobrar neste atendimento ou registrar novo pagamento parcial.
+            </span>
+          </div>
+        )}
+
+        {creditoCliente > 0 && (
+          <div style={{ background: "#F0FDF4", borderBottom: `2px solid #22C55E`, padding: "12px 24px", display: "flex", alignItems: "center", gap: 10 }}>
+            <FiCheckCircle size={18} color="#16A34A" style={{ flexShrink: 0 }} />
+            <span style={{ color: "#166534", fontWeight: 700, fontSize: 13 }}>
+              Cliente com crédito disponível:
+            </span>
+            <span style={{ color: "#16A34A", fontWeight: 800, fontSize: 14 }}>
+              {brl(creditoCliente)}
+            </span>
+            <span style={{ color: "#166534", fontSize: 12, marginLeft: 4 }}>
+              — Pode ser usado como desconto/abatimento neste atendimento.
             </span>
           </div>
         )}

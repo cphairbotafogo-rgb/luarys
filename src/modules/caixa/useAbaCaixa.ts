@@ -299,6 +299,19 @@ export function useAbaCaixa(perfil: any) {
   const totalCartaoDeb  = transacoesPeriodo.filter(t => fp(t).includes('déb') || fp(t).includes('deb')).reduce((a, t) => a + Number(t.valor_total), 0);
   const totalDinheiro   = transacoesPeriodo.filter(t => fp(t).includes('din')).reduce((a, t) => a + Number(t.valor_total), 0);
 
+  // Faturamento por profissional — mesmo período do "Resumo do Turno/Semana/Mês",
+  // pra caixa/recepção ver quem faturou quanto, não só o total do salão.
+  const faturamentoPorProfissional = (() => {
+    const mapa: Record<string, number> = {};
+    transacoesPeriodo.forEach(t => {
+      const nome = t.profissional_nome?.trim() || 'Sem profissional';
+      mapa[nome] = (mapa[nome] || 0) + Number(t.valor_total);
+    });
+    return Object.entries(mapa)
+      .map(([nome, total]) => ({ nome, total }))
+      .sort((a, b) => b.total - a.total);
+  })();
+
   const tituloResumo = filtroPeriodo === 'hoje'   ? 'Resumo do Turno'
     : filtroPeriodo === 'semana' ? 'Resumo da Semana'
     : filtroPeriodo === 'mes'    ? 'Resumo do Mês'
@@ -310,6 +323,7 @@ export function useAbaCaixa(perfil: any) {
     filtroProfissional, setFiltroProfissional, calcularPeriodo,
     filtroOS, setFiltroOS,
     totalGeral, totalPix, totalCartaoCred, totalCartaoDeb, totalDinheiro,
+    faturamentoPorProfissional,
     tituloResumo,
     mostrarAbertos, setMostrarAbertos, gruposExpandidos,
     toggleGrupo: (cliente: string) => setGruposExpandidos(prev => ({ ...prev, [cliente]: !prev[cliente] })),
