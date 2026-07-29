@@ -166,9 +166,10 @@ export function Sidebar({ aba, setAba, perfil }: any) {
         />
       )}
 
-      <div style={{
+      <style>{`.luarys-sidebar-drawer { height: 100vh; height: 100dvh; }`}</style>
+      <div className="luarys-sidebar-drawer" style={{
         width: ehMobile ? '280px' : (recolhida ? '72px' : '280px'),
-        background: C.sidebarBg, height: '100vh',
+        background: C.sidebarBg,
         display: 'flex', flexDirection: 'column',
         padding: recolhidaEfetiva ? '24px 8px' : '24px 16px',
         boxSizing: 'border-box', justifyContent: 'space-between',
