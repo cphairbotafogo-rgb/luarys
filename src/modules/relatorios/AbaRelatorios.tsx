@@ -236,6 +236,20 @@ export function AbaRelatorios({ perfil }: any) {
           <button style={menuBtnStyle(relatorioAtivo === 'evolucao')} onClick={() => setRelatorioAtivo('evolucao')}>
             <FiBarChart2 size={16} /> Evolução
           </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'relatorio_clientes')} onClick={() => setRelatorioAtivo('relatorio_clientes')}>
+            <FiUsers size={16} /> Relatório de Clientes
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'produtividade')} onClick={() => setRelatorioAtivo('produtividade')}>
+            <FiZap size={13} /> Radar de Produtividade
+          </button>
+          <button style={menuBtnStyle(relatorioAtivo === 'ausencias')} onClick={() => setRelatorioAtivo('ausencias')}>
+            <FiUserX size={16} /> Bloqueios da Equipe
+          </button>
+          {(perfil?.isDono || temPermissao(perfil, 'auditoria.ver_cancelamentos')) && (
+            <button style={menuBtnStyle(relatorioAtivo === 'cancelamentos')} onClick={() => setRelatorioAtivo('cancelamentos')}>
+              <FiAlertTriangle size={16} /> Cancelamentos Suspeitos
+            </button>
+          )}
           </>}
 
           <div style={{ height: 1, background: C.border, margin: '6px 0' }} />
@@ -254,20 +268,11 @@ export function AbaRelatorios({ perfil }: any) {
           <button style={menuBtnStyle(relatorioAtivo === 'atendimentos')} onClick={() => setRelatorioAtivo('atendimentos')}>
             <FiList size={16} /> Relatório de Atendimentos
           </button>
-          <button style={menuBtnStyle(relatorioAtivo === 'ausencias')} onClick={() => setRelatorioAtivo('ausencias')}>
-            <FiUserX size={16} /> Bloqueios da Equipe
-          </button>
-          <button style={menuBtnStyle(relatorioAtivo === 'produtividade')} onClick={() => setRelatorioAtivo('produtividade')}>
-            <FiZap size={13} /> Radar de Produtividade
-          </button>
           <button style={menuBtnStyle(relatorioAtivo === 'aniversariantes')} onClick={() => setRelatorioAtivo('aniversariantes')}>
             <FiGift size={16} /> Aniversariantes
           </button>
           <button style={menuBtnStyle(relatorioAtivo === 'busca_servico')} onClick={() => setRelatorioAtivo('busca_servico')}>
             <FiSearch size={16} /> Clientes por Serviço
-          </button>
-          <button style={menuBtnStyle(relatorioAtivo === 'relatorio_clientes')} onClick={() => setRelatorioAtivo('relatorio_clientes')}>
-            <FiUsers size={16} /> Relatório de Clientes
           </button>
           </>}
 
@@ -293,11 +298,6 @@ export function AbaRelatorios({ perfil }: any) {
           {(perfil?.isDono || temPermissao(perfil, 'auditoria.ver_log_auditoria')) && (
             <button style={menuBtnStyle(relatorioAtivo === 'auditoria')} onClick={() => setRelatorioAtivo('auditoria')}>
               <FiShield size={16} /> Log de Auditoria
-            </button>
-          )}
-          {(perfil?.isDono || temPermissao(perfil, 'auditoria.ver_cancelamentos')) && (
-            <button style={menuBtnStyle(relatorioAtivo === 'cancelamentos')} onClick={() => setRelatorioAtivo('cancelamentos')}>
-              <FiAlertTriangle size={16} /> Cancelamentos Suspeitos
             </button>
           )}
           {(perfil?.isDono || temPermissao(perfil, 'auditoria.ver_caixa_nao_bate')) && (
