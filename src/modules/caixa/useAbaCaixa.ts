@@ -117,11 +117,24 @@ export function useAbaCaixa(perfil: any) {
 
     let todasTransacoes: Transacao[];
     if (caixaData.length > 0) {
+      // caixa_transacoes não tem coluna profissional_nome — só existe em
+      // financeiro. Antes de descartar o financeiro duplicado, repassa o
+      // nome pra linha do caixa, senão some do resumo/filtro por profissional.
+      const profPorChave = new Map<string, string>();
+      finData.forEach((f: any) => {
+        if (f.profissional_nome) {
+          profPorChave.set(`${f.cliente_nome}|${new Date(f.data_movimentacao).toISOString().slice(0, 16)}`, f.profissional_nome);
+        }
+      });
+      const caixaEnriquecido = caixaData.map((t: any) => ({
+        ...t,
+        profissional_nome: profPorChave.get(`${t.cliente_nome}|${new Date(t.data_hora).toISOString().slice(0, 16)}`) || undefined,
+      }));
       const caixaChaves = new Set(caixaData.map((t: any) => `${t.cliente_nome}|${new Date(t.data_hora).toISOString().slice(0, 16)}`));
       const finNorm = finData
         .filter((f: any) => !caixaChaves.has(`${f.cliente_nome}|${new Date(f.data_movimentacao).toISOString().slice(0, 16)}`))
         .map(normalizarFinanceiro);
-      todasTransacoes = [...caixaData, ...finNorm];
+      todasTransacoes = [...caixaEnriquecido, ...finNorm];
     } else {
       todasTransacoes = finData.map(normalizarFinanceiro);
     }
