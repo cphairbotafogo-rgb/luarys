@@ -71,7 +71,7 @@ export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, 
       </div>
 
       {/* Cards de resumo — clicáveis */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 10, marginBottom: 20 }}>
         <CardMetrica
           valor={fieis.length} label="Fiéis" sublabel={`≤ ${limFiel} dias`}
           bg="#F0FDF4" cor="#16A34A" icone={<FiUsers size={16} color="#16A34A" />}

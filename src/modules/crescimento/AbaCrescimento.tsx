@@ -85,7 +85,7 @@ export function AbaCrescimento({ perfil }: any) {
   const desempenhoEquipe = calcularDesempenhoProfissionais(dados.agendamentos, dados.profissionais, dados.servicos, dataIni, dataFim);
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 860, margin: '0 auto' }}>
+    <div className="px-4 sm:px-8" style={{ paddingTop: 24, paddingBottom: 24, maxWidth: 860, margin: '0 auto' }}>
 
       {/* CABEÇALHO */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
