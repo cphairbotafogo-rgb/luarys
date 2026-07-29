@@ -5,7 +5,7 @@
 //   - Menu de clique direito sobre card: status, editar, fechar conta, faltou, cancelar
 //   - Cor do card controlada por corPorStatus() — sempre reflete o status atual
 'use client'
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_XS } from '@/lib/estiloGlobal';
 import { FiGlobe, FiGift, FiCheckCircle, FiZap, FiCalendar, FiAlertCircle } from 'react-icons/fi';
@@ -92,6 +92,23 @@ export function AgendaGrid({
     () => profissionaisVisiveis.filter((prof: any) => !filtroFuncao || prof.perfil_avancado?.contrato?.funcao === filtroFuncao),
     [profissionaisVisiveis, filtroFuncao],
   );
+
+  // ── Seleção de profissional único no celular (padrão "1 por vez", como o
+  // Trinks) — no desktop todos ficam lado a lado com scroll horizontal,
+  // como sempre foi. Reseta a seleção se o profissional escolhido sair da
+  // lista filtrada (ex: trocou o filtro de função).
+  const [profSelecionadoMobileId, setProfSelecionadoMobileId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ehMobile) return;
+    const aindaExiste = profissionaisFiltrados.some((p: any) => String(p.id) === String(profSelecionadoMobileId));
+    if (!aindaExiste) {
+      setProfSelecionadoMobileId(profissionaisFiltrados[0] ? String(profissionaisFiltrados[0].id) : null);
+    }
+  }, [ehMobile, profissionaisFiltrados, profSelecionadoMobileId]);
+
+  const profissionaisParaRenderizar = ehMobile
+    ? profissionaisFiltrados.filter((p: any) => String(p.id) === String(profSelecionadoMobileId))
+    : profissionaisFiltrados;
 
   // ── Cálculos visuais ────────────────────────────────────────────────────────
   function calcularPosicao(horaString: string, duracaoMinutos: number) {
@@ -183,6 +200,35 @@ export function AgendaGrid({
   }
 
   return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+      {/* SELETOR DE PROFISSIONAL — só no celular, um por vez (como o Trinks) */}
+      {ehMobile && profissionaisFiltrados.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, padding: '10px 12px', overflowX: 'auto', borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, flexShrink: 0 }}>
+          {profissionaisFiltrados.map((prof: any) => {
+            const selecionado = String(prof.id) === String(profSelecionadoMobileId);
+            return (
+              <button
+                key={prof.id}
+                onClick={() => setProfSelecionadoMobileId(String(prof.id))}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, width: 56, padding: 0, opacity: selecionado ? 1 : 0.55 }}
+              >
+                {prof.foto_url ? (
+                  <img src={prof.foto_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${selecionado ? C.sidebarBg : 'transparent'}` }} alt="" />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, border: `2px solid ${selecionado ? C.douradoEleva : 'transparent'}`, boxSizing: 'border-box' }}>
+                    {prof.nome.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <span style={{ fontSize: 10, fontWeight: selecionado ? 800 : 600, color: selecionado ? C.sidebarBg : C.textLight, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 56 }}>
+                  {prof.nome.split(' ')[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
     <div
       ref={gridScrollRef}
       onMouseMove={aoMoverMouse}
@@ -233,23 +279,30 @@ export function AgendaGrid({
           </div>
         )}
 
-        {profissionaisFiltrados
+        {profissionaisParaRenderizar
           .map((prof: any) => (
-            <div key={prof.id} style={{ flex: 1, minWidth: larguraColunaEfetiva, borderRight: `1px solid ${C.borderMid}`, position: 'relative' }}>
+            <div key={prof.id} style={{ flex: 1, minWidth: ehMobile ? undefined : larguraColunaEfetiva, borderRight: `1px solid ${C.borderMid}`, position: 'relative' }}>
 
-              {/* Cabeçalho da coluna */}
+              {/* Cabeçalho da coluna — no celular o profissional já está identificado
+                  no seletor de avatares acima, então aqui vira só um espaçador para
+                  alinhar com a coluna de horários. */}
               <div style={{ height: ehMobile ? 46 : 60, borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, position: 'sticky', top: 0, zIndex: 15, display: 'flex', alignItems: 'center', gap: ehMobile ? 6 : 10, padding: ehMobile ? '0 8px' : '0 16px' }}>
-                {prof.foto_url ? (
-                  <img src={prof.foto_url} style={{ width: ehMobile ? 26 : 36, height: ehMobile ? 26 : 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} alt="Avatar" />
+                {!ehMobile && (prof.foto_url ? (
+                  <img src={prof.foto_url} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} alt="Avatar" />
                 ) : (
-                  <div style={{ width: ehMobile ? 26 : 36, height: ehMobile ? 26 : 36, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: ehMobile ? 11 : 14, fontWeight: 800, flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
                     {prof.nome.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
+                ))}
+                {!ehMobile && (
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: C.charcoal, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prof.nome}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: C.textLight }}>{prof.perfil_avancado?.contrato?.funcao || 'Equipe'}</p>
+                  </div>
                 )}
-                <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                  <p style={{ margin: 0, fontSize: ehMobile ? 11 : 13, fontWeight: 800, color: C.charcoal, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prof.nome}</p>
-                  {!ehMobile && <p style={{ margin: 0, fontSize: 11, color: C.textLight }}>{prof.perfil_avancado?.contrato?.funcao || 'Equipe'}</p>}
-                </div>
+                {ehMobile && (
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.charcoal }}>{prof.nome}</span>
+                )}
               </div>
 
               {/* Grade de horários */}
@@ -455,6 +508,7 @@ export function AgendaGrid({
           isGerenteOuDono={isGerenteOuDono ?? true}
         />
       )}
+    </div>
     </div>
   );
 }
