@@ -137,7 +137,7 @@ export function PainelCobrancasAssinatura({ perfil }: any) {
       </div>
 
       {/* Resumo */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12 }}>
         {[
           { label: 'Esperado no mês', valor: brl(totalEsperado), cor: C.textMain },
           { label: 'Recebido', valor: brl(totalRecebido), cor: C.success },

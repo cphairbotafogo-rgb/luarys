@@ -219,11 +219,11 @@ export function PainelClubeAssinaturas({ perfil }: any) {
 
           {/* PRECIFICAÇÃO — preço e desconto vinculados ao valor cheio dos serviços */}
           <div style={{ background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_LG, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Valor cheio dos serviços inclusos</span>
               <span className="font-title" style={{ fontSize: 16, fontWeight: 800, color: C.sidebarBg }}>{brl(valorServicos)}</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
               <div>
                 <label style={labelStyle}>Preço da assinatura (R$/mês)</label>
                 <input type="number" min="0" step="0.01" style={inputStyle} value={editando.preco_mensal} onChange={e => setPrecoMensal(Number(e.target.value))} />

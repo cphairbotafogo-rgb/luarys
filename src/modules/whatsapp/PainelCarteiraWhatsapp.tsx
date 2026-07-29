@@ -93,7 +93,7 @@ export function PainelCarteiraWhatsapp() {
     <div style={{ background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, padding: 24 }}>
 
       {/* Cabeçalho */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <FiMessageCircle size={18} color={C.sidebarBg} />
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -113,7 +113,7 @@ export function PainelCarteiraWhatsapp() {
       )}
 
       {/* Saldos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12, marginBottom: 12 }}>
         <CardSaldo
           titulo="Atendimento (24h)"
           icone={<FiMessageCircle size={13} color={C.textMuted} />}
@@ -137,7 +137,7 @@ export function PainelCarteiraWhatsapp() {
         <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${C.borderMid}` }}>
 
           <label style={labelSt}>Pacotes de Atendimento</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 8, marginBottom: 20 }}>
             {pacotesAtendimento.map(p => (
               <button
                 key={p.id}
@@ -155,7 +155,7 @@ export function PainelCarteiraWhatsapp() {
           </div>
 
           <label style={labelSt}>Pacotes de Campanha</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 8, marginBottom: 20 }}>
             {pacotesCampanha.map(p => (
               <button
                 key={p.id}

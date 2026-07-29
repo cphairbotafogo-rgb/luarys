@@ -115,7 +115,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
 
   return (
     <div style={{ ...overlayModal, zIndex: 9999 }}>
-      <div style={{ ...containerModal, padding: 32, width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="p-4 sm:p-8" style={{ ...containerModal, width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto' }}>
 
         {/* Cabeçalho */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
@@ -128,7 +128,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Nome + WhatsApp */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <div>
               <label style={labelStyle}>Nome Completo <Obrig /></label>
               <input
@@ -159,7 +159,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
           </div>
 
           {/* CPF + Nascimento + Gênero */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <div>
               <label style={labelStyle}>CPF</label>
               <input style={inputStyle} placeholder="000.000.000-00" value={form.cpf} onChange={e => set('cpf', e.target.value)} />
@@ -180,7 +180,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
           </div>
 
           {/* E-mail + Instagram + Origem */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <div>
               <label style={labelStyle}>E-mail</label>
               <input type="email" style={inputStyle} value={form.email} onChange={e => set('email', e.target.value)} />
@@ -227,7 +227,7 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
         </div>
 
         {/* Rodapé */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 28, paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', gap: 12, marginTop: 28, paddingTop: 24, borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
           <button
             onClick={salvar} disabled={salvando}
             style={{ flex: 2, padding: '13px 0', background: C.sidebarBg, color: '#fff', border: 'none', borderRadius: RAIO_MD, fontSize: 13, fontWeight: 600, cursor: salvando ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: salvando ? 0.7 : 1 }}
