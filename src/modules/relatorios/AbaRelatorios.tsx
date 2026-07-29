@@ -5,7 +5,8 @@ import { C } from "@/lib/constants";
 import { RAIO_MD } from "@/lib/estiloGlobal";
 import { InputData } from "@/components/InputData";
 import { temPermissao } from "@/lib/permissoes";
-import { FiPieChart, FiThermometer, FiAward, FiLoader, FiUsers, FiBookOpen, FiGift, FiShield, FiAlertTriangle, FiAlertOctagon, FiRotateCcw, FiClock, FiList, FiUserX, FiZap, FiDollarSign, FiCreditCard, FiTag, FiAlertCircle, FiUser, FiBarChart2, FiGrid, FiSearch, FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { useEhMobile } from "@/lib/useEhMobile";
+import { FiPieChart, FiThermometer, FiAward, FiLoader, FiUsers, FiBookOpen, FiGift, FiShield, FiAlertTriangle, FiAlertOctagon, FiRotateCcw, FiClock, FiList, FiUserX, FiZap, FiDollarSign, FiCreditCard, FiTag, FiAlertCircle, FiUser, FiBarChart2, FiGrid, FiSearch, FiChevronDown, FiChevronRight, FiMenu, FiX } from "react-icons/fi";
 
 // ─── IMPORTAÇÃO DAS GAVETAS ───
 import { GavetaBalanco } from "./gavetas/GavetaBalanco";
@@ -48,6 +49,11 @@ export function AbaRelatorios({ perfil }: any) {
   });
   const [carregando, setCarregando] = useState(true);
   const [avisoTruncado, setAvisoTruncado] = useState(false);
+  const ehMobile = useEhMobile();
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  // Fecha o menu de relatórios ao trocar de aba — sem isso, o menu (que no
+  // celular vira gaveta) fica aberto por cima do relatório recém-escolhido.
+  useEffect(() => { if (ehMobile) setMenuMobileAberto(false); }, [relatorioAtivo, ehMobile]);
   const anoAtual = new Date().getFullYear();
   const [dataIni, setDataIni] = useState(`${anoAtual}-01-01`);
   const [dataFim, setDataFim] = useState(new Date().toISOString().split('T')[0]);
@@ -168,13 +174,33 @@ export function AbaRelatorios({ perfil }: any) {
   );
 
   return (
-    <div className="font-body" style={{ display: "flex", height: "100%", background: C.bg }}>
-      
+    <div className="font-body" style={{ display: "flex", height: "100%", background: C.bg, position: 'relative' }}>
+
+      {/* Fundo escurecido — clique fecha o menu de relatórios (só celular) */}
+      {ehMobile && menuMobileAberto && (
+        <div onClick={() => setMenuMobileAberto(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 499 }} />
+      )}
+
       {/* MENU LATERAL DOS RELATÓRIOS */}
-      <div style={{ width: 240, background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: '24px 16px', overflowY: "auto" }}>
-        <h2 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 800, color: C.sidebarBg, paddingLeft: 8 }}>
-          Inteligência & Dados
-        </h2>
+      <div style={{
+        width: 240, background: C.bgCard, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: '24px 16px', overflowY: "auto",
+        ...(ehMobile ? {
+          position: 'fixed' as const, top: 0, left: 0, height: '100%', zIndex: 500,
+          boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+          transform: menuMobileAberto ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease',
+        } : {}),
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg, paddingLeft: 8 }}>
+            Inteligência & Dados
+          </h2>
+          {ehMobile && (
+            <button onClick={() => setMenuMobileAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textLight, display: 'flex' }}>
+              <FiX size={20} />
+            </button>
+          )}
+        </div>
         
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
 
@@ -323,12 +349,20 @@ export function AbaRelatorios({ perfil }: any) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         
         {/* CABEÇALHO DO RELATÓRIO ATIVO */}
-        <div style={{ padding: "24px 32px", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <h2 className="font-title uppercase tracking-widest" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.textMain }}>
-              {nomesRelatorios[relatorioAtivo]}
-            </h2>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>Análise estruturada em tempo real.</p>
+        <div style={{ padding: ehMobile ? "16px" : "24px 32px", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {ehMobile && (
+              <button onClick={() => setMenuMobileAberto(true)} title="Escolher relatório"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.sidebarBg, color: '#fff', border: 'none', borderRadius: RAIO_MD, padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                <FiMenu size={14} /> Relatórios
+              </button>
+            )}
+            <div>
+              <h2 className="font-title uppercase tracking-widest" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.textMain }}>
+                {nomesRelatorios[relatorioAtivo]}
+              </h2>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>Análise estruturada em tempo real.</p>
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>Período:</label>
@@ -360,7 +394,7 @@ export function AbaRelatorios({ perfil }: any) {
         </div>
 
         {/* CONTEÚDO DA GAVETA */}
-        <div style={{ flex: 1, padding: 32, overflowY: "auto" }}>
+        <div style={{ flex: 1, padding: ehMobile ? 16 : 32, overflowY: "auto" }}>
           {relatorioAtivo === 'relatorios_principais' && <GavetaRelatorioPrincipais onNavegar={setRelatorioAtivo} perfil={perfil} />}
           {relatorioAtivo === 'dashboard_relatorio' && <GavetaDashboard dados={dadosBase} />}
           {relatorioAtivo === 'comissoes' && <GavetaComissoes perfil={perfil} />}

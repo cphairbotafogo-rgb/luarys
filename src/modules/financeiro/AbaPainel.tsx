@@ -36,7 +36,7 @@ export function AbaPainel({
 }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 24 }}>
 
         {/* Card Receitas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

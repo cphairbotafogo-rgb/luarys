@@ -38,19 +38,19 @@ export function AbaCRM({ perfil }: any) {
   );
 
   return (
-    <div className="font-body" style={{ padding: 32, overflowY: 'auto', flex: 1, position: 'relative', background: C.bg }}>
+    <div className="font-body p-4 sm:p-8" style={{ overflowY: 'auto', flex: 1, position: 'relative', background: C.bg }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 0 }}>
           <FiSearch style={{ position: 'absolute', left: 16, top: 12, color: '#94A3B8' }} size={16} />
           <input value={crm.busca} onChange={e => crm.setBusca(e.target.value)}
             placeholder="Procurar por nome, CPF ou telefone..."
-            style={{ padding: '10px 16px 10px 42px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 13, outline: 'none', width: 320, color: C.textMain, fontWeight: 500, fontFamily: 'var(--font-body)' }} />
+            style={{ padding: '10px 16px 10px 42px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 13, outline: 'none', width: '100%', maxWidth: 320, color: C.textMain, fontWeight: 500, fontFamily: 'var(--font-body)', boxSizing: 'border-box' }} />
         </div>
         <button onClick={crm.abrirNovoCliente}
           className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg transition-all shadow-sm cursor-pointer hover:scale-[1.02] flex items-center gap-2"
-          style={{ background: C.btnPrimary, color: '#fff', border: 'none' }}>
+          style={{ background: C.btnPrimary, color: '#fff', border: 'none', flexShrink: 0 }}>
           <FiPlus size={18} /> Novo Cliente
         </button>
       </div>
@@ -69,13 +69,13 @@ export function AbaCRM({ perfil }: any) {
         </div>
       </div>
 
-      {/* Cabeçalho da tabela */}
+      {/* Cabeçalho da tabela — colunas menos essenciais somem no celular, o cartão expandido já mostra tudo */}
       <div style={{ display: 'flex', padding: '0 24px 12px', borderBottom: `1px solid ${C.borderMid}`, marginBottom: 16 }}>
         <span style={{ width: 44, marginRight: 16 }} />
-        <span className="font-title uppercase tracking-widest" style={{ width: 280, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>Cliente</span>
-        <span className="font-title uppercase tracking-widest" style={{ flex: 1, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>E-mail</span>
-        <span className="font-title uppercase tracking-widest" style={{ width: 130, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>Cadastro</span>
-        <span className="font-title uppercase tracking-widest" style={{ width: 150, fontSize: 10, fontWeight: 700, color: '#94A3B8', textAlign: 'right', paddingRight: 8 }}>Ações</span>
+        <span className="font-title uppercase tracking-widest" style={{ flex: 1, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>Cliente</span>
+        <span className="font-title uppercase tracking-widest hidden md:block" style={{ flex: 1, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>E-mail</span>
+        <span className="font-title uppercase tracking-widest hidden sm:block" style={{ width: 130, fontSize: 10, fontWeight: 700, color: '#94A3B8' }}>Cadastro</span>
+        <span className="font-title uppercase tracking-widest" style={{ width: 40, fontSize: 10, fontWeight: 700, color: '#94A3B8', textAlign: 'right', paddingRight: 8 }} />
       </div>
 
       {/* Lista */}
@@ -120,24 +120,24 @@ export function AbaCRM({ perfil }: any) {
                     {c.nome_completo?.substring(0, 2).toUpperCase() || 'CL'}
                   </div>}
 
-              <div style={{ width: 280 }}>
-                <p className="font-title" style={{ margin: 0, fontWeight: 700, fontSize: 14, color: C.sidebarBg, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p className="font-title" style={{ margin: 0, fontWeight: 700, fontSize: 14, color: C.sidebarBg, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {c.nome_completo}
                   {!c.ativo && <span style={{ fontSize: 9, background: C.dangerBg, color: C.dangerText, padding: '3px 6px', borderRadius: RAIO_XS }}>ARQUIVADO</span>}
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: C.textMuted, fontWeight: 500 }}>{formatarTelefone(c.telefone_whatsapp)}</p>
               </div>
 
-              <div style={{ flex: 1, color: C.textMain, fontSize: 13, fontWeight: 500 }}>{c.email || '-'}</div>
-              <div style={{ width: 130, color: C.textMuted, fontSize: 13, fontWeight: 500 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '--/--/----'}</div>
-              <div style={{ width: 150, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 }}>
+              <div className="hidden md:block" style={{ flex: 1, color: C.textMain, fontSize: 13, fontWeight: 500 }}>{c.email || '-'}</div>
+              <div className="hidden sm:block" style={{ width: 130, color: C.textMuted, fontSize: 13, fontWeight: 500 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '--/--/----'}</div>
+              <div style={{ width: 40, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 0 }}>
                 <FiChevronDown size={18} style={{ color: '#94A3B8', transform: c === crm.sel ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s' }} />
               </div>
             </div>
 
             {c === crm.sel && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20, borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+                <div className="grid grid-cols-2 sm:grid-cols-5" style={{ gap: 16 }}>
                   {(() => {
                     const visitas = crm.statsCliente?.total_visitas ?? c.total_visitas ?? 0;
                     const gasto   = crm.statsCliente?.total_gasto   ?? c.total_gasto   ?? 0;

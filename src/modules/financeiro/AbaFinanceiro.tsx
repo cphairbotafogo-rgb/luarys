@@ -63,7 +63,7 @@ export function AbaFinanceiro({ perfil }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* ── Cabeçalho com filtros de período e botão novo lançamento ───────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 32px 0', gap: 16, flexWrap: 'wrap' }}>
+      <div className="px-4 sm:px-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <InputData value={fin.dataInicio} onChange={fin.setDataInicio}
             style={{ padding: '8px 12px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.textMain, background: C.bgCard }} />
@@ -84,7 +84,7 @@ export function AbaFinanceiro({ perfil }: any) {
       </div>
 
       {/* ── Barra de navegação entre abas ──────────────────────────────────── */}
-      <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, overflowX: 'auto', padding: '0 32px' }}>
+      <div className="px-4 sm:px-8" style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, overflowX: 'auto' }}>
         <NavTab id="painel"       label="Dashboard"                icon={<FiLayout />}      {...navProps} />
         <NavTab id="lancamentos"  label="Livro Caixa (Auditoria)"  icon={<FiList />}        {...navProps} />
         <NavTab id="despesas"     label="Despesas (Fixas x Variáveis)" icon={<FiTrendingDown />} {...navProps} />
@@ -95,7 +95,7 @@ export function AbaFinanceiro({ perfil }: any) {
       </div>
 
       {/* ── Conteúdo da aba ────────────────────────────────────────────────── */}
-      <div style={{ padding: 32, flex: 1, overflowY: 'auto' }}>
+      <div className="p-4 sm:p-8" style={{ flex: 1, overflowY: 'auto' }}>
 
         {abaAtiva === 'carteiras' && <CarteiraClientes perfil={perfil} />}
         {abaAtiva === 'aluguel'   && <AbaAluguel perfil={perfil} />}
