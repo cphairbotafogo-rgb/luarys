@@ -96,6 +96,74 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - **Nunca espalhar (`...form`) um objeto de formulário inteiro direto num `.update()`/`.insert()`.** Montar sempre uma lista explícita de campos. Bug histórico real: `ModalFichaCliente` antigo mandava o form inteiro pra `clientes.update()`; um campo sem coluna correspondente (`tipo_cliente`, `cnpj`, `pais`) derrubava a operação inteira com 42703 — silenciosamente, porque a chamada não checava `error`. **Toda chamada a `.update()`/`.insert()` tem que checar `error` e mostrar toast de falha** — nunca fechar modal/dar sucesso sem essa checagem.
 - **Modal que abre por cima de outro modal já aberto** (ex.: "Editar cadastro" clicado de dentro do Novo Agendamento): usar `zIndex: 10000` (ou `10500` se precisar ficar acima de tudo, como `ConfirmacaoGlobal`). O padrão normal de modal é `9999`; usar 10000+ só quando o modal de baixo precisa continuar visível/aberto atrás.
 
+## Responsividade mobile — status e padrão obrigatório (jul/2026)
+
+O sistema principal (antes só desktop) está em processo de virar responsivo de verdade,
+não só "funciona tecnicamente" — pedido do Ari depois de testar no próprio celular e
+mandar prints reais de tela cortada/sobreposta. Todo código novo em `src/modules/` e
+`src/components/` **tem que nascer responsivo** — não é mais aceitável escrever um
+`gridTemplateColumns` fixo ou um modal com `width` em pixel sem pensar no celular.
+
+### Já convertido (verificado por print real no celular do Ari)
+App shell (`Sidebar`, `Header`, `AgendaHeader`), Relatórios, Financeiro, CRM,
+Configurações (todas as abas incl. Taxas de Cartão), Equipe (lista + ficha completa),
+Estoque (incl. PDV), Precificação, Fiscal/NFS-e/NFC-e, Caixa (Frente de Caixa/PDV),
+Agenda (grade, gaveta de legenda, modal de Novo Agendamento, Fila de Espera),
+Luarys Cresce, Central de Comunicação, Aniversariantes, Ficha do Cliente
+(`ModalFichaCliente`, usada por Agenda e CRM).
+
+### Ainda não verificado explicitamente no celular
+Dashboard, CRM (telas além da lista principal), Portal do Cliente, WhatsApp
+(`PainelWhatsapp`), Fidelidade, Migração de dados, Admin. Ao mexer nessas telas,
+aplicar os padrões abaixo por conta própria — não esperar o Ari mandar print.
+
+### Os 6 bugs que se repetiram — checar sempre nesta ordem
+1. **`gridTemplateColumns` fixo** (`"1fr 1fr"`, `"120px 70px 1fr"`, `"repeat(4, 1fr)"` etc.) —
+   trocar por `className="grid grid-cols-N sm:grid-cols-[valores originais]"` (Tailwind),
+   removendo `gridTemplateColumns` do `style` inline. Nunca deixar os dois — `style` sempre
+   vence `className` em conflito de mesma propriedade.
+2. **Modal com `width` fixo em pixel** (`width: 440`, `width: 700`) em vez de
+   `width: "100%", maxWidth: 440`. Em tela de ~375px, qualquer `width` fixo > ~360
+   corta o modal de verdade — não é só "feio", é inacessível.
+3. **Linha `display:flex, justifyContent:'space-between'` sem `flexWrap:'wrap'`** —
+   cabeçalhos com título+botão, rodapés de modal com vários botões, cards com
+   nome+ações. Sem `flexWrap`, o item da direita é empurrado pra fora da tela em vez
+   de quebrar linha. Esse foi o bug mais comum de todos.
+4. **`<table>` sem contêiner com `overflow-x-auto`** — toda tabela em tela que pode
+   abrir no celular precisa de `<div className="overflow-x-auto">` em volta. Se a
+   tabela tiver muitas colunas, somar um `minWidth` (ex.: `600`) pra forçar scroll real
+   em vez de compressão ilegível.
+5. **Pegadinha do CSS Grid: item de grid não encolhe abaixo do conteúdo por padrão.**
+   Converter `gridTemplateColumns` pra `grid-cols-1` no celular **não basta** se uma das
+   colunas tiver uma `<table>` ou linha `nowrap` dentro — o item do grid herda
+   `min-width: auto` e pode forçar a **página inteira** a ficar mais larga que a tela,
+   cortando conteúdo dos dois lados (bug real encontrado em `AbaCaixa.tsx`). Sempre que
+   um item de grid/flex contém algo potencialmente largo (tabela, linha com muitos
+   badges), somar `minWidth: 0` explícito nesse item.
+6. **Menu/gaveta lateral interna de um módulo "empurrando" o conteúdo** em vez de
+   flutuar por cima no celular (bug real em `AgendaSidebar.tsx`, que reduzia a agenda a
+   menos de 1/3 da tela). Padrão obrigatório pra qualquer gaveta interna de módulo:
+   `position: fixed` + `transform: translateX(-100%|0)` + backdrop + `useEhMobile()`
+   (`src/lib/useEhMobile.ts`) pra decidir entre "empurra" (desktop) e "sobrepõe" (celular).
+
+### Outras convenções fixadas nesta rodada
+- **Hook padrão de detecção mobile**: `useEhMobile()` em `src/lib/useEhMobile.ts`
+  (`window.innerWidth < 768`, reativo a resize). Usar em vez de reinventar em cada
+  componente.
+- **Altura cheia no celular usa `100dvh`, nunca só `100vh`** — `100vh` conta a área
+  escondida pela barra de endereço do navegador mobile, cortando o fim de menus/gavetas
+  fixas (bug real: botão "Sair da conta" ficava fora da área visível). Padrão: uma
+  classe CSS com fallback (`height: 100vh; height: 100dvh;`), nunca só o valor inline —
+  navegador sem suporte a `dvh` precisa do `vh` como fallback na cascata.
+- **`overlayModal`** (`src/lib/estiloGlobal.ts`) já usa `padding: "clamp(12px, 4vw, 24px)"`
+  — compartilhado por ~70 modais do sistema. Não sobrescrever esse padding por modal.
+- **Espaço reservado pro botão ☰ do menu principal**: telas que renderizam seu próprio
+  cabeçalho (sem passar pelo `Header.tsx` compartilhado — caso de abas persistentes como
+  `caixa`) precisam de `pl-16` (ou padding-left equivalente a 64px) no celular pra não
+  colidir com o hamburger fixo em `top:12,left:12`.
+- **`Header.tsx` já resolve isso pras telas não-persistentes** — só duplicar o cuidado
+  em componentes que desenham cabeçalho próprio.
+
 ## Padrões Supabase (peculiaridades reais do banco)
 - `gerar_numero_os` falha fora de contexto auth → `os_numero` deve ser nullable.
 - `agendamento_ids` em `financeiro` é `uuid[]` → inserir `null`, nunca `{}`.
