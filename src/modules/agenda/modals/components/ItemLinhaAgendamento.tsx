@@ -76,7 +76,7 @@ export function ItemLinhaAgendamento({ item, index, totalItems, dropdownAtivo, s
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr", gap: 12 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-[2fr_1.5fr_1fr_1fr]" style={{ gap: 12 }}>
 
           {/* Serviço */}
           <div style={inputContainerStyle} onClick={(e) => { e.stopPropagation(); setDropdownAtivo(`servico-${item.id}`); }} onDoubleClick={(e) => { e.stopPropagation(); atualizarItemCampos(item.id, { buscaServico: '', servico_id: '' }); setDropdownAtivo(`servico-${item.id}`); }}>
@@ -200,7 +200,7 @@ export function ItemLinhaAgendamento({ item, index, totalItems, dropdownAtivo, s
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr", gap: 12 }}>
+        <div className="grid grid-cols-2 sm:grid-cols-[2fr_1.5fr_1fr_1fr]" style={{ gap: 12 }}>
           <div />
           {/* Encaixe */}
           <div>

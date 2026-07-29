@@ -37,10 +37,10 @@ export function AbaCaixa({ perfil, setAba }: any) {
   );
 
   return (
-    <div style={{ padding: 32, overflowY: "auto", flex: 1, background: C.bg }}>
+    <div className="pl-16 pr-4 py-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg }}>
 
       {/* ── Cabeçalho ──────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 48, height: 48, borderRadius: RAIO_XL, background: C.sidebarBg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <FiDollarSign size={24} />
@@ -50,7 +50,7 @@ export function AbaCaixa({ perfil, setAba }: any) {
             <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textMuted, fontWeight: 500 }}>Movimento do dia, fechamento e controle de Ordens de Serviço.</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button onClick={() => setModalDespesaAberto(true)}
             style={{ background: C.danger, color: "#fff", border: "none", padding: "12px 20px", borderRadius: RAIO_MD, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", letterSpacing: "0.5px", transition: "0.2s" }}>
             <FiArrowDownRight size={18} /> Lançar Despesa
@@ -157,10 +157,10 @@ export function AbaCaixa({ perfil, setAba }: any) {
           </div>
         </button>
 
-        {mostrarTransacoes && <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr" }}>
+        {mostrarTransacoes && <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr]">
 
         {/* Tabela */}
-        <div style={{ borderRight: `1px solid ${C.border}`, overflow: "hidden" }}>
+        <div className="overflow-x-auto" style={{ borderRight: `1px solid ${C.border}` }}>
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.borderMid}`, background: C.bg }}>
@@ -343,6 +343,7 @@ export function AbaCaixa({ perfil, setAba }: any) {
                 : 'Nenhum agendamento para o profissional selecionado.'}
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#FFFBEB" }}>
@@ -471,6 +472,7 @@ export function AbaCaixa({ perfil, setAba }: any) {
                 })()}
               </tbody>
             </table>
+            </div>
           )
         )}
       </div>

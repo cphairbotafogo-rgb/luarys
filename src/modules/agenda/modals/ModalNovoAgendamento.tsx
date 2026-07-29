@@ -120,7 +120,7 @@ export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, agendamen
                 )}
 
                 {/* Faixa de ações rápidas */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px", marginRight: 4 }}>Ações:</span>
 
                   {/* Histórico */}
@@ -178,7 +178,7 @@ export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, agendamen
 
           {/* 2. Serviços */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
               <h3 className="font-title uppercase tracking-widest" style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, margin: 0 }}>2. Serviços do Agendamento</h3>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: C.sidebarBg, background: C.bg, padding: "4px 10px", borderRadius: RAIO_XL }}>{ctx.itensAgendamento.length} item(s)</span>

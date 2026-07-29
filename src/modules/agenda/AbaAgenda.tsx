@@ -34,7 +34,7 @@ export function AbaAgenda({ perfil }: any) {
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <AgendaSidebar
-          sidebarAberta={ag.sidebarAberta}
+          sidebarAberta={ag.sidebarAberta} setSidebarAberta={ag.setSidebarAberta}
           tamanhoLinha={ag.tamanhoLinha} setTamanhoLinha={ag.alterarTamanhoLinha}
           tamanhoColuna={ag.tamanhoColuna} setTamanhoColuna={ag.alterarTamanhoColuna}
           mostrarFolgas={ag.mostrarFolgas} setMostrarFolgas={ag.setMostrarFolgas}

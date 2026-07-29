@@ -7,10 +7,10 @@ export function AgendaHeader({
   isAdminOuRecepcao, filtroFuncao, setFiltroFuncao, todasFuncoes, onNovoAgendamento
 }: any) {
   return (
-    <div className="font-body pl-16 pr-4 py-4 sm:px-8 sm:py-4" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, flexShrink: 0 }}>
+    <div className="font-body pl-16 pr-4 py-4 sm:px-8 sm:py-4" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, flexShrink: 0, flexWrap: "wrap", rowGap: 12 }}>
       <div>
         <h1 className="font-title uppercase tracking-widest" style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 700, color: C.sidebarBg }}>Agenda Diária</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", rowGap: 8 }}>
           <button onClick={() => setSidebarAberta(!sidebarAberta)} className="transition-all hover:bg-slate-100" style={{background: "none", border: "none", cursor: "pointer", color: C.sidebarBg, padding: "6px", borderRadius: "8px", display: "flex"}} title="Menu">
             <FiMenu size={20} />
           </button>
@@ -43,11 +43,11 @@ export function AgendaHeader({
       </div>
 
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <span className="font-body" style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#F4F8F5", color: "#3B4A3F", display: "flex", alignItems: "center", gap: 8, border: "1px solid #E8F0EA" }}>
+        <span className="font-body hidden sm:flex" style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#F4F8F5", color: "#3B4A3F", alignItems: "center", gap: 8, border: "1px solid #E8F0EA" }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.success, animation: "pulse 2s infinite" }}></div> Sistema Online
         </span>
-        
-        <button onClick={onNovoAgendamento} className="font-body transition-all hover:scale-[1.02]" style={{ display: "flex", alignItems: "center", gap: 8, background: C.btnPrimary, color: "#fff", border: "none", padding: "10px 20px", borderRadius: RAIO_MD, fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+
+        <button onClick={onNovoAgendamento} className="font-body transition-all hover:scale-[1.02] text-xs sm:text-sm px-3 sm:px-5" style={{ display: "flex", alignItems: "center", gap: 8, background: C.btnPrimary, color: "#fff", border: "none", padding: "10px 0", borderRadius: RAIO_MD, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", whiteSpace: "nowrap" }}>
           <FiPlus size={18} /> Novo Agendamento
         </button>
       </div>
