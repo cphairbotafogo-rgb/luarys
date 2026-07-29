@@ -5,7 +5,7 @@ import { confirmarAcaoGlobal } from '@/components/ConfirmacaoGlobal';
 import { C } from '@/lib/constants';
 import {
   FiLogOut, FiChevronDown, FiChevronUp, FiLock,
-  FiFileText, FiDatabase, FiEdit2, FiChevronLeft, FiChevronRight,
+  FiFileText, FiDatabase, FiEdit2, FiChevronLeft, FiChevronRight, FiMenu, FiX,
 } from 'react-icons/fi';
 import { CATALOGO_ITENS_SIDEBAR } from './sidebar/catalogoItensSidebar';
 import { usePreferenciasSidebar } from './sidebar/usePreferenciasSidebar';
@@ -28,6 +28,29 @@ export function Sidebar({ aba, setAba, perfil }: any) {
   useEffect(() => {
     localStorage.setItem('sidebar_recolhida', String(recolhida));
   }, [recolhida]);
+
+  // ── Tela estreita (celular): o menu vira uma gaveta que desliza por cima
+  // do conteúdo, em vez de dividir a largura com ele (não cabe as duas coisas
+  // numa tela de celular). O conceito de "recolher" (72px só com ícones) é
+  // só de desktop — no celular é aberto/fechado, tudo ou nada.
+  const [ehMobile, setEhMobile] = useState(false);
+  const [abertaMobile, setAbertaMobile] = useState(false);
+
+  useEffect(() => {
+    function checar() { setEhMobile(window.innerWidth < 768); }
+    checar();
+    window.addEventListener('resize', checar);
+    return () => window.removeEventListener('resize', checar);
+  }, []);
+
+  // Fecha a gaveta automaticamente ao trocar de aba — sem isso, o menu fica
+  // aberto por cima da tela nova que acabou de ser escolhida.
+  useEffect(() => { if (ehMobile) setAbertaMobile(false); }, [aba, ehMobile]);
+
+  // "Recolhida" (72px só ícone) só existe no desktop — no celular a gaveta é
+  // sempre largura cheia quando aberta, então toda a UI interna que decide
+  // ícone-só-vs-ícone+texto usa esta versão, nunca a flag bruta.
+  const recolhidaEfetiva = !ehMobile && recolhida;
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -58,10 +81,10 @@ export function Sidebar({ aba, setAba, perfil }: any) {
 
   const btnStyle = (ativa: boolean): React.CSSProperties => ({
     display: 'flex', alignItems: 'center',
-    gap: recolhida ? 0 : '12px',
+    gap: recolhidaEfetiva ? 0 : '12px',
     width: '100%',
-    padding: recolhida ? '12px 0' : '12px 16px',
-    justifyContent: recolhida ? 'center' : 'flex-start',
+    padding: recolhidaEfetiva ? '12px 0' : '12px 16px',
+    justifyContent: recolhidaEfetiva ? 'center' : 'flex-start',
     background: ativa ? C.activeMenuBg : 'transparent',
     color: ativa ? '#FFFFFF' : C.sidebarText,
     border: 'none', borderRadius: '8px', fontSize: '14px',
@@ -79,7 +102,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
   const NavLink = ({ id, icon, label, subItem = false, bloqueado = false }: any) => (
     <a
       href={`#${id}`}
-      title={recolhida ? label : undefined}
+      title={recolhidaEfetiva ? label : undefined}
       onClick={(e) => {
         if (!e.ctrlKey && !e.metaKey && e.button === 0) {
           e.preventDefault();
@@ -90,23 +113,23 @@ export function Sidebar({ aba, setAba, perfil }: any) {
       className="font-body"
       style={{
         ...btnStyle(aba === id),
-        padding: recolhida ? '12px 0' : subItem ? '10px 16px 10px 44px' : '12px 16px',
-        fontSize: subItem && !recolhida ? '13px' : '14px',
+        padding: recolhidaEfetiva ? '12px 0' : subItem ? '10px 16px 10px 44px' : '12px 16px',
+        fontSize: subItem && !recolhidaEfetiva ? '13px' : '14px',
         position: 'relative',
-        justifyContent: recolhida ? 'center' : bloqueado ? 'space-between' : 'flex-start',
+        justifyContent: recolhidaEfetiva ? 'center' : bloqueado ? 'space-between' : 'flex-start',
       }}
     >
-      {subItem && !recolhida && (
+      {subItem && !recolhidaEfetiva && (
         <div style={{
           position: 'absolute', left: '22px', top: 0, bottom: 0,
           width: '1px', background: aba === id ? '#FFFFFF' : '#475569',
         }} />
       )}
-      <span style={{ display: 'flex', alignItems: 'center', gap: recolhida ? 0 : (subItem ? '8px' : '12px') }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: recolhidaEfetiva ? 0 : (subItem ? '8px' : '12px') }}>
         <span style={{ display: 'flex', alignItems: 'center', opacity: aba === id ? 1 : 0.8 }}>{icon}</span>
-        {!recolhida && <span style={{ opacity: aba === id ? 1 : 0.9 }}>{label}</span>}
+        {!recolhidaEfetiva && <span style={{ opacity: aba === id ? 1 : 0.9 }}>{label}</span>}
       </span>
-      {bloqueado && !recolhida && <FiLock size={12} style={{ opacity: 0.6 }} title="Módulo pago" />}
+      {bloqueado && !recolhidaEfetiva && <FiLock size={12} style={{ opacity: 0.6 }} title="Módulo pago" />}
     </a>
   );
 
@@ -117,23 +140,53 @@ export function Sidebar({ aba, setAba, perfil }: any) {
   ];
 
   return (
-    <div style={{
-      width: recolhida ? '72px' : '280px',
-      background: C.sidebarBg, height: '100vh',
-      display: 'flex', flexDirection: 'column',
-      padding: recolhida ? '24px 8px' : '24px 16px',
-      boxSizing: 'border-box', justifyContent: 'space-between',
-      overflowY: 'auto', overflowX: 'hidden',
-      boxShadow: '4px 0 24px rgba(0,0,0,0.05)',
-      transition: 'width 0.25s ease, padding 0.25s ease',
-      flexShrink: 0,
-      position: 'relative', zIndex: 10000,
-    }}>
+    <>
+      {/* Botão de menu — só no celular, sempre visível (aba não tem Header próprio) */}
+      {ehMobile && (
+        <button
+          onClick={() => setAbertaMobile(v => !v)}
+          aria-label={abertaMobile ? 'Fechar menu' : 'Abrir menu'}
+          style={{
+            position: 'fixed', top: 12, left: 12, zIndex: 10002,
+            width: 40, height: 40, borderRadius: 10,
+            background: C.sidebarBg, color: '#fff', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)', cursor: 'pointer',
+          }}
+        >
+          {abertaMobile ? <FiX size={20} /> : <FiMenu size={20} />}
+        </button>
+      )}
+
+      {/* Fundo escurecido — clique fecha a gaveta */}
+      {ehMobile && abertaMobile && (
+        <div
+          onClick={() => setAbertaMobile(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 9999 }}
+        />
+      )}
+
+      <div style={{
+        width: ehMobile ? '280px' : (recolhida ? '72px' : '280px'),
+        background: C.sidebarBg, height: '100vh',
+        display: 'flex', flexDirection: 'column',
+        padding: recolhidaEfetiva ? '24px 8px' : '24px 16px',
+        boxSizing: 'border-box', justifyContent: 'space-between',
+        overflowY: 'auto', overflowX: 'hidden',
+        boxShadow: ehMobile ? '4px 0 24px rgba(0,0,0,0.25)' : '4px 0 24px rgba(0,0,0,0.05)',
+        transition: ehMobile ? 'transform 0.25s ease' : 'width 0.25s ease, padding 0.25s ease',
+        flexShrink: 0,
+        position: ehMobile ? 'fixed' : 'relative',
+        top: ehMobile ? 0 : undefined,
+        left: ehMobile ? 0 : undefined,
+        transform: ehMobile ? (abertaMobile ? 'translateX(0)' : 'translateX(-100%)') : undefined,
+        zIndex: 10000,
+      }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
         {/* LOGOTIPO */}
         <div style={{ padding: '0 4px 12px', display: 'flex', justifyContent: 'center' }}>
-          {recolhida ? (
+          {recolhidaEfetiva ? (
             <img
               src="/luarys-favicon-256.png"
               alt=""
@@ -149,36 +202,38 @@ export function Sidebar({ aba, setAba, perfil }: any) {
           )}
         </div>
 
-        {/* BOTÃO RECOLHER / EXPANDIR */}
-        <button
-          onClick={() => setRecolhida(r => !r)}
-          title={recolhida ? 'Expandir menu' : 'Recolher menu'}
-          className="transition-all hover:bg-white/5"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8, cursor: 'pointer',
-            padding: '6px 10px',
-            color: '#94A3B8', marginBottom: 4,
-            fontSize: 11, fontWeight: 600,
-            gap: 6,
-          }}
-        >
-          {recolhida
-            ? <FiChevronRight size={16} />
-            : <><FiChevronLeft size={14} /> Recolher</>
-          }
-        </button>
+        {/* BOTÃO RECOLHER / EXPANDIR — só desktop; no celular a gaveta é aberta/fechada, não tem meio-termo */}
+        {!ehMobile && (
+          <button
+            onClick={() => setRecolhida(r => !r)}
+            title={recolhida ? 'Expandir menu' : 'Recolher menu'}
+            className="transition-all hover:bg-white/5"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, cursor: 'pointer',
+              padding: '6px 10px',
+              color: '#94A3B8', marginBottom: 4,
+              fontSize: 11, fontWeight: 600,
+              gap: 6,
+            }}
+          >
+            {recolhida
+              ? <FiChevronRight size={16} />
+              : <><FiChevronLeft size={14} /> Recolher</>
+            }
+          </button>
+        )}
 
         {/* CARTÃO DE USUÁRIO */}
         <div
           onClick={fazerSair}
-          title={recolhida ? `${perfil?.nome} — clique para sair` : 'Clique para sair da conta'}
+          title={recolhidaEfetiva ? `${perfil?.nome} — clique para sair` : 'Clique para sair da conta'}
           className="transition-all hover:bg-white/5"
           style={{
             background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px',
-            display: 'flex', alignItems: 'center', justifyContent: recolhida ? 'center' : 'flex-start',
+            display: 'flex', alignItems: 'center', justifyContent: recolhidaEfetiva ? 'center' : 'flex-start',
             gap: '12px', cursor: 'pointer', marginBottom: '8px',
             border: '1px solid rgba(255,255,255,0.05)',
           }}
@@ -194,7 +249,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
           >
             {perfil?.nome?.substring(0, 2).toUpperCase() || 'OP'}
           </div>
-          {!recolhida && (
+          {!recolhidaEfetiva && (
             <div style={{ overflow: 'hidden' }}>
               <p className="font-body" style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {perfil?.nome}
@@ -207,7 +262,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
         </div>
 
         {/* PERSONALIZAR MENU — oculto quando recolhido */}
-        {!recolhida && (
+        {!recolhidaEfetiva && (
           <button
             onClick={() => setEditorAberto(true)}
             className="transition-all hover:bg-white/5"
@@ -225,7 +280,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
 
             return (
               <div key={secao}>
-                {recolhida
+                {recolhidaEfetiva
                   ? <div style={{ height: 12 }} />
                   : <span className="font-title" style={sectionTitleStyle}>{secao}</span>
                 }
@@ -233,7 +288,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
                 {itensDaSecao.map(item => {
                   if (item.id === 'nfse') {
                     // Recolhido: ícone único que expande o menu ao clicar
-                    if (recolhida) {
+                    if (recolhidaEfetiva) {
                       return (
                         <button
                           key="grupo-notas-fiscais"
@@ -280,7 +335,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
                         id={item.id} icon={item.icon} label={item.label}
                         bloqueado={item.bloqueado ? item.bloqueado(perfil) : false}
                       />
-                      {item.id === 'agenda' && agendamentosFuturos !== null && !recolhida && (
+                      {item.id === 'agenda' && agendamentosFuturos !== null && !recolhidaEfetiva && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px 6px 44px' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: agendamentosFuturos > 0 ? '#4ADE80' : '#475569', flexShrink: 0 }} />
                           <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
@@ -303,20 +358,20 @@ export function Sidebar({ aba, setAba, perfil }: any) {
       <div style={{ marginTop: '24px' }}>
         <button
           onClick={fazerSair}
-          title={recolhida ? 'Sair da Conta' : undefined}
+          title={recolhidaEfetiva ? 'Sair da Conta' : undefined}
           className="font-body transition-all hover:bg-white/5"
           style={{
             display: 'flex', alignItems: 'center',
-            justifyContent: recolhida ? 'center' : 'flex-start',
+            justifyContent: recolhidaEfetiva ? 'center' : 'flex-start',
             gap: '12px', width: '100%',
-            padding: recolhida ? '12px 0' : '12px 16px',
+            padding: recolhidaEfetiva ? '12px 0' : '12px 16px',
             background: 'transparent', color: '#94A3B8',
             border: 'none', borderRadius: '8px',
             fontSize: '14px', fontWeight: '500', cursor: 'pointer',
           }}
         >
           <FiLogOut size={18} style={{ opacity: 0.7 }} />
-          {!recolhida && 'Sair da Conta'}
+          {!recolhidaEfetiva && 'Sair da Conta'}
         </button>
       </div>
 
@@ -330,6 +385,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
           onFechar={() => setEditorAberto(false)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

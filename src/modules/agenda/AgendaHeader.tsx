@@ -7,7 +7,7 @@ export function AgendaHeader({
   isAdminOuRecepcao, filtroFuncao, setFiltroFuncao, todasFuncoes, onNovoAgendamento
 }: any) {
   return (
-    <div className="font-body" style={{ padding: "16px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, flexShrink: 0 }}>
+    <div className="font-body pl-16 pr-4 py-4 sm:px-8 sm:py-4" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, borderBottom: `1px solid ${C.borderMid}`, flexShrink: 0 }}>
       <div>
         <h1 className="font-title uppercase tracking-widest" style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 700, color: C.sidebarBg }}>Agenda Diária</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
