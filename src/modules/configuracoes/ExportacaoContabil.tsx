@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { C, brl } from "@/lib/constants";
+import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
 import {

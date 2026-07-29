@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
-import { RAIO_MD, RAIO_XL, RAIO_2XL } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiCheckCircle, FiLoader, FiUsers, FiLock, FiLogOut } from 'react-icons/fi';
 import { useToast } from '@/components/Toast';
 

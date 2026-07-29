@@ -44,7 +44,7 @@ export default async function PoliticaPrivacidade() {
     <PaginaLegal titulo="Política de Privacidade" atualizadoEm="22 de junho de 2026">
 
       <p style={SL.p}>
-        Esta Política de Privacidade descreve como a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, inscrita sob o CNPJ <strong>68.176.336/0001-43</strong>, com sede em <strong>Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</strong> ("Luarys", "nós"), coleta, usa, armazena e compartilha dados pessoais no contexto da plataforma Luarys, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
+        Esta Política de Privacidade descreve como a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, inscrita sob o CNPJ <strong>68.176.336/0001-43</strong>, com sede em <strong>Praça Botafogo, nº 324, Loja B 14, Botafogo, Rio de Janeiro/RJ, CEP 22.250-959</strong> (&quot;Luarys&quot;, &quot;nós&quot;), coleta, usa, armazena e compartilha dados pessoais no contexto da plataforma Luarys, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
       </p>
       <p style={SL.p}>
         Ao usar a plataforma, você confirma que leu e compreendeu esta Política. Se não concordar com algum ponto, não utilize o serviço e entre em contato pelo e-mail indicado ao final.

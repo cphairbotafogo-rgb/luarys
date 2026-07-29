@@ -253,13 +253,13 @@ export function GavetaAutomacoes({ perfil }: any) {
               {gerando ? <FiLoader className="animate-spin" size={14} /> : <FiRefreshCw size={14} />} Gerar Fila Agora
             </button>
             {automacoes.filter(a => a.ativo).length === 0 && (
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textLight, fontStyle: "italic" }}>Ative pelo menos uma regra na aba "Regras" para gerar a fila.</p>
+              <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textLight, fontStyle: "italic" }}>Ative pelo menos uma regra na aba &quot;Regras&quot; para gerar a fila.</p>
             )}
           </div>
           {fila.length === 0 ? (
             <div style={{ background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, padding: 40, textAlign: "center" }}>
               <FiInfo size={24} color={C.textLight} style={{ marginBottom: 8 }} />
-              <p style={{ margin: 0, color: C.textLight, fontSize: 13, fontStyle: "italic" }}>Fila vazia. Clique em "Gerar Fila Agora" para buscar clientes que se encaixam nas regras ativas.</p>
+              <p style={{ margin: 0, color: C.textLight, fontSize: 13, fontStyle: "italic" }}>Fila vazia. Clique em &quot;Gerar Fila Agora&quot; para buscar clientes que se encaixam nas regras ativas.</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

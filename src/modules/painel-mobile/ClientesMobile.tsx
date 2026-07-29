@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
-import { FiSearch, FiUser, FiPhone, FiCalendar } from 'react-icons/fi';
+import { FiSearch, FiPhone } from 'react-icons/fi';
 import { RAIO_LG, RAIO_XL } from '@/lib/estiloGlobal';
 
 interface Props {

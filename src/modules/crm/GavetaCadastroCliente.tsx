@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
-import { inputAdmin, labelPadrao, containerModal, overlayModal, RAIO_MD, RAIO_LG } from '@/lib/estiloGlobal';
+import { inputAdmin, labelPadrao, containerModal, overlayModal, RAIO_MD } from '@/lib/estiloGlobal';
 import { FiX, FiCheck } from 'react-icons/fi';
 import { useToast } from '@/components/Toast';
 import { IconeAjuda } from '@/components/IconeAjuda';

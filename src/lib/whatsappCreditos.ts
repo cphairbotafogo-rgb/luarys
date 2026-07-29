@@ -45,7 +45,7 @@ export async function registrarCompraCreditosWhatsapp({
     return { creditado: false };
   }
 
-  const { data, error } = await supabaseAdmin.rpc('creditar_pacote_whatsapp_pago', {
+  const { error } = await supabaseAdmin.rpc('creditar_pacote_whatsapp_pago', {
     p_salao_id: salaoId,
     p_pacote_id: pacoteId,
     p_meio_pagamento: meioPagamento,

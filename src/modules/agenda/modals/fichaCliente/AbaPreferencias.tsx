@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { C } from '@/lib/constants';
 import { FONTE_CORPO, RAIO_MD, RAIO_SM, RAIO_XL } from '@/lib/estiloGlobal';
-import { FiTag, FiPlus } from 'react-icons/fi';
+import { FiTag, FiPlus, FiSettings } from 'react-icons/fi';
+import { ModalGerenciarEtiquetas } from '@/modules/crm/ModalGerenciarEtiquetas';
 
 const inp = {
   padding: '11px 14px', borderRadius: RAIO_MD,
@@ -20,12 +21,15 @@ interface Props {
   etiquetasDb: any[];
   toggleEtiqueta: (tag: any) => void;
   criarEtiqueta: (nome: string, cor: string) => void;
+  perfil: any;
+  onAtualizarEtiquetas: () => void;
 }
 
-export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta, criarEtiqueta }: Props) {
+export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta, criarEtiqueta, perfil, onAtualizarEtiquetas }: Props) {
   const etiquetasCliente: any[] = formCliente.etiquetas || [];
   const [mostrandoNova, setMostrandoNova] = useState(false);
   const [novaTag, setNovaTag] = useState({ nome: '', cor: '#F26522' });
+  const [gerenciarAberto, setGerenciarAberto] = useState(false);
 
   function handleSalvarNovaTag() {
     if (!novaTag.nome.trim()) return;
@@ -39,12 +43,18 @@ export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta,
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: etiquetasDb.length === 0 ? 8 : 10 }}>
           <label style={{ ...lbl, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><FiTag size={12} /> Etiquetas do Cliente</label>
-          {!mostrandoNova && (
-            <button type="button" onClick={() => setMostrandoNova(true)}
-              style={{ color: C.sidebarBg, fontWeight: 700, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <FiPlus size={14} /> Nova etiqueta
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button type="button" onClick={() => setGerenciarAberto(true)} title="Editar ou excluir etiquetas"
+              style={{ color: C.textMuted, fontWeight: 700, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FiSettings size={13} /> Gerenciar
             </button>
-          )}
+            {!mostrandoNova && (
+              <button type="button" onClick={() => setMostrandoNova(true)}
+                style={{ color: C.sidebarBg, fontWeight: 700, fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <FiPlus size={14} /> Nova etiqueta
+              </button>
+            )}
+          </div>
         </div>
         {mostrandoNova && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -117,6 +127,14 @@ export function AbaPreferencias({ formCliente, set, etiquetasDb, toggleEtiqueta,
           ))}
         </div>
       </div>
+
+      {gerenciarAberto && (
+        <ModalGerenciarEtiquetas
+          perfil={perfil}
+          onClose={() => setGerenciarAberto(false)}
+          onAtualizar={onAtualizarEtiquetas}
+        />
+      )}
     </div>
   );
 }

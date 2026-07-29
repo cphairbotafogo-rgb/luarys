@@ -77,7 +77,7 @@ export function AbaAvisos() {
       <div style={{ marginTop: 8, marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "1px" }}>Novo Aviso</h2>
         <p style={{ color: C.textMuted, marginTop: 6, fontSize: 13 }}>
-          Publique um comunicado para todos os salões (ex: manutenção, nova funcionalidade). "Tela no sistema" aparece como um aviso ao abrir o app, até o usuário clicar em "Ok, entendi".
+          Publique um comunicado para todos os salões (ex: manutenção, nova funcionalidade). &quot;Tela no sistema&quot; aparece como um aviso ao abrir o app, até o usuário clicar em &quot;Ok, entendi&quot;.
         </p>
       </div>
       <Card style={{ padding: 24, marginBottom: 24 }}>

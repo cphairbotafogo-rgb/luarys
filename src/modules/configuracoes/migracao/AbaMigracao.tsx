@@ -144,7 +144,7 @@ export function AbaMigracao({ perfil }: any) {
                 <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', padding: 16, borderRadius: RAIO_MD, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <FiAlertCircle color={C.danger} size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                   <p style={{ margin: 0, fontSize: 12, color: C.dangerText, lineHeight: 1.5 }}>
-                    <strong>Erro comum:</strong> não use relatórios filtrados do seu sistema antigo (ex: "Clientes que não retornaram", "Profissional filtrado: Todos") — eles têm título no topo e colunas diferentes das esperadas aqui. Use sempre a <strong>exportação completa do cadastro</strong> (a lista crua, com todos os clientes/serviços/produtos), baixando a planilha modelo acima como referência do formato certo.
+                    <strong>Erro comum:</strong> não use relatórios filtrados do seu sistema antigo (ex: &quot;Clientes que não retornaram&quot;, &quot;Profissional filtrado: Todos&quot;) — eles têm título no topo e colunas diferentes das esperadas aqui. Use sempre a <strong>exportação completa do cadastro</strong> (a lista crua, com todos os clientes/serviços/produtos), baixando a planilha modelo acima como referência do formato certo.
                   </p>
                 </div>
 
@@ -164,7 +164,7 @@ export function AbaMigracao({ perfil }: any) {
                     </div>
                     {entidade === 'servicos' && (
                       <p style={{ margin: '4px 0 0', fontSize: 11, color: C.textLight, fontStyle: 'italic' }}>
-                        * Aceita exportações diretas do Avec/Trinks — colunas com acentos ("Preço Padrão", "tempo_duracao") são normalizadas automaticamente.
+                        * Aceita exportações diretas do Avec/Trinks — colunas com acentos (&quot;Preço Padrão&quot;, &quot;tempo_duracao&quot;) são normalizadas automaticamente.
                       </p>
                     )}
                     {entidade === 'clientes' && (

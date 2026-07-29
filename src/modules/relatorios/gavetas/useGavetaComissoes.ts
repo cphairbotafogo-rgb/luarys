@@ -139,14 +139,14 @@ export function useGavetaComissoes(perfil: any) {
 
       // join manual: agendamentos → serviços
       const idsAgendamentos = [...new Set(comissoesBase.map((c: any) => c.agendamento_id).filter(Boolean))];
-      let agendamentosMap: Record<string, any> = {};
+      const agendamentosMap: Record<string, any> = {};
 
       if (idsAgendamentos.length > 0) {
         const { data: agsData } = await supabase
           .from('agendamentos').select('id, data, cliente_nome, servico_id').in('id', idsAgendamentos);
 
         const idsServicos = [...new Set((agsData || []).map((a: any) => a.servico_id).filter(Boolean))];
-        let servicosMap: Record<string, any> = {};
+        const servicosMap: Record<string, any> = {};
         if (idsServicos.length > 0) {
           const { data: servsData } = await supabase
             .from('servicos').select('id, nome_servico, preco_padrao').in('id', idsServicos);

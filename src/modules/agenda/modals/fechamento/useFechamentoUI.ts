@@ -19,7 +19,6 @@ export function useFechamentoUI({
   setDadosCaixa,
   clientesDb,
   servicosDb,
-  produtosDb,
   onFinalizar,
 }: any) {
   const toast = useToast();

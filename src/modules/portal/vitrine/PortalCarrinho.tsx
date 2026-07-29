@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { C, brl } from "@/lib/constants";
 import { useToast } from "@/components/Toast";
-import { FiX, FiTrash, FiCheckCircle, FiShoppingCart } from "react-icons/fi";
-import { FONTE_TITULO, FONTE_CORPO, RAIO_MD, RAIO_LG, botaoPrimario } from "@/lib/estiloGlobal";
+import { FiX, FiCheckCircle, FiShoppingCart } from "react-icons/fi";
+import { FONTE_TITULO, FONTE_CORPO, RAIO_MD, botaoPrimario } from "@/lib/estiloGlobal";
 import { cardConteudo } from "../estiloPortal";
 import { ItemCarrinho, ModoVitrine, totalCarrinho } from "./tipos";
 

@@ -8,8 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { temPermissao } from "@/lib/permissoes";
 import {
-  BANDEIRAS, FiltroPeriodo, ModoCaixa, FormLancar,
-  Transacao, AgEmAberto, normalizarFinanceiro, formaParaFinanceiro,
+  FiltroPeriodo, ModoCaixa, FormLancar,
+  Transacao, AgEmAberto, normalizarFinanceiro,
 } from "./tipos";
 import { lancarOS } from "./acoes/lancarOS";
 import { estornarOS } from "./acoes/estornarOS";

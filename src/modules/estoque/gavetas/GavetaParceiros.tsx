@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { inputAdmin, labelPadrao, RAIO_XS, RAIO_SM, RAIO_MD, RAIO_XL, RAIO_3XL, overlayModal, SOMBRA_MODAL } from "@/lib/estiloGlobal";
+import { inputAdmin, labelPadrao, RAIO_XS, RAIO_SM, RAIO_MD, RAIO_3XL, overlayModal, SOMBRA_MODAL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
 import { confirmarAcaoGlobal } from '@/components/ConfirmacaoGlobal';
 import { Btn, Card } from "@/components/ui";

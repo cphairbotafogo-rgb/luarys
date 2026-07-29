@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from "react";
 import { C } from "@/lib/constants";
-import { RAIO_MD, RAIO_LG, RAIO_XL, RAIO_2XL, overlayModal } from "@/lib/estiloGlobal";
+import { RAIO_MD, RAIO_LG, RAIO_2XL, overlayModal } from "@/lib/estiloGlobal";
 import { FiX, FiScissors, FiUsers, FiCalendar, FiSettings, FiDollarSign, FiCheckCircle } from "react-icons/fi";
 
 const CHAVE_STORAGE = 'luarys_boas_vindas_visto';

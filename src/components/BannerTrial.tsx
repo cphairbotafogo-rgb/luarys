@@ -4,7 +4,6 @@
  * Faixa no topo do sistema enquanto o trial está ativo.
  * Mostra quantos dias restam e botão para escolher plano.
  */
-import { C } from '@/lib/constants';
 import { RAIO_MD } from '@/lib/estiloGlobal';
 import { FiClock, FiArrowRight, FiX } from 'react-icons/fi';
 import { useState } from 'react';

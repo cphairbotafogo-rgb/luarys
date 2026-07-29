@@ -140,7 +140,7 @@ export function CardGrupoItem({ motivo, confianca, registros, executando, onMesc
       </div>
 
       <p style={{ margin: '0 0 10px', fontSize: 11, color: C.textLight }}>
-        Clique em "Manter este" no registro que deve sobreviver — o histórico, ficha técnica, comissão e estoque dos outros são transferidos para ele antes de serem removidos.
+        Clique em &quot;Manter este&quot; no registro que deve sobreviver — o histórico, ficha técnica, comissão e estoque dos outros são transferidos para ele antes de serem removidos.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

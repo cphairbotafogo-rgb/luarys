@@ -18,9 +18,8 @@
  *   <ToastContainer />
  */
 
-import { useState, useCallback, useEffect, createContext, useContext, useRef } from 'react';
+import { useState, useCallback, useEffect, createContext, useContext } from 'react';
 import { FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo, FiX } from 'react-icons/fi';
-import { C } from '@/lib/constants';
 import { RAIO_LG } from '@/lib/estiloGlobal';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────

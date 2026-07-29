@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { C, getDataHojeLocal, brl } from '@/lib/constants';
+import { C, getDataHojeLocal } from '@/lib/constants';
 import { NavBarPainelMobile } from './NavBarPainelMobile';
 import { AgendaMobile } from './AgendaMobile';
 import { CaixaMobile } from './CaixaMobile';

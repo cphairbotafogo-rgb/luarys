@@ -5,8 +5,8 @@ import { C, brl } from '@/lib/constants';
 import { RAIO_SM, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { Card } from '@/components/ui';
 import {
-  FiTarget, FiZap, FiEdit2, FiCheck, FiX,
-  FiTrendingUp, FiAlertTriangle, FiCheckCircle, FiAward,
+  FiEdit2, FiCheck, FiX,
+  FiTrendingUp, FiAlertTriangle, FiCheckCircle,
   FiDollarSign, FiMinusCircle, FiChevronDown,
 } from 'react-icons/fi';
 import { mesAtualStr, diaAtual, calcularDiasUteis } from './metas/helpers';

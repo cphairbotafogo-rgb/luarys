@@ -4,7 +4,7 @@ import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiExternalLink } from 'react-icons/fi';
 import { NBS_BELEZA, LC116_BELEZA } from './tipos';
 
-export function TabInformacoesFiscais({ perfil }: { perfil: any }) {
+export function TabInformacoesFiscais() {
   const lbl: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.textLight,
     textTransform: 'uppercase', letterSpacing: '0.4px',

@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
-import { RAIO_SM, RAIO_MD, RAIO_LG, RAIO_XL, RAIO_2XL, SOMBRA_MODAL, overlayModal, containerModal, inputAdmin, labelPadrao } from '@/lib/estiloGlobal';
+import { RAIO_SM, RAIO_MD, RAIO_LG, RAIO_XL, overlayModal, containerModal, inputAdmin, labelPadrao } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
 import {
   FiX, FiEdit3, FiAlertTriangle, FiCheck, FiCheckCircle,
-  FiPrinter, FiCalendar, FiLock, FiTrash2
+  FiPrinter, FiLock, FiTrash2
 } from 'react-icons/fi';
 
 type Modo = 'ver' | 'editar' | 'estornar' | 'excluir' | 'pagar';

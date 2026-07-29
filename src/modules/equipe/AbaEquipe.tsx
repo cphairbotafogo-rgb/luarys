@@ -149,7 +149,7 @@ export function AbaEquipe({ perfil }: any) {
     const extras = prof.perfil_avancado || {};
     const horariosCarregados = extras.horarios || formVazio.horarios;
     const horariosComAlmoco: any = {};
-    for (let dia in formVazio.horarios) { horariosComAlmoco[dia] = { ...formVazio.horarios[dia as keyof typeof formVazio.horarios], ...(horariosCarregados[dia] || {}) }; }
+    for (const dia in formVazio.horarios) { horariosComAlmoco[dia] = { ...formVazio.horarios[dia as keyof typeof formVazio.horarios], ...(horariosCarregados[dia] || {}) }; }
 
     setForm({
       nome: prof.nome || '', apelido: extras.apelido || '', cpf: extras.cpf || '', rg: extras.rg || '', estadoCivil: extras.estadoCivil || '',

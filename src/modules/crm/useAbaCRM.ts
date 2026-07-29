@@ -142,7 +142,7 @@ export function useAbaCRM(perfil: any) {
     const num  = c.telefone_whatsapp.replace(/\D/g, '');
     const nome = c.nome_completo?.split(' ')[0] || 'Cliente';
     // No CRM não há contexto de agendamento; remove linhas com variáveis de agendamento não preenchidas
-    let mensagem = msgZapPadrao
+    const mensagem = msgZapPadrao
       .replace(/\{nome_do_cliente\}/g, nome)
       .replace(/.*\{data\}.*\n?/g, '')
       .replace(/.*\{horario\}.*\n?/g, '')

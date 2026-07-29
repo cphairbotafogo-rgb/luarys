@@ -5,7 +5,6 @@
  * Componentes pequenos reutilizados pelos painéis do Luarys Cresce.
  */
 
-import { useState } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_SM, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { InputData } from '@/components/InputData';

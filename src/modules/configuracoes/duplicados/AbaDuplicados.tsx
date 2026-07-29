@@ -30,7 +30,7 @@ export function AbaDuplicados({ perfil }: any) {
       <div style={{ textAlign: 'center', padding: 60 }}>
         <FiSearch size={32} color={C.textLight} style={{ marginBottom: 16, opacity: 0.5 }} />
         <p style={{ fontSize: 14, color: C.textMuted, marginBottom: 20, maxWidth: 420, margin: '0 auto 20px' }}>
-          Escaneia clientes, serviços e produtos já cadastrados e agrupa candidatos a duplicata — como o "mesclar contatos" do celular.
+          Escaneia clientes, serviços e produtos já cadastrados e agrupa candidatos a duplicata — como o &quot;mesclar contatos&quot; do celular.
         </p>
         <button
           onClick={escanear}

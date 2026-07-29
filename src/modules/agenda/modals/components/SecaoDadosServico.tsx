@@ -1,7 +1,7 @@
 'use client'
 import { C, brl } from "@/lib/constants";
 import { FONTE_CORPO, RAIO_MD, RAIO_XL } from "@/lib/estiloGlobal";
-import { FiCheck, FiPlus, FiScissors, FiZap } from "react-icons/fi";
+import { FiCheck, FiPlus, FiScissors } from "react-icons/fi";
 import { ServicoExtra } from "../ServicoExtra";
 
 const inputStyle = {
@@ -166,7 +166,7 @@ export function SecaoDadosServico({ editandoAg, setEditandoAg, servicosDb, profi
 
         {md.servicosExtras.length === 0 && (
           <div style={{ padding: "16px", textAlign: "center", fontSize: 12, color: C.textLight }}>
-            Clique em "Adicionar Serviço" para incluir serviços extras com profissionais diferentes.
+            Clique em &quot;Adicionar Serviço&quot; para incluir serviços extras com profissionais diferentes.
           </div>
         )}
       </div>

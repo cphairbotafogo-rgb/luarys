@@ -8,7 +8,6 @@ import { C } from "@/lib/constants";
 import { RAIO_MD } from "@/lib/estiloGlobal";
 import { carregarPerfilUsuario } from "./auth/carregarPerfil";
 import { temPermissao } from "@/lib/permissoes";
-import { derivarAcessoPlano } from "@/lib/planos";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { BannerAmbienteDemo } from "@/components/BannerAmbienteDemo";
@@ -22,7 +21,6 @@ import { AbaAniversario } from "@/modules/aniversario/AbaAniversario";
 import { DadosGlobaisProvider } from "@/lib/contexto/DadosGlobaisContext";
 
 // ─── Telas ────────────────────────────────────────────────────────
-import { Login } from "@/modules/auth/Login";
 import { AbaDashboard } from "@/modules/dashboard/AbaDashboard";
 import { AbaRelatorios } from "@/modules/relatorios/AbaRelatorios";
 import { AbaAgenda } from "@/modules/agenda/AbaAgenda";

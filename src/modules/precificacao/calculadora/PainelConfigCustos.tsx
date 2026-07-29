@@ -94,7 +94,7 @@ export function PainelConfigCustos({ calc, perfil }: any) {
                   ))}
                   {setores.length === 0 && (
                     <p style={{ fontSize: 12, color: C.textLight, fontStyle: 'italic', margin: 0 }}>
-                      Cadastre as funções da equipe em "Minha Equipe" para configurar as horas de cada setor.
+                      Cadastre as funções da equipe em &quot;Minha Equipe&quot; para configurar as horas de cada setor.
                     </p>
                   )}
                 </div>

@@ -125,7 +125,6 @@ export function Calculadora({ perfil }: { perfil: any }) {
   const valorSugerido     = custoPorEstacao * (1 + margemLucro / 100);
   const lucroEstacao      = valorSugerido - custoPorEstacao; // margem pura por estação
   const lucroTotal        = lucroEstacao * totalEstacoes;
-  const receitaTotal      = valorSugerido * totalEstacoes;
   const totalItens        = despesasFixas.length + despesasVariaveis.length;
 
   function agrupar(itens: any[]) {

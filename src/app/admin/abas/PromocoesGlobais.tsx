@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { RAIO_MD, RAIO_XL } from "@/lib/estiloGlobal";
+import { RAIO_MD } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { FiZap, FiClock, FiLoader, FiTrash2, FiAlertTriangle } from "react-icons/fi";
 import { thStyle, tdStyle } from "../shared";

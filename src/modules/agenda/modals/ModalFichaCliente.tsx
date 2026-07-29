@@ -5,7 +5,7 @@
 // pra como a unificação funciona por baixo.
 import { useState, useRef, useEffect } from 'react';
 import { C } from '@/lib/constants';
-import { RAIO_MD, RAIO_LG, RAIO_XL, overlayModal, containerModal } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_LG, overlayModal, containerModal } from '@/lib/estiloGlobal';
 import { FiX, FiSave, FiUser, FiPhone, FiHeart, FiMapPin, FiFileText, FiGift, FiLock, FiClock, FiCamera, FiStar, FiAlertTriangle, FiArchive, FiAlertCircle } from 'react-icons/fi';
 import { ExtratoCliente } from '@/modules/fidelidade/ExtratoCliente';
 import { BloqueioModulo } from '@/components/BloqueioModulo';
@@ -165,7 +165,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
             <>
               {abaAtiva === 'identidade'   && <AbaIdentidade formCliente={formCliente} set={set} />}
               {abaAtiva === 'contatos'     && <AbaContatos formCliente={formCliente} set={set} />}
-              {abaAtiva === 'preferencias' && <AbaPreferencias formCliente={formCliente} set={set} etiquetasDb={etiquetasDb} toggleEtiqueta={toggleEtiqueta} criarEtiqueta={criarEtiqueta} />}
+              {abaAtiva === 'preferencias' && <AbaPreferencias formCliente={formCliente} set={set} etiquetasDb={etiquetasDb} toggleEtiqueta={toggleEtiqueta} criarEtiqueta={criarEtiqueta} perfil={perfil} onAtualizarEtiquetas={fc.atualizarAposGerenciarEtiquetas} />}
               {abaAtiva === 'endereco'     && <AbaEndereco formCliente={formCliente} set={set} buscarCep={buscarCep} buscandoCep={buscandoCep} />}
               {abaAtiva === 'anamnese'     && <AbaAnamnese formCliente={formCliente} setAnamnese={setAnamnese} />}
               {abaAtiva === 'historico'    && <AbaHistorico carregando={fc.carregandoHistorico} historicoAgendamentos={fc.historicoAgendamentos} comprasProdutos={fc.comprasProdutos} />}

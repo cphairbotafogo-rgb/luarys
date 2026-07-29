@@ -100,6 +100,7 @@ Nunca afirmar "está funcionando" sobre algo que só foi lido, não executado.
 - `gerar_numero_os` falha fora de contexto auth → `os_numero` deve ser nullable.
 - `agendamento_ids` em `financeiro` é `uuid[]` → inserir `null`, nunca `{}`.
 - `servicos_comissoes` em `profissionais` é `json` (não jsonb) → cast de texto nas comparações.
+- `crm_clientes.etiquetas` também é `json` (não jsonb) — mesma pegadinha: `.contains()`/`@>` do PostgREST dá erro ("invalid input syntax for type json"). Buscar as linhas do salão e filtrar/atualizar em JS (ver `ModalGerenciarEtiquetas.tsx`).
 - `ficha_tecnica` RLS exige subquery indireta via `servicos`.
 - `preferencias_sidebar` usa `usuario_id = auth.uid()` (não salao_id).
 - `perfis_usuarios` **não tem coluna `role`** — pedir coluna inexistente derruba a query inteira e mascara o erro real. Logar sempre o `error.message` cru; `.maybeSingle()` + descarte do error esconde falhas de schema.

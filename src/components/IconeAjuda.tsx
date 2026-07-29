@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FiHelpCircle } from "react-icons/fi";
 import { C } from "@/lib/constants";
-import { RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
+import { RAIO_LG } from "@/lib/estiloGlobal";
 
 interface Props {
   texto: string;

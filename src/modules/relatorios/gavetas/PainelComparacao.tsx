@@ -94,7 +94,7 @@ export function PainelComparacao({ aba, nome, dadosA, dadosB, labelA, labelB, on
         <div>
           <span style={{ fontSize: 11, fontWeight: 800, color: '#1D4ED8', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>⇄ Evolução — </span>
           <span style={{ fontSize: 13, fontWeight: 800, color: C.textMain }}>{nome}</span>
-          {dadosB === null && <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 10 }}>(ative "Comparar Períodos" para ver período B)</span>}
+          {dadosB === null && <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 10 }}>(ative &quot;Comparar Períodos&quot; para ver período B)</span>}
         </div>
         <button onClick={onFechar} style={{ background: 'none', border: 'none', color: '#3B82F6', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}>✕ Fechar</button>
       </div>

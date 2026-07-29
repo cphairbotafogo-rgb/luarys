@@ -2,7 +2,7 @@
 import { C } from "@/lib/constants";
 import { calcularStatusAniversario, montarMsgAniversario } from "@/lib/aniversarios";
 import {
-  FONTE_CORPO, RAIO_SM, RAIO_MD, RAIO_XL, RAIO_2XL,
+  FONTE_CORPO, RAIO_SM, RAIO_MD, RAIO_2XL,
   overlayModal, containerModal,
 } from "@/lib/estiloGlobal";
 import {
@@ -23,7 +23,6 @@ export function ModalEdicao({
   abrirCadastroCliente, abrirHistoricoCliente,
   abrirWhatsApp, abrirEmail,
   removerEtiquetaDoAgendamento, adicionarEtiquetaAoAgendamento, salvarNovaEtiqueta,
-  verificarAniversario,
   agendamentosExistentes,
   perfil,
   carregarDadosParaAgenda,

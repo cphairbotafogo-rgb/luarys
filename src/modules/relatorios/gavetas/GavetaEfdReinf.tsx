@@ -17,7 +17,6 @@ import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiDownload, FiInfo, FiAlertTriangle, FiLoader, FiCheck } from 'react-icons/fi';
-import { limparCnpj } from '@/lib/cnpj';
 
 // ─── Constantes fiscais ────────────────────────────────────────────────────────
 
@@ -344,7 +343,7 @@ export function GavetaEfdReinf({ perfil }: { perfil: any }) {
           <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.3 }}>📋</div>
           <div>Nenhum pagamento a autônomo em {MESES[mes - 1]} {ano}.</div>
           <div style={{ fontSize: 12, marginTop: 6 }}>
-            Aparecem aqui apenas profissionais com tipo "Parceiro CPF" ao fechar contas.
+            Aparecem aqui apenas profissionais com tipo &quot;Parceiro CPF&quot; ao fechar contas.
           </div>
         </div>
       )}

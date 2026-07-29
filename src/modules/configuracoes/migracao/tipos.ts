@@ -185,7 +185,7 @@ export function mapearLinhaCliente(cabecalhos: string[], valores: string[]): Map
   let recebeSms: boolean | null = null;
   let recebeEmailGeral: boolean | null = null;
   let recebeEmailPromo: boolean | null = null;
-  let telefonesExtras: string[] = [];
+  const telefonesExtras: string[] = [];
 
   cabecalhos.forEach((cab, idx) => {
     const val = valores[idx] ?? '';

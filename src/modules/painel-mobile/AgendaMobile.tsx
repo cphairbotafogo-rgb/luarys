@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, getDataHojeLocal } from '@/lib/constants';
 import { useToast } from '@/components/Toast';
-import { FiPlus, FiUser, FiClock } from 'react-icons/fi';
-import { RAIO_MD, RAIO_LG, RAIO_XL } from '@/lib/estiloGlobal';
+import { FiUser } from 'react-icons/fi';
+import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 
 const COR_STATUS: Record<string, string> = { Confirmado: C.success, Aguardando: '#F59E0B', Finalizado: '#6B7280', Cancelado: C.danger };
 

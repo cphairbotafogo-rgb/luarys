@@ -207,7 +207,7 @@ export function PainelCobrancasAssinatura({ perfil }: any) {
               <div><label style={lbl}>Observação (opcional)</label><input style={inp} value={formPag.observacao} onChange={e => setFormPag(p => ({ ...p, observacao: e.target.value }))} /></div>
             </div>
             <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: RAIO_MD, padding: '8px 12px', marginBottom: 20 }}>
-              <p style={{ fontSize: 11, color: '#1D4ED8', margin: 0 }}>Será lançado como receita (categoria "Assinaturas") no Financeiro.</p>
+              <p style={{ fontSize: 11, color: '#1D4ED8', margin: 0 }}>Será lançado como receita (categoria &quot;Assinaturas&quot;) no Financeiro.</p>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => setModalPag(null)} style={{ padding: '10px 18px', borderRadius: RAIO_MD, border: `1px solid ${C.border}`, background: '#fff', color: C.textMain, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>

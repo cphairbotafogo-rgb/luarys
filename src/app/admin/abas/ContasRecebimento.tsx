@@ -112,7 +112,7 @@ export function ContasRecebimento() {
       <div style={{ marginTop: 8, marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "1px" }}>Contas de Recebimento</h2>
         <p style={{ color: C.textMuted, marginTop: 6, fontSize: 13 }}>
-          Cadastre uma ou mais contas (ex: CNPJs diferentes). A conta marcada como "Ativa" é a usada para gerar os checkouts de assinatura dos salões — só uma fica ativa por vez.
+          Cadastre uma ou mais contas (ex: CNPJs diferentes). A conta marcada como &quot;Ativa&quot; é a usada para gerar os checkouts de assinatura dos salões — só uma fica ativa por vez.
         </p>
       </div>
 
@@ -123,7 +123,7 @@ export function ContasRecebimento() {
         }}>
           <FiAlertTriangle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
           <p style={{ margin: 0, fontSize: 13, color: "#991B1B" }}>
-            <strong>Nenhuma conta está marcada como ativa.</strong> Os checkouts de assinatura vão cair no gateway legado configurado por variável de ambiente, o que pode não ser o esperado. Clique em "Ativar" em uma das contas abaixo.
+            <strong>Nenhuma conta está marcada como ativa.</strong> Os checkouts de assinatura vão cair no gateway legado configurado por variável de ambiente, o que pode não ser o esperado. Clique em &quot;Ativar&quot; em uma das contas abaixo.
           </p>
         </div>
       )}

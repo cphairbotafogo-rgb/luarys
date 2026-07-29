@@ -6,7 +6,7 @@
 //   - Cor do card controlada por corPorStatus() — sempre reflete o status atual
 'use client'
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { C, brl } from '@/lib/constants';
+import { C } from '@/lib/constants';
 import { RAIO_XS } from '@/lib/estiloGlobal';
 import { FiGlobe, FiGift, FiCheckCircle, FiZap, FiCalendar, FiAlertCircle } from 'react-icons/fi';
 import { converterParaMinutos, corPorStatus } from '@/lib/agendaUtils';
@@ -89,8 +89,8 @@ export function AgendaGrid({
 
   // ── Cálculos visuais ────────────────────────────────────────────────────────
   function calcularPosicao(horaString: string, duracaoMinutos: number) {
-    let [h, m] = horaString.split(':').map(Number);
-    if (h === 0) h = 24;
+    const [hRaw, m] = horaString.split(':').map(Number);
+    const h = hRaw === 0 ? 24 : hRaw;
     return {
       top: (((h - HORA_INICIO) * 60) + m) * ALTURA_MINUTO,
       height: duracaoMinutos * ALTURA_MINUTO,
@@ -221,7 +221,7 @@ export function AgendaGrid({
               <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: C.textMain }}>Nenhum profissional na agenda</p>
               <p style={{ margin: 0, fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
                 Cadastre profissionais em <strong>Minha Equipe</strong> e ative a opção<br />
-                <em>"Visível na Agenda Geral"</em> no perfil de cada um.
+                <em>&quot;Visível na Agenda Geral&quot;</em> no perfil de cada um.
               </p>
             </div>
           </div>

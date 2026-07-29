@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C, brl } from "@/lib/constants";
-import { RAIO_SM, RAIO_MD, RAIO_XL, RAIO_2XL, SOMBRA_MODAL, overlayModal, containerModal } from "@/lib/estiloGlobal";
+import { RAIO_SM, RAIO_MD, RAIO_XL, overlayModal, containerModal } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
 import { FiScissors, FiX, FiPackage, FiShield, FiPercent, FiSettings } from "react-icons/fi";
 import { IconeAjuda } from "@/components/IconeAjuda";

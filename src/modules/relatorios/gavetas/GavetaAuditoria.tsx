@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C, brl } from "@/lib/constants";
-import { RAIO_SM, RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
+import { RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
 import { FiShield, FiEdit2, FiTrash2, FiArrowRight, FiUser, FiLoader, FiAlertTriangle } from "react-icons/fi";
 
 export function GavetaAuditoria({ perfil }: any) {
@@ -59,7 +59,7 @@ export function GavetaAuditoria({ perfil }: any) {
         <div>
           <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase" }}>Log de Auditoria — Lançamentos Financeiros</h4>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>
-            Toda edição ou exclusão em "Financeiro" é registrada automaticamente, com data, hora e usuário responsável. Este registro não pode ser apagado pela equipe.
+            Toda edição ou exclusão em &quot;Financeiro&quot; é registrada automaticamente, com data, hora e usuário responsável. Este registro não pode ser apagado pela equipe.
           </p>
         </div>
       </div>

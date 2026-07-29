@@ -1,7 +1,7 @@
 'use client'
 import { C } from "@/lib/constants";
 import { RAIO_LG, SOMBRA_ELEVADO } from "@/lib/estiloGlobal";
-import { FiClock, FiCoffee, FiCalendar, FiPlus } from "react-icons/fi";
+import { FiClock, FiCalendar, FiPlus } from "react-icons/fi";
 
 export function MenuContexto({ menuContexto, setMenuContexto, registrarAlmocoRapido, abrirModalAusenciaPeloMenu, abrirNovoAgendamento }: any) {
   if (!menuContexto.visivel) return null;

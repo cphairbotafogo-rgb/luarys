@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 const S = {
   wrap:   { minHeight: '100vh', background: '#F8F9FA', fontFamily: 'var(--font-body)' } as React.CSSProperties,
@@ -22,9 +23,9 @@ export function PaginaLegal({ titulo, atualizadoEm, children }: { titulo: string
     <div style={S.wrap}>
       <header style={S.header}>
         <img src="/logo_luarys.png" alt="Luarys" style={{ height: 34 }} />
-        <a href="/" style={{ color: '#D4AF37', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-title)', letterSpacing: '0.5px' }}>
+        <Link href="/" style={{ color: '#D4AF37', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: 'var(--font-title)', letterSpacing: '0.5px' }}>
           ← INÍCIO
-        </a>
+        </Link>
       </header>
 
       <main style={S.main}>

@@ -13,7 +13,7 @@
  * Dados — sensíveis o suficiente para não serem ocultáveis/reordenáveis).
  */
 import {
-  FiLayout, FiTrendingUp, FiCalendar, FiSliders, FiUsers,
+  FiLayout, FiTrendingUp, FiSliders, FiUsers,
   FiDollarSign, FiBox, FiUserCheck, FiScissors, FiFileText,
   FiSettings, FiMonitor, FiMessageCircle, FiClock, FiZap, FiDatabase, FiGift,
 } from 'react-icons/fi';

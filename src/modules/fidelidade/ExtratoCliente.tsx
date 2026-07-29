@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { FiZap, FiGift, FiClock, FiCheck, FiDollarSign } from 'react-icons/fi';
-import { RAIO_MD, RAIO_SM, RAIO_XL, RAIO_LG, cardAdmin } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_SM, RAIO_LG, cardAdmin } from '@/lib/estiloGlobal';
 import {
   type ConfigFidelidade, type PremioFidelidade, type TransacaoFidelidade,
   carregarConfig, carregarPremios, carregarSaldoCliente, carregarExtratoCliente,
@@ -171,7 +171,7 @@ export function ExtratoCliente({ perfil, clienteId }: { perfil: any; clienteId: 
       {premioEscolhido && (
         <div style={{ background: C.bg, borderRadius: RAIO_LG, padding: 14, marginBottom: 14 }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: C.textMain, margin: '0 0 10px' }}>
-            Resgatar "{premioEscolhido.nome}" — agendar para quando?
+            Resgatar &quot;{premioEscolhido.nome}&quot; — agendar para quando?
           </p>
           {erro && <p style={{ fontSize: 11, color: C.dangerText, marginBottom: 8 }}>{erro}</p>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>

@@ -10,7 +10,7 @@ import { FiLock } from "react-icons/fi";
 import { useAvisoFinanceiroCliente } from "@/lib/useAvisoFinanceiroCliente";
 import { AvisoFinanceiroClienteBanner } from "@/components/AvisoFinanceiroClienteBanner";
 
-export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, onAbrirClienteRapido, agendamentosExistentes, onSalvarEFaturar, onVerHistorico, onEditarCadastro }: any) {
+export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, agendamentosExistentes, onSalvarEFaturar, onVerHistorico, onEditarCadastro }: any) {
   const ctx = useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistentes, onClose, onSalvarEFaturar });
   const avisoFinanceiro = useAvisoFinanceiroCliente(ctx.clienteSelecionado?.id, ctx.clienteSelecionado?.nome_completo, perfil?.salao_id);
 
@@ -94,10 +94,10 @@ export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, onAbrirCl
                     <div style={{ ...dropdownItemStyle, justifyContent: 'center', fontStyle: 'italic', color: C.textLight, borderBottom: 'none' }}>A carregar clientes...</div>
                   ) : (
                     <div>
-                      <div style={{ ...dropdownItemStyle, justifyContent: 'center', fontStyle: 'italic', color: C.textLight, fontSize: 12, borderBottom: `1px solid ${C.border}` }}>Nenhum resultado para "{ctx.buscaCliente}"</div>
+                      <div style={{ ...dropdownItemStyle, justifyContent: 'center', fontStyle: 'italic', color: C.textLight, fontSize: 12, borderBottom: `1px solid ${C.border}` }}>Nenhum resultado para &quot;{ctx.buscaCliente}&quot;</div>
                       <div style={{ ...dropdownItemStyle, background: '#F0FDF4', color: '#166534', fontWeight: 700, gap: 10, borderBottom: 'none' }}
                         onClick={() => { ctx.setNomeParaCadastro(ctx.buscaCliente.trim()); ctx.setModalCadastroAberto(true); ctx.setDropdownAtivo(null); }}>
-                        <FiUserPlus size={16} /> Cadastrar "{ctx.buscaCliente.trim()}" como novo cliente
+                        <FiUserPlus size={16} /> Cadastrar &quot;{ctx.buscaCliente.trim()}&quot; como novo cliente
                       </div>
                     </div>
                   )}
@@ -111,6 +111,13 @@ export function ModalNovoAgendamento({ perfil, onClose, dadosIniciais, onAbrirCl
                 </p>
 
                 <AvisoFinanceiroClienteBanner aviso={avisoFinanceiro} />
+
+                {ctx.clienteSelecionado.obs_fixa && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: RAIO_MD, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: "#92400E" }}>
+                    <FiTag size={13} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span><strong>Observação:</strong> {ctx.clienteSelecionado.obs_fixa}</span>
+                  </div>
+                )}
 
                 {/* Faixa de ações rápidas */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.border}` }}>

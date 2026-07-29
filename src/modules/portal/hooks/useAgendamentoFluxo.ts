@@ -101,7 +101,7 @@ export function useAgendamentoFluxo({ clienteFresh, salaoSelecionado }: { client
       configDoDia = { ativo: true, inicio: diaExc.hora_abertura, fim: diaExc.hora_fechamento };
     }
 
-    let horariosGerados: string[] = [];
+    const horariosGerados: string[] = [];
     if (configDoDia?.ativo) {
       let t = converterParaMinutos(configDoDia.inicio);
       const fim = converterParaMinutos(configDoDia.fim);

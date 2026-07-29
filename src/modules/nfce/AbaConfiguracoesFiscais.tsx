@@ -72,7 +72,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
           <p style={{ margin: '12px 0 0', fontSize: 10, color: C.textLight, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <FiLock size={12} /> Dados fiscais unificados. Para alterações, acesse "Configurações &gt; Dados da Empresa".
+            <FiLock size={12} /> Dados fiscais unificados. Para alterações, acesse &quot;Configurações &gt; Dados da Empresa&quot;.
           </p>
         </div>
 
@@ -169,7 +169,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
           <p style={{ margin: '12px 0 0', fontSize: 10, color: C.textLight, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <FiLock size={12} /> Endereço unificado. Para alterações, acesse "Configurações &gt; Dados da Empresa".
+            <FiLock size={12} /> Endereço unificado. Para alterações, acesse &quot;Configurações &gt; Dados da Empresa&quot;.
           </p>
         </div>
 

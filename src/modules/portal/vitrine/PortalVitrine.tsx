@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C, brl } from "@/lib/constants";
 import { FiShoppingBag, FiSearch, FiPlus, FiMinus, FiShoppingCart } from "react-icons/fi";
-import { FONTE_TITULO, FONTE_CORPO, RAIO_MD, RAIO_LG, RAIO_2XL } from "@/lib/estiloGlobal";
+import { FONTE_TITULO, FONTE_CORPO, RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
 import { cardConteudo, eyebrow } from "../estiloPortal";
 import { ProdutoVitrine, ItemCarrinho, ModoVitrine, totalCarrinho } from "./tipos";
 
@@ -132,7 +132,7 @@ export function PortalVitrine({ salaoId, clienteId, clienteNome, modo, onAbrirCa
       </div>
 
       {filtrados.length === 0 && busca && (
-        <p style={{ textAlign: "center", fontSize: 13, color: C.textLight, padding: 16 }}>Nenhum produto encontrado para "{busca}".</p>
+        <p style={{ textAlign: "center", fontSize: 13, color: C.textLight, padding: 16 }}>Nenhum produto encontrado para &quot;{busca}&quot;.</p>
       )}
     </div>
   );

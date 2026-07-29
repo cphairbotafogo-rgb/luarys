@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { COR_POR_STATUS } from "@/lib/agendaUtils";
-import { FiChevronLeft, FiChevronRight, FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle } from "react-icons/fi";
 
 // Formata Date em YYYY-MM-DD usando timezone local (evita UTC shift do toISOString)
 function paraISO(d: Date) {

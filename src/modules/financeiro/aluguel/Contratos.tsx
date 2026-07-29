@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { useToast } from '@/components/Toast';
-import { FiPlus, FiEdit2, FiX, FiUser, FiDollarSign, FiCalendar, FiToggleLeft, FiToggleRight, FiInfo } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiX, FiUser, FiDollarSign, FiToggleLeft, FiToggleRight, FiInfo } from 'react-icons/fi';
 import { FONTE_TITULO } from '@/lib/estiloGlobal';
 
 const inp = { width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${C.borderMid}`, fontSize: 13, color: C.textMain, background: '#fff', boxSizing: 'border-box' as const };

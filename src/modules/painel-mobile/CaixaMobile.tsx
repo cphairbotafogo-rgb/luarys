@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl, getDataHojeLocal } from '@/lib/constants';
-import { FiCheckCircle, FiAlertCircle, FiDollarSign } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { RAIO_LG, RAIO_XL } from '@/lib/estiloGlobal';
 
 interface Props {

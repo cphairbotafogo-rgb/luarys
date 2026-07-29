@@ -103,14 +103,21 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
     setFormClienteState((f: any) => ({ ...f, etiquetas: [...(f.etiquetas || []), data] }));
   }
 
-  useEffect(() => {
+  async function carregarEtiquetas() {
     if (!perfil?.salao_id) return;
-    supabase.from('etiquetas').select('*').eq('salao_id', perfil.salao_id).order('nome')
-      .then(({ data, error }) => {
-        if (error) console.error('[useFichaCliente] Erro ao buscar etiquetas:', error.message);
-        setEtiquetasDb(data || []);
-      });
-  }, [perfil?.salao_id]);
+    const { data, error } = await supabase.from('etiquetas').select('*').eq('salao_id', perfil.salao_id).order('nome');
+    if (error) { console.error('[useFichaCliente] Erro ao buscar etiquetas:', error.message); return; }
+    setEtiquetasDb(data || []);
+  }
+
+  // Etiquetas gerenciadas em outro lugar (renomear/recolorir/excluir) podem ter
+  // mudado o próprio cliente aberto — recarrega os dois juntos.
+  async function atualizarAposGerenciarEtiquetas() {
+    await carregarEtiquetas();
+    if (clienteId) await carregarCliente(clienteId);
+  }
+
+  useEffect(() => { carregarEtiquetas(); }, [perfil?.salao_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!clienteId || !perfil?.salao_id) {
@@ -341,6 +348,7 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
     clienteConflito, setClienteConflito,
     historicoAgendamentos, comprasProdutos, carregandoHistorico,
     handleUploadFoto, salvar, alternarArquivado, buscarCep,
+    atualizarAposGerenciarEtiquetas,
     editarClienteConflito: (c: any) => { setClienteConflito(null); carregarCliente(c.id); carregarHistorico(c.id); },
   };
 }

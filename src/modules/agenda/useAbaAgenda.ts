@@ -20,7 +20,7 @@ export function useAbaAgenda(perfil: any, dataAtual: Date, setDataAtual: (d: Dat
 
   // ── Motores externos ────────────────────────────────────────────────────────
   const {
-    clientesDb, setClientesDb, servicosDb, profissionaisDb, produtosDb,
+    clientesDb, servicosDb, profissionaisDb, produtosDb,
     dadosSalao, agendamentos, setAgendamentos, etiquetasDb, setEtiquetasDb,
     carregando, carregarDadosParaAgenda,
   } = useAgendaDados(perfil, dataAtual);

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { RAIO_XL, RAIO_SM } from "@/lib/estiloGlobal";
+import { RAIO_XL } from "@/lib/estiloGlobal";
 import { FiAlertTriangle, FiLoader, FiClock, FiUser, FiCalendar, FiInfo } from "react-icons/fi";
 
 export function GavetaCancelamentos({ perfil }: any) {
@@ -73,7 +73,7 @@ export function GavetaCancelamentos({ perfil }: any) {
         <div>
           <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase" }}>Cancelamentos Pós-Horário</h4>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>
-            Agendamentos cancelados <strong>depois</strong> do horário em que estavam marcados — um padrão clássico de "no-show disfarçado" para evitar registrar a falta. {totalPosHorario} ocorrência(s) no histórico recente.
+            Agendamentos cancelados <strong>depois</strong> do horário em que estavam marcados — um padrão clássico de &quot;no-show disfarçado&quot; para evitar registrar a falta. {totalPosHorario} ocorrência(s) no histórico recente.
           </p>
         </div>
       </div>

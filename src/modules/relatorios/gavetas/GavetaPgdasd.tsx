@@ -134,7 +134,7 @@ export function GavetaPgdasd({ perfil }: { perfil: any }) {
         <FiInfo size={16} color="#1D4ED8" style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ fontSize: 12, color: '#1E40AF', lineHeight: 1.7 }}>
           <strong>Como usar no PGDAS-D (Resolução CGSN 140/2018).</strong>{' '}
-          Preencha o campo <em>"Receita Bruta"</em> com o valor da coluna <strong>Receita Declarável</strong> —
+          Preencha o campo <em>&quot;Receita Bruta&quot;</em> com o valor da coluna <strong>Receita Declarável</strong> —
           já excluídas as cotas de profissionais com CNPJ. Cotas de parceiros sem CNPJ (CPF/RPA)
           permanecem na receita bruta. Guarde as notas fiscais recebidas dos parceiros CNPJ como comprovante da dedução.
         </div>

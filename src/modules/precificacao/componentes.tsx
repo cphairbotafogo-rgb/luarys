@@ -10,8 +10,8 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { FiAlertTriangle, FiCheckCircle, FiAlertCircle, FiInfo } from 'react-icons/fi';
-import { RAIO_MD, RAIO_SM, RAIO_XL, RAIO_LG, cardAdmin, SOMBRA_SUAVE } from '@/lib/estiloGlobal';
-import { type Resultado, type FormCalculo, CORES, LEGENDA, brl, pct, classificarLucroHora } from './tipos';
+import { RAIO_MD, RAIO_SM, RAIO_XL, RAIO_LG, cardAdmin } from '@/lib/estiloGlobal';
+import { type Resultado, CORES, LEGENDA, brl, pct, classificarLucroHora } from './tipos';
 import { calcularCapacidadeProfissionalPura } from '@/modules/relatorios/hooks/useCapacidadeProfissional';
 
 // ─── TOOLTIP ──────────────────────────────────────────────────────────────────
@@ -329,7 +329,7 @@ export function HorasAssistente({
         ))}
         {detalhes.length === 0 && !erro && (
           <p style={{ fontSize: 12, color: C.textLight, fontStyle: 'italic', margin: 0 }}>
-            Nenhum profissional com horários cadastrados. Configure em "Minha Equipe".
+            Nenhum profissional com horários cadastrados. Configure em &quot;Minha Equipe&quot;.
           </p>
         )}
         {erro && <p style={{ fontSize: 12, color: C.dangerText, margin: 0 }}>{erro}</p>}
@@ -338,7 +338,7 @@ export function HorasAssistente({
       {/* Administrativos excluídos do cálculo — não geram atendimento faturável */}
       {excluidos.length > 0 && (
         <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: RAIO_MD, padding: '8px 12px', fontSize: 11, color: '#92400E', marginBottom: 12 }}>
-          <strong>{excluidos.length} administrativo{excluidos.length > 1 ? 's' : ''} não incluído{excluidos.length > 1 ? 's' : ''}</strong> ({excluidos.join(', ')}) — marcados como "não-produtivo" (sem agenda própria), então não entram na divisão de horas.
+          <strong>{excluidos.length} administrativo{excluidos.length > 1 ? 's' : ''} não incluído{excluidos.length > 1 ? 's' : ''}</strong> ({excluidos.join(', ')}) — marcados como &quot;não-produtivo&quot; (sem agenda própria), então não entram na divisão de horas.
           <br />
           Lembre-se de lançar o salário dele{excluidos.length > 1 ? 's' : ''} como Despesa Fixa no Financeiro, para que entre no Custo Fixo Mensal acima.
         </div>

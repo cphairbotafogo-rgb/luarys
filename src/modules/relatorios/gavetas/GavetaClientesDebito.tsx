@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { C, brl } from '@/lib/constants';
-import { RAIO_MD, RAIO_XL, RAIO_SM, RAIO_XS } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_XL, RAIO_SM } from '@/lib/estiloGlobal';
 import { supabase } from '@/lib/supabase';
 import { FiSearch, FiAlertCircle, FiUser, FiDollarSign, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
 import { ModalDetalhesTransacao } from '@/modules/financeiro/modals/ModalDetalhesTransacao';

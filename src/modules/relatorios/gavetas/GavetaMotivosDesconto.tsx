@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { InputData } from '@/components/InputData';
 import { C, brl } from '@/lib/constants';
-import { RAIO_MD, RAIO_XL, RAIO_SM, RAIO_XS } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiDownload, FiTag, FiPercent, FiList } from 'react-icons/fi';
 
 type AtalhoPeriodo = 'hoje' | 'semana' | 'mes' | 'ano' | 'livre';

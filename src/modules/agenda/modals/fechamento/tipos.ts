@@ -28,7 +28,7 @@ export const gerarDetalhamentoParcelas = (valorTotal: number, numParcelas: numbe
   const valorBase = Math.floor((valorTotal / numParcelas) * 100) / 100;
   const resto = Number((valorTotal - (valorBase * numParcelas)).toFixed(2));
 
-  let dataAtual = new Date();
+  const dataAtual = new Date();
   for (let i = 1; i <= numParcelas; i++) {
     const dataParcela = new Date(dataAtual);
     dataParcela.setMonth(dataParcela.getMonth() + i);

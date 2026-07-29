@@ -45,7 +45,7 @@ export default async function TermosDeUso() {
     <PaginaLegal titulo="Termos de Uso" atualizadoEm="22 de junho de 2026">
 
       <p style={SL.p}>
-        Estes Termos de Uso ("Termos") regulam o acesso e uso da plataforma Luarys, operada pela <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> ("Luarys", "nós"). Ao criar uma conta ou usar qualquer funcionalidade da plataforma, você ("Usuário") aceita integralmente estes Termos. Se agir em nome de uma empresa, declara ter poderes para vinculá-la.
+        Estes Termos de Uso (&quot;Termos&quot;) regulam o acesso e uso da plataforma Luarys, operada pela <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> (&quot;Luarys&quot;, &quot;nós&quot;). Ao criar uma conta ou usar qualquer funcionalidade da plataforma, você (&quot;Usuário&quot;) aceita integralmente estes Termos. Se agir em nome de uma empresa, declara ter poderes para vinculá-la.
       </p>
 
       {/* 1 */}

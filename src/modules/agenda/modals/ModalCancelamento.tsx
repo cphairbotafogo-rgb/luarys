@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { inputAdmin, labelPadrao, containerModalPerigo, overlayModal, RAIO_MD, RAIO_SM, FONTE_CORPO } from "@/lib/estiloGlobal";
+import { inputAdmin, labelPadrao, containerModalPerigo, overlayModal, RAIO_MD, FONTE_CORPO } from "@/lib/estiloGlobal";
 import { FiAlertTriangle, FiCheckSquare, FiSquare } from "react-icons/fi";
 
 export function ModalCancelamento({ editandoAg, dadosCancelamento, setDadosCancelamento, confirmarCancelamento, onClose }: any) {

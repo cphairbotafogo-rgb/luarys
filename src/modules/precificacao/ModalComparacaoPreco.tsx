@@ -11,7 +11,7 @@
  */
 import { useState, useMemo } from 'react';
 import { C } from '@/lib/constants';
-import { overlayModal, containerModal, RAIO_SM, RAIO_MD, RAIO_XL, labelPadrao, inputAdmin } from '@/lib/estiloGlobal';
+import { overlayModal, containerModal, RAIO_SM, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiX, FiArrowRight, FiEdit3, FiShield, FiPercent } from 'react-icons/fi';
 import { brl, pct, classificarLucroHora, calcularPreco, obterHorasMesEfetivo, type Resultado, type ConfigCustos, type FormCalculo } from './tipos';
 import type { ServicoDiagnostico } from './useDiagnosticoCatalogo';

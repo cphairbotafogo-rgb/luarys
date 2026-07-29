@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
 import { RAIO_LG, RAIO_2XL } from "@/lib/estiloGlobal";
-import { FiInfo, FiTool, FiGift, FiAlertTriangle, FiX } from "react-icons/fi";
+import { FiInfo, FiTool, FiGift, FiAlertTriangle } from "react-icons/fi";
 
 const ESTILO_POR_TIPO: Record<string, { cor: string; bg: string; icone: any; label: string }> = {
   info:       { cor: "#1D4ED8", bg: "#EFF6FF", icone: FiInfo,          label: "Aviso" },

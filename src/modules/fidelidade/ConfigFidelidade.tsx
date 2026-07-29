@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { FiGift, FiPlus, FiToggleLeft, FiToggleRight, FiZap, FiDollarSign, FiSlash, FiSearch, FiX } from 'react-icons/fi';
-import { RAIO_MD, RAIO_SM, RAIO_LG, RAIO_XL, inputAdmin, labelPadrao, cardAdmin } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_SM, RAIO_LG, inputAdmin, cardAdmin } from '@/lib/estiloGlobal';
 import {
   type ConfigFidelidade, type PremioFidelidade,
   carregarConfig, salvarConfig, carregarPremios, criarPremio, alternarPremioAtivo,

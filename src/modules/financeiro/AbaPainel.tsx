@@ -2,7 +2,7 @@
 // Aba Dashboard do módulo financeiro — cards de receitas, despesas e saldo.
 'use client'
 import { C, brl } from '@/lib/constants';
-import { RAIO_MD, RAIO_XL, RAIO_2XL } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_2XL } from '@/lib/estiloGlobal';
 import { FiArrowUpRight, FiArrowDownRight, FiDollarSign, FiChevronDown, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 import { Card } from '@/components/ui';
 

@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { FiSearch, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
-import { RAIO_MD, RAIO_XL, RAIO_LG, RAIO_SM, cardAdmin } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_LG, RAIO_SM, cardAdmin } from '@/lib/estiloGlobal';
 import { type ConfigCustos, type FormCalculo, brl, classificarLucroHora, type AlertaServico } from './tipos';
 import { Alerta } from './componentes';
 import { ModalComparacaoPreco } from './ModalComparacaoPreco';
@@ -151,7 +151,7 @@ export function AbaDiagnostico({ perfil, config, form }: Props) {
       ) : servicos.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>
           <p style={{ fontSize: 13, margin: 0 }}>Nenhum serviço encontrado no catálogo.</p>
-          <p style={{ fontSize: 12, color: C.textLight, margin: '4px 0 0' }}>Cadastre serviços em "Serviços e Preços" para ver o diagnóstico.</p>
+          <p style={{ fontSize: 12, color: C.textLight, margin: '4px 0 0' }}>Cadastre serviços em &quot;Serviços e Preços&quot; para ver o diagnóstico.</p>
         </div>
       ) : (
         <>

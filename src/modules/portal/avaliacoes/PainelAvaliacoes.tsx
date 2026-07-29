@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { C, brl } from "@/lib/constants";
+import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL } from "@/lib/estiloGlobal";
-import { FiStar, FiUser, FiMessageCircle, FiTrendingUp } from "react-icons/fi";
+import { FiStar } from "react-icons/fi";
 
 interface Props { perfil: any; }
 
@@ -134,7 +134,7 @@ export function PainelAvaliacoes({ perfil }: Props) {
               </div>
               {av.comentario && (
                 <div style={{ marginTop: 10, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, borderLeft: `3px solid ${C.douradoEleva}` }}>
-                  <p style={{ margin: 0, fontSize: 13, color: C.textMain, lineHeight: 1.5, fontStyle: "italic" }}>"{av.comentario}"</p>
+                  <p style={{ margin: 0, fontSize: 13, color: C.textMain, lineHeight: 1.5, fontStyle: "italic" }}>&quot;{av.comentario}&quot;</p>
                 </div>
               )}
             </div>

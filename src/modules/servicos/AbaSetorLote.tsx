@@ -62,7 +62,7 @@ export function AbaSetorLote({ perfil, setorLote, setSetorLote, salvandoSetores,
             <FiUsers size={20} /> Edição de Setor em Lote
           </h3>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: C.textMuted }}>
-            Defina qual profissional é responsável por cada serviço. Use "Aplicar" para preencher uma categoria inteira de uma vez.
+            Defina qual profissional é responsável por cada serviço. Use &quot;Aplicar&quot; para preencher uma categoria inteira de uma vez.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

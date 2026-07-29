@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { filtrarAniversariantes, montarMsgAniversario } from '@/lib/aniversarios';
-import { FiGift, FiAlertTriangle, FiMessageCircle, FiCalendar, FiX } from 'react-icons/fi';
+import { FiAlertTriangle, FiMessageCircle, FiCalendar, FiX } from 'react-icons/fi';
 
 export function AlertasAniversario({
   clientes,

@@ -21,7 +21,7 @@ import { PainelCertificado } from "./nfce/PainelCertificado";
 export function SistemaNFCe({ perfil }: any) {
   const [state, dispatch] = useReducer(reducer, ESTADO0);
   const [bancoProdutos, setBancoProdutos] = useState<any[]>([]);
-  const [tokenConfigurado, setTokenConfigurado] = useState<boolean | null>(null);
+  const [, setTokenConfigurado] = useState<boolean | null>(null);
   const salaoId = perfil?.salao_id;
   const liberado = useGuardModulo(salaoId, 'nfce');
 

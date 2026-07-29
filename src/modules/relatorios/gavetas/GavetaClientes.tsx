@@ -1,7 +1,7 @@
 'use client'
 import { useMemo, useState } from "react";
 import { C, brl } from "@/lib/constants";
-import { RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
+import { RAIO_XL } from "@/lib/estiloGlobal";
 
 type Visao = 'frequentes' | 'sumidas' | 'todas';
 

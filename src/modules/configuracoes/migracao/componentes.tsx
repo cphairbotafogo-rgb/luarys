@@ -94,7 +94,7 @@ export function PreviaPlanilha({ entidade }: { entidade: string }) {
       </div>
 
       <div style={{ padding: '10px 16px', fontSize: 11, color: C.textLight, lineHeight: 1.5 }}>
-        A <strong>linha 1</strong> (em amarelo) é o cabeçalho — os nomes exatos das colunas. As demais linhas são os dados, um cliente/serviço/produto por linha. Células em branco (itálico "vazio" aqui) podem ficar realmente vazias no seu arquivo.
+        A <strong>linha 1</strong> (em amarelo) é o cabeçalho — os nomes exatos das colunas. As demais linhas são os dados, um cliente/serviço/produto por linha. Células em branco (itálico &quot;vazio&quot; aqui) podem ficar realmente vazias no seu arquivo.
       </div>
     </div>
   );

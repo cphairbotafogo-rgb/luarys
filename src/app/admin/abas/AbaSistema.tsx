@@ -6,7 +6,7 @@ import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
 import {
   FiPlay, FiAlertTriangle, FiClock, FiCheckCircle,
-  FiRefreshCw, FiXCircle, FiPlusCircle, FiSliders,
+  FiRefreshCw, FiXCircle, FiSliders,
 } from 'react-icons/fi';
 
 interface TrialRow {

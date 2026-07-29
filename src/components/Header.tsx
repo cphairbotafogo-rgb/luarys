@@ -3,7 +3,7 @@ import { C } from "@/lib/constants";
 // Se o seu componente <Btn /> interno tiver conflitos com o Tailwind, 
 // o uso da tag <button> direta aqui garante a precisão do design.
 
-export function Header({ title, onNovoAgendamento, perfil }: any) {
+export function Header({ title, onNovoAgendamento }: any) {
   return (
     <header 
       className="flex items-center justify-between px-8 shrink-0 bg-white shadow-sm"

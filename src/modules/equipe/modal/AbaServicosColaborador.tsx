@@ -1,9 +1,9 @@
 'use client'
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { C } from "@/lib/constants";
 import { RAIO_XS, RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
 import { FiX, FiChevronDown, FiChevronRight, FiLayers, FiTag, FiPercent } from "react-icons/fi";
-import { labelStyle, inputStyle } from "./estilosCompartilhados";
+import { labelStyle } from "./estilosCompartilhados";
 
 type AgruparPor = 'setor' | 'categoria';
 
@@ -146,7 +146,7 @@ export function AbaServicosColaborador({
                 </div>
 
                 {/* Itens do grupo — grade fixa, sempre mesmo layout */}
-                {aberto && itens.map((servico: any, idx: number) => {
+                {aberto && itens.map((servico: any) => {
                   const habilitado = form.comissoes[servico.id] !== undefined;
                   return (
                     <div key={servico.id} style={{

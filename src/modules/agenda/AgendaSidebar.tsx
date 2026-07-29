@@ -1,6 +1,5 @@
 // src/modules/agenda/AgendaSidebar.tsx
 import { C } from "@/lib/constants";
-import { RAIO_MD } from "@/lib/estiloGlobal";
 import { COR_POR_STATUS } from "@/lib/agendaUtils";
 
 // Lista de status visíveis na legenda da sidebar

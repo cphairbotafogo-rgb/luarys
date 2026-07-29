@@ -195,7 +195,7 @@ export function AbaCatalogo() {
         <div style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "1px" }}>Planos</h2>
           <p style={{ color: C.textMuted, marginTop: 4, fontSize: 12 }}>
-            Preço e limite de profissionais por plano. Enterprise fica "Sob consulta" enquanto o preço estiver vazio.
+            Preço e limite de profissionais por plano. Enterprise fica &quot;Sob consulta&quot; enquanto o preço estiver vazio.
           </p>
         </div>
         <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -259,7 +259,7 @@ export function AbaCatalogo() {
         <div style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "1px" }}>Módulos Adicionais</h2>
           <p style={{ color: C.textMuted, marginTop: 4, fontSize: 12 }}>
-            Add-ons pagos por mês. "Ativo" controla se o módulo pode ser contratado pelos salões.
+            Add-ons pagos por mês. &quot;Ativo&quot; controla se o módulo pode ser contratado pelos salões.
           </p>
         </div>
         <Card style={{ padding: 0, overflow: "hidden" }}>

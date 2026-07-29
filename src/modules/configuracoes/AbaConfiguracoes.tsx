@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { RAIO_MD, RAIO_XL, RAIO_2XL, RAIO_LG, overlayModal, containerModal, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
+import { RAIO_MD, RAIO_XL, overlayModal, containerModal, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
-import { Btn, Card, Avatar } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { ConfiguracaoFinanceira } from "./ConfiguracaoFinanceira";
 import { ExportacaoContabil } from "./ExportacaoContabil";
 import { AbaConfigTaxas } from "./AbaConfigTaxas";
@@ -18,7 +18,7 @@ import { useGuardModulo } from "@/lib/useGuardModulo";
 import { BloqueioModulo } from "@/components/BloqueioModulo";
 import {
   FiBriefcase, FiClock, FiDollarSign, FiFileText, FiUser, FiLock,
-  FiMapPin, FiSave, FiTrash2, FiCheckCircle, FiX, FiPercent, FiMessageSquare, FiCreditCard, FiTrendingUp, FiGift, FiStar, FiShoppingBag
+  FiMapPin, FiSave, FiPercent, FiMessageSquare, FiCreditCard, FiTrendingUp, FiGift, FiStar, FiShoppingBag
 } from "react-icons/fi";
 import { ConfigVitrine } from "@/modules/portal/vitrine/ConfigVitrine";
 import { GavetaPromocoesVitrine } from "./GavetaPromocoesVitrine";

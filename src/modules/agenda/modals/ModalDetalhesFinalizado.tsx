@@ -5,7 +5,7 @@ import { verificarPinGerente } from '@/lib/verificarPinGerente';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_LG, RAIO_XL, RAIO_SM, overlayModal, containerModal, inputAdmin, labelPadrao } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
-import { FiX, FiCalendar, FiCreditCard, FiAlertTriangle, FiLock, FiCheckCircle, FiRefreshCw } from 'react-icons/fi';
+import { FiX, FiCalendar, FiAlertTriangle, FiLock, FiCheckCircle, FiRefreshCw } from 'react-icons/fi';
 
 const CORES_BANDEIRA: Record<string, { bg: string; color: string }> = {
   'Visa':             { bg: '#1A1F71', color: '#fff'    },

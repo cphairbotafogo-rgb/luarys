@@ -26,7 +26,7 @@ export function BannerAmbienteDemo({ perfil, onLimpo }: any) {
       await supabase.from('saloes').update({ ambiente_demo: false }).eq('id', perfil.salao_id);
 
       if (onLimpo) onLimpo();
-    } catch (e) {
+    } catch {
       // Mesmo se algo falhar, esconde o banner — não é uma operação crítica
     } finally {
       setLimpando(false);

@@ -122,7 +122,7 @@ export function GavetaFechamentoContabil({ perfil }: any) {
 
       <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: RAIO_LG, padding: 16, fontSize: 12, color: '#92400E', lineHeight: 1.6 }}>
         <strong>⚖️ Nota para o Contador:</strong> Os relatórios acima são baseados nos lançamentos registrados no sistema.
-        A separação ISS/ICMS depende da categorização correta dos lançamentos em "Serviços Prestados" e "Venda de Produtos".
+        A separação ISS/ICMS depende da categorização correta dos lançamentos em &quot;Serviços Prestados&quot; e &quot;Venda de Produtos&quot;.
         Comissões dedutíveis seguem a Lei nº 13.352/2016 (Lei Salão Parceiro).
         XMLs de NFS-e e NFC-e serão disponibilizados após integração com provedor fiscal homologado.
       </div>

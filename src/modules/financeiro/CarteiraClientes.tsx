@@ -138,7 +138,7 @@ export function CarteiraClientes({ perfil }: any) {
               <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.textMuted }}>
                 {busca ? "Nenhum cliente encontrado." : "Nenhum cliente com carteira cadastrada ainda."}
               </p>
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textLight }}>Clique em "Depositar" para registrar o primeiro saldo.</p>
+              <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textLight }}>Clique em &quot;Depositar&quot; para registrar o primeiro saldo.</p>
             </div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>

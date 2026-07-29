@@ -45,7 +45,7 @@ export default async function ContratoTratamentoDados() {
     <PaginaLegal titulo="Contrato de Tratamento de Dados (CTD/DPA)" atualizadoEm="22 de junho de 2026">
 
       <p style={SL.p}>
-        Este Contrato de Tratamento de Dados ("CTD" ou "DPA") é celebrado entre a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> ("Luarys" ou "Operador") e o salão ou estabelecimento que utiliza a plataforma Luarys ("Controlador"), nos termos da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
+        Este Contrato de Tratamento de Dados (&quot;CTD&quot; ou &quot;DPA&quot;) é celebrado entre a <strong>LUARYS SOFTWARE E SISTEMAS LTDA</strong>, CNPJ <strong>68.176.336/0001-43</strong> (&quot;Luarys&quot; ou &quot;Operador&quot;) e o salão ou estabelecimento que utiliza a plataforma Luarys (&quot;Controlador&quot;), nos termos da Lei Geral de Proteção de Dados Pessoais (LGPD — Lei 13.709/2018).
       </p>
       <p style={SL.p}>
         Este CTD é incorporado e forma parte integrante dos <a href="/termos" style={{ color: '#2C3643', fontWeight: 600 }}>Termos de Uso</a>. Ao aceitar os Termos de Uso, o Controlador também aceita as condições deste CTD.

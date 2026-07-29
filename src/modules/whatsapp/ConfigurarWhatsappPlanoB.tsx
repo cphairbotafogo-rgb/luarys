@@ -179,20 +179,20 @@ export function ConfigurarWhatsappPlanoB() {
           <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener" style={{ color: C.sidebarBg }}>
             developers.facebook.com/apps <FiExternalLink size={11} style={{ verticalAlign: 'middle' }} />
           </a>{' '}
-          → "Criar app" → tipo <strong>Business</strong> → associe ao seu portfólio de negócios Meta.
+          → &quot;Criar app&quot; → tipo <strong>Business</strong> → associe ao seu portfólio de negócios Meta.
         </Passo>
 
         <Passo n={2} titulo="Configure o produto WhatsApp no app">
-          Dentro do app → "Adicionar produto" → <strong>WhatsApp</strong> → "Configurar". Na aba "Introdução", a Meta já cria automaticamente um número de teste — anote o <strong>Phone Number ID</strong> e o <strong>WhatsApp Business Account ID (WABA ID)</strong> exibidos nessa tela.
+          Dentro do app → &quot;Adicionar produto&quot; → <strong>WhatsApp</strong> → &quot;Configurar&quot;. Na aba &quot;Introdução&quot;, a Meta já cria automaticamente um número de teste — anote o <strong>Phone Number ID</strong> e o <strong>WhatsApp Business Account ID (WABA ID)</strong> exibidos nessa tela.
         </Passo>
 
         <Passo n={3} titulo='Gere o token de System User permanente (passo crítico)'>
           No <strong>Meta Business Suite</strong> (business.facebook.com) do salão:<br />
           1. Menu lateral → <strong>Configurações</strong> → <strong>Usuários</strong> → <strong>Usuários do sistema</strong><br />
-          2. Clique em "Adicionar" → crie um usuário com função <strong>Administrador</strong><br />
-          3. Selecione o usuário criado → clique em <strong>"Gerar token"</strong><br />
+          2. Clique em &quot;Adicionar&quot; → crie um usuário com função <strong>Administrador</strong><br />
+          3. Selecione o usuário criado → clique em <strong>&quot;Gerar token&quot;</strong><br />
           4. Selecione o <strong>app Luarys</strong> e as permissões: <code>whatsapp_business_messaging</code>, <code>whatsapp_business_management</code><br />
-          5. Em <strong>"Expiração do token"</strong>: selecione <strong>Nunca</strong> (token permanente)<br />
+          5. Em <strong>&quot;Expiração do token&quot;</strong>: selecione <strong>Nunca</strong> (token permanente)<br />
           6. Copie o token gerado — ele só é exibido uma vez.
         </Passo>
 
@@ -224,7 +224,7 @@ export function ConfigurarWhatsappPlanoB() {
             style={inputSt}
           />
           <p style={{ margin: '4px 0 0', fontSize: 11, color: C.textLight }}>
-            Encontrado em: Meta for Developers → seu app → WhatsApp → Configuração → "De"
+            Encontrado em: Meta for Developers → seu app → WhatsApp → Configuração → &quot;De&quot;
           </p>
         </div>
 
@@ -247,7 +247,7 @@ export function ConfigurarWhatsappPlanoB() {
             </button>
           </div>
           <p style={{ margin: '4px 0 0', fontSize: 11, color: '#C97B3D', fontWeight: 600 }}>
-            Nunca cole o token temporário da aba "Introdução" do app. Use somente o token gerado via Usuários do Sistema com expiração "Nunca".
+            Nunca cole o token temporário da aba &quot;Introdução&quot; do app. Use somente o token gerado via Usuários do Sistema com expiração &quot;Nunca&quot;.
           </p>
         </div>
 

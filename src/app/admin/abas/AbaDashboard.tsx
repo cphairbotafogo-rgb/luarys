@@ -5,7 +5,7 @@ import { C, brl } from "@/lib/constants";
 import { RAIO_MD, RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { useToast } from "@/components/Toast";
-import { FiTrendingUp, FiUsers, FiXCircle, FiDollarSign, FiPlus, FiTrash2, FiSave } from "react-icons/fi";
+import { FiTrendingUp, FiUsers, FiDollarSign, FiPlus, FiTrash2, FiSave } from "react-icons/fi";
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────
 function KpiCard({ label, valor, sub, cor }: { label: string; valor: string; sub?: string; cor?: string }) {

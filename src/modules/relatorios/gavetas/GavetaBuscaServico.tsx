@@ -123,7 +123,7 @@ export function GavetaBuscaServico({ perfil, dados }: any) {
                     fontSize: 12, color: C.textMuted,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}>
-                    Nenhum serviço encontrado para "{b.buscaServico}".
+                    Nenhum serviço encontrado para &quot;{b.buscaServico}&quot;.
                   </div>
                 )}
               </>

@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { RAIO_MD, RAIO_2XL, overlayModal, containerModalPerigo, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
+import { RAIO_MD, overlayModal, containerModalPerigo, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
-import { FiX, FiDollarSign, FiCalendar, FiCheckCircle, FiLayers, FiRepeat, FiCreditCard } from "react-icons/fi";
+import { FiX, FiDollarSign, FiCalendar, FiCheckCircle, FiLayers, FiRepeat } from "react-icons/fi";
 
 // Sugestão automática de Fixo/Variável por categoria — só um ponto de
 // partida, sempre editável. "Outros" fica sem sugestão (null) porque é

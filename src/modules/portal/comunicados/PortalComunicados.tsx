@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/lib/constants";
-import { FiSpeaker, FiExternalLink, FiChevronRight } from "react-icons/fi";
-import { FONTE_TITULO, FONTE_CORPO, RAIO_LG, RAIO_MD } from "@/lib/estiloGlobal";
+import { FiSpeaker, FiChevronRight } from "react-icons/fi";
+import { FONTE_TITULO, FONTE_CORPO, RAIO_MD } from "@/lib/estiloGlobal";
 import { cardConteudo, eyebrow } from "../estiloPortal";
 
 interface Props {

@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { C } from "@/lib/constants";
 import { useToast } from "@/components/Toast";
 import { confirmarAcaoGlobal } from "@/components/ConfirmacaoGlobal";
 import { temPermissao } from "@/lib/permissoes";

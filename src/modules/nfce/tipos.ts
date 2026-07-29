@@ -6,7 +6,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
-import { cardAdmin, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
+import { cardAdmin, RAIO_MD } from '@/lib/estiloGlobal';
 
 // ─── ENUMS SEFAZ ──────────────────────────────────────────────────────────────
 

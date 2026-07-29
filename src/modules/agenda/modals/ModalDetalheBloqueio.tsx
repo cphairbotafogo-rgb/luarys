@@ -1,5 +1,4 @@
 'use client'
-import { C } from "@/lib/constants";
 import { RAIO_MD, overlayModal, containerModal } from "@/lib/estiloGlobal";
 import { FiX, FiClock, FiEdit3, FiTrash2 } from "react-icons/fi";
 import { TIPOS_BLOQUEIO } from "./ModalAusencia";

@@ -207,7 +207,7 @@ export function AbaServicos({ perfil }: any) {
           )}
           {servicos.length > 0 && categoriasUnicas.length === 0 && (
             <p style={{ color: C.textLight, fontStyle: "italic", fontSize: 14 }}>
-              Nenhum serviço encontrado para "{buscaCatalogo}". Confira se o nome foi salvo corretamente ao cadastrar.
+              Nenhum serviço encontrado para &quot;{buscaCatalogo}&quot;. Confira se o nome foi salvo corretamente ao cadastrar.
             </p>
           )}
           {categoriasUnicas.map(categoria => (
@@ -338,7 +338,7 @@ export function AbaServicos({ perfil }: any) {
             <div style={{ margin: "0 0 20px", padding: "14px 20px", background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: RAIO_MD, display: "flex", alignItems: "center", gap: 12 }}>
               <FiAlertTriangle size={18} color="#D97706" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: "#92400E", fontWeight: 600 }}>
-                {tributosLote.filter(t => !t.nbs).length} serviço(s) sem código NBS — a NFS-e não será emitida para estes serviços. Preencha o código federal abaixo e clique em "Salvar Toda a Lista".
+                {tributosLote.filter(t => !t.nbs).length} serviço(s) sem código NBS — a NFS-e não será emitida para estes serviços. Preencha o código federal abaixo e clique em &quot;Salvar Toda a Lista&quot;.
               </span>
               <button
                 onClick={() => {
@@ -436,7 +436,7 @@ export function AbaServicos({ perfil }: any) {
                 <FiClock size={20} /> Retorno Médio Esperado em Lote
               </h3>
               <p style={{ margin: "6px 0 0", fontSize: 12, color: C.textMuted }}>
-                De quanto em quanto tempo (em dias) o cliente costuma voltar pra repetir cada serviço. Usado pelo Luarys Cresce (card "Em Risco") pra avisar quando um cliente está demorando mais que o esperado.
+                De quanto em quanto tempo (em dias) o cliente costuma voltar pra repetir cada serviço. Usado pelo Luarys Cresce (card &quot;Em Risco&quot;) pra avisar quando um cliente está demorando mais que o esperado.
               </p>
             </div>
             <button onClick={salvarTodosRetorno} disabled={salvandoRetorno} style={{ background: C.success, color: "#fff", border: "none", padding: "12px 24px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: salvandoRetorno ? "not-allowed" : "pointer", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>

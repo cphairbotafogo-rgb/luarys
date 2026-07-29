@@ -20,7 +20,7 @@ function formatarTelefone(tel: string | null | undefined): string {
   if (!tel) return 'Sem telefone';
   const digits = tel.replace(/\D/g, '');
   // Remove prefixo 55 (código do Brasil)
-  let num = digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
+  const num = digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
   if (num.length === 11) return `+55 (${num.slice(0, 2)}) ${num.slice(2, 7)}-${num.slice(7)}`;
   if (num.length === 10) return `+55 (${num.slice(0, 2)}) ${num.slice(2, 6)}-${num.slice(6)}`;
   return tel.trim(); // fallback: exibe como está
@@ -85,11 +85,11 @@ export function AbaCRM({ perfil }: any) {
             /* Busca sem resultado */
             <div style={{ textAlign: 'center', padding: 60, color: C.textMuted }}>
               <FiSearch size={36} color={C.borderMid} style={{ marginBottom: 12 }} />
-              <h3 className="font-title" style={{ margin: '0 0 8px', color: C.textMain, fontSize: 15, fontWeight: 700 }}>Nenhum resultado para "{crm.busca}"</h3>
+              <h3 className="font-title" style={{ margin: '0 0 8px', color: C.textMain, fontSize: 15, fontWeight: 700 }}>Nenhum resultado para &quot;{crm.busca}&quot;</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13 }}>Verifique a grafia ou cadastre um novo cliente com esse nome.</p>
               <button onClick={crm.abrirNovoCliente}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', background: C.sidebarBg, color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                <FiPlus size={15} /> Cadastrar "{crm.busca}"
+                <FiPlus size={15} /> Cadastrar &quot;{crm.busca}&quot;
               </button>
             </div>
           ) : (

@@ -73,7 +73,7 @@ export function GavetaCaixaNaoBate({ perfil }: any) {
         <div style={{ flex: 1 }}>
           <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase" }}>Caixa Não Bate</h4>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>
-            Atendimentos marcados como <strong>Finalizado</strong> que nunca passaram pelo Fechamento de Caixa — ou seja, contam como serviço prestado, mas não geraram nenhum lançamento em Financeiro nem comissão. Pode ser um ajuste manual de status, ou um atendimento pago "por fora".
+            Atendimentos marcados como <strong>Finalizado</strong> que nunca passaram pelo Fechamento de Caixa — ou seja, contam como serviço prestado, mas não geraram nenhum lançamento em Financeiro nem comissão. Pode ser um ajuste manual de status, ou um atendimento pago &quot;por fora&quot;.
           </p>
         </div>
         <div>

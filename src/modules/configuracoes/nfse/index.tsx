@@ -91,7 +91,7 @@ export function ConfiguracaoNFSe({ perfil, onEmitirNotas }: Props) {
 
       {aba === 'estabelecimento' && <TabEstabelecimento perfil={perfil} />}
       {aba === 'configuracoes'   && <TabConfiguracoes   perfil={perfil} />}
-      {aba === 'informacoes'     && <TabInformacoesFiscais perfil={perfil} />}
+      {aba === 'informacoes'     && <TabInformacoesFiscais />}
       {aba === 'certificado'     && <TabCertificadoA1 perfil={perfil} />}
     </div>
   );

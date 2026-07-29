@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { C } from "@/lib/constants";
-import { RAIO_XL, RAIO_MD } from "@/lib/estiloGlobal";
+import { RAIO_XL } from "@/lib/estiloGlobal";
 import { FiInfo, FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import { inputStyle, labelStyle, switchStyle, switchCircleStyle } from "./estilosCompartilhados";
 import { IconeAjuda } from "@/components/IconeAjuda";

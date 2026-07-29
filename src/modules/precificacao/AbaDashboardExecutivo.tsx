@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { C } from '@/lib/constants';
 import { FiTrendingUp, FiTrendingDown, FiAlertTriangle, FiBarChart2 } from 'react-icons/fi';
-import { RAIO_MD, RAIO_XL, cardAdmin, FONTE_TITULO } from '@/lib/estiloGlobal';
+import { RAIO_MD, RAIO_XL, cardAdmin } from '@/lib/estiloGlobal';
 import { type ConfigCustos, type FormCalculo, brl, pct, classificarLucroHora } from './tipos';
 import { useDiagnosticoCatalogo } from './useDiagnosticoCatalogo';
 

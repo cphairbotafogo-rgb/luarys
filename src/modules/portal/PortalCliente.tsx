@@ -2,12 +2,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD } from '@/lib/estiloGlobal';
-import { inputStyle, botaoPrimarioStyle, cardStyle, labelStyle } from '@/lib/portalEstilos';
+import { botaoPrimarioStyle, cardStyle, labelStyle } from '@/lib/portalEstilos';
 import { EtapaLanding } from './portal/EtapaLanding';
 import { EtapaDados } from './portal/EtapaDados';
 import { UUID_RE, DIAS_SEMANA, MESES, gerarSlots, formatarData, isoParaLocal, hoje, addDias } from './portal/tipos';
 import type { Servico, Profissional, Salao, Etapa } from './portal/tipos';
-import { FiCalendar, FiClock, FiUser, FiChevronLeft, FiChevronRight, FiMapPin, FiInstagram, FiLoader, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
+import { FiClock, FiUser, FiChevronLeft, FiChevronRight, FiMapPin, FiLoader, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
 
 const wrapStyle = { minHeight: '100vh', background: '#F8FAFC', fontFamily: 'system-ui, sans-serif' };
 const container = { maxWidth: 680, margin: '0 auto', padding: '0 16px 80px' };
