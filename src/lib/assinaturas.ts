@@ -155,6 +155,7 @@ export async function registrarPagamentoAssinatura({
       status_assinatura: 'ativo',
       plano_aviso_enviado_em: null,
       plano_segundo_aviso_enviado_em: null,
+      cancelamento_agendado: false,
     };
 
     if (plano?.limite_profissionais != null) {

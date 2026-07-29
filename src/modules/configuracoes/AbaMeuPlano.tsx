@@ -51,7 +51,7 @@ export function AbaMeuPlano({ perfil }: any) {
       supabase.from('saloes').select('acesso_total, limite_profissionais, modulo_fiscal_liberado, api_whatsapp_liberada, plano_chave, plano_periodo, preco_legado, plano_renovacao_em, cancelamento_agendado, asaas_subscription_id').eq('id', perfil.salao_id).maybeSingle(),
       supabase.from('planos').select('chave, nome, descricao, limite_profissionais, preco_mensal, preco_anual, ordem').eq('ativo', true).order('ordem'),
       supabase.from('modulos_catalogo').select('chave, nome, descricao, preco_mensal, preco_anual, ativo').eq('ativo', true),
-      supabase.from('salao_modulos').select('modulo_chave, ativo, renovacao_em, cancelamento_agendado, periodo').eq('salao_id', perfil.salao_id).eq('ativo', true),
+      supabase.from('salao_modulos').select('modulo_chave, ativo, renovacao_em, cancelamento_agendado, periodo, asaas_subscription_id').eq('salao_id', perfil.salao_id).eq('ativo', true),
       supabase.from('profissionais').select('id', { count: 'exact', head: true }).eq('salao_id', perfil.salao_id).eq('ativo', true).eq('produtivo', true),
     ]);
 
@@ -198,6 +198,15 @@ export function AbaMeuPlano({ perfil }: any) {
   }
 
   async function reativarModulo(modulo: any) {
+    // "Cancelar" já apaga a subscription de verdade no Asaas (não tem como
+    // desfazer) — se ela já sumiu, a única forma de manter o módulo é
+    // assinar de novo, com confirmação de pagamento. Só quando o cancelamento
+    // no Asaas falhou (subscription ainda existe) é que basta desfazer a flag.
+    if (!modulo.asaas_subscription_id) {
+      const precoItem = precoEfetivo(modulo.preco_mensal, modulo.preco_anual, periodo);
+      await assinar(modulo.chave, modulo.nome, precoItem);
+      return;
+    }
     setProcessandoChave(modulo.chave);
     const { error } = await supabase.from('salao_modulos')
       .update({ cancelamento_agendado: false })
@@ -251,6 +260,14 @@ export function AbaMeuPlano({ perfil }: any) {
   }
 
   async function reativarPlano(plano: any) {
+    // Mesmo caso do módulo: "Cancelar" já apagou a subscription no Asaas, não
+    // tem como só desfazer — precisa assinar de novo. Preserva o preço
+    // legado (se houver) pra não cobrar mais do que o salão já pagava.
+    if (!salao?.asaas_subscription_id) {
+      const precoItem = salao?.preco_legado != null ? Number(salao.preco_legado) : precoEfetivo(plano.preco_mensal, plano.preco_anual, periodo);
+      await assinarPlano(plano.chave, plano.nome, precoItem);
+      return;
+    }
     setProcessandoChave(plano.chave);
     const { error } = await supabase.from('saloes')
       .update({ cancelamento_agendado: false })

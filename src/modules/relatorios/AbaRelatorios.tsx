@@ -137,7 +137,7 @@ export function AbaRelatorios({ perfil }: any) {
     'fechamento':            'Kit Fechamento Contábil',
     'aniversariantes':       'Aniversariantes',
     'auditoria':             'Log de Auditoria',
-    'cancelamentos':         'Cancelamentos Pós-Horário',
+    'cancelamentos':         'Cancelamentos Suspeitos',
     'caixanaobate':          'Caixa Não Bate',
     'alertasestorno':        'Alertas de Estorno',
     'capacidade':            'Capacidade e Ocupação',
