@@ -46,6 +46,7 @@ export async function lancarOS({ salaoId, formLancar, operadorNome }: Params): P
     status: 'Pago',
     data_movimentacao: new Date().toISOString(),
     cliente_nome: formLancar.cliente,
+    profissional_nome: operadorNome || null,
     comentario: `Lançado pela Frente de Caixa (${numeroOS})`
   }]);
 

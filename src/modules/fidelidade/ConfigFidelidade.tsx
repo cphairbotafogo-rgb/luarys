@@ -125,6 +125,29 @@ export function ConfigFidelidade({ perfil }: any) {
         </div>
       )}
 
+      {/* Taxa de conversão — quantos pontos o cliente ganha por real gasto */}
+      <div style={{ ...cardAdmin, padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <FiZap size={14} color={C.douradoEleva} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.textMain }}>Taxa de conversão — pontos por real gasto</span>
+        </div>
+        <p style={{ fontSize: 11, color: C.textLight, margin: '0 0 12px' }}>
+          Ao fechar a conta, o cliente ganha pontos automaticamente com base no valor total pago.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: C.textMuted }}>Cada R$ 1,00 gasto rende</span>
+          <input
+            type="number" min={0.01} step={0.1} value={config.pontos_por_real}
+            onChange={e => salvarTaxa(parseFloat(e.target.value))}
+            style={{ ...inputAdmin, width: 100 }}
+          />
+          <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700 }}>pontos</span>
+          <span style={{ fontSize: 11, color: C.textLight }}>
+            — Ex: R$ 100 gastos = {Math.floor(100 * (config.pontos_por_real || 0))} pontos
+          </span>
+        </div>
+      </div>
+
       {/* Resgate como desconto em reais */}
       <div style={{ ...cardAdmin, padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>

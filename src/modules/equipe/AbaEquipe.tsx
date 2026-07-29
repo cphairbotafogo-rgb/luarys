@@ -157,7 +157,6 @@ export function AbaEquipe({ perfil }: any) {
       emailAuth: prof.email_auth || prof.perfil_avancado?.email || '', // email real do Auth (não editável)
       genero: extras.genero || '', nascimento: extras.nascimento || '',
       senhaAcesso: '', foto_url: prof.foto_url || '',
-      temEmailAuth: !!(prof.email_auth || prof.perfil_avancado?.email || prof.email),
       exibir_na_agenda: prof.produtivo !== undefined && prof.produtivo !== null ? prof.produtivo : (extras.exibir_na_agenda !== undefined ? extras.exibir_na_agenda : true),
       ativo: prof.ativo !== false,
       folha_pagamento: { ...formVazio.folha_pagamento, ...(extras.folha_pagamento || {}) },

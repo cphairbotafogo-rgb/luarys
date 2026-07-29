@@ -419,7 +419,7 @@ export function AbaConfiguracoes({ perfil }: any) {
             <input type="password" style={{ ...inputStyle, padding: "14px", marginBottom: 20 }} placeholder="••••••••" value={senhaConfirmacao} onChange={e => setSenhaConfirmacao(e.target.value)} autoFocus onKeyDown={e => { if(e.key === 'Enter') confirmarSenhaESalvar(); }}/>
             
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={confirmarSenhaESalvar} className="font-title uppercase tracking-wider transition-all hover:opacity-90" style={{ flex: 2, background: C.sidebarBg, color: "#fff", border: "none", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={confirmarSenhaESalvar} disabled={salvando} className="font-title uppercase tracking-wider transition-all hover:opacity-90" style={{ flex: 2, background: C.sidebarBg, color: "#fff", border: "none", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: salvando ? "not-allowed" : "pointer", opacity: salvando ? 0.7 : 1 }}>
                 {verificandoSenha ? "A validar..." : "Confirmar"}
               </button>
               <button onClick={() => setModalSenhaAberto(false)} className="transition-all hover:bg-slate-50" style={{ flex: 1, padding: "12px 0", background: "transparent", color: C.textMain, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>

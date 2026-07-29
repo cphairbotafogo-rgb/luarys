@@ -27,7 +27,6 @@ export function AbaDadosGerais({ form, setForm, editandoId }: any) {
 
   const senhaValida = !form.senhaAcesso || form.senhaAcesso.length >= 6;
   const senhasBatem = !form.senhaAcesso || form.senhaAcesso === confirmSenha;
-  const temEmailAuth = !!editandoId && form.temEmailAuth; // flag passada pelo pai
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
