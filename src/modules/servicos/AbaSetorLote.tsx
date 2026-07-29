@@ -56,7 +56,7 @@ export function AbaSetorLote({ perfil, setorLote, setSetorLote, salvandoSetores,
     <>
     <div style={{ animation: 'fadeIn 0.2s ease-out', background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
 
-      <div style={{ padding: '24px 32px', borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '24px 32px', borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 8 }}>
             <FiUsers size={20} /> Edição de Setor em Lote

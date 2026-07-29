@@ -83,6 +83,7 @@ export function AlertasAniversario({
               <div key={cliente.id} style={{
                 background: 'rgba(255,255,255,0.7)', borderRadius: RAIO_MD,
                 padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                flexWrap: 'wrap', gap: 10,
               }}>
                 <div>
                   <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#78350F' }}>{cliente.nome_completo}</p>
@@ -145,6 +146,7 @@ export function AlertasAniversario({
               <div key={cliente.id} style={{
                 background: 'rgba(255,255,255,0.7)', borderRadius: RAIO_MD,
                 padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                flexWrap: 'wrap', gap: 10,
               }}>
                 <div>
                   <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#991B1B' }}>{cliente.nome_completo}</p>

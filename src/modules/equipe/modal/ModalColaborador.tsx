@@ -93,10 +93,10 @@ export function ModalColaborador({
           <p style={{ margin: "0 0 12px", fontSize: 10, color: C.textLight }}>
             <span style={{ color: '#EF4444', fontWeight: 900 }}>*</span> Campos obrigatórios — encontrados na aba <strong>Dados Gerais</strong>
           </p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" onClick={salvarProfissional} style={{ ...botaoPrimario, flex: 2, padding: "14px 0", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>{editandoId ? "Salvar Alterações da Ficha" : "Cadastrar Colaborador"}</button>
-          {editandoId && <button type="button" onClick={handleDeletar} style={{ flex: 1, padding: "14px 0", fontSize: 12, background: "transparent", color: C.danger, border: `1px solid #FECACA`, borderRadius: RAIO_MD, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, textTransform: "uppercase" }}><FiTrash2 size={14}/> Eliminar</button>}
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: "14px 0", fontSize: 13, background: "transparent", color: C.textMain, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <button type="submit" onClick={salvarProfissional} style={{ ...botaoPrimario, flex: "2 1 200px", padding: "14px 0", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>{editandoId ? "Salvar Alterações da Ficha" : "Cadastrar Colaborador"}</button>
+          {editandoId && <button type="button" onClick={handleDeletar} style={{ flex: "1 1 120px", padding: "14px 0", fontSize: 12, background: "transparent", color: C.danger, border: `1px solid #FECACA`, borderRadius: RAIO_MD, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, textTransform: "uppercase" }}><FiTrash2 size={14}/> Eliminar</button>}
+          <button type="button" onClick={onClose} style={{ flex: "1 1 120px", padding: "14px 0", fontSize: 13, background: "transparent", color: C.textMain, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
         </div>
         </div>
 

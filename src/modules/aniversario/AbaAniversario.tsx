@@ -78,7 +78,7 @@ export function AbaAniversario({ perfil, setAba }: any) {
   }
 
   return (
-    <div style={{ padding: 32, overflowY: 'auto', flex: 1, background: C.bg }}>
+    <div className="p-4 sm:p-8" style={{ overflowY: 'auto', flex: 1, background: C.bg }}>
 
       {/* ── Cabeçalho ────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
@@ -125,6 +125,7 @@ export function AbaAniversario({ perfil, setAba }: any) {
                   background: C.bgCard, border: `1px solid ${C.border}`,
                   borderRadius: RAIO_XL, padding: '14px 20px',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
+                  flexWrap: 'wrap',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                     <div style={{

@@ -132,18 +132,18 @@ export function AbaServicos({ perfil }: any) {
   }
 
   const inputStyle = { padding:"10px 14px", borderRadius: RAIO_MD, border:`1px solid ${C.borderMid}`, width:"100%", boxSizing:"border-box" as const, outlineColor: C.sidebarBg, fontSize: 13, color: C.textMain, backgroundColor: C.bgCard, fontWeight: 500 };
-  const tabBtnStyle = (ativa: boolean) => ({ display: "flex", alignItems: "center", gap: 8, padding: "14px 20px", fontSize: 11, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: ativa ? `2px solid ${C.sidebarBg}` : "2px solid transparent", color: ativa ? C.sidebarBg : C.textLight, fontFamily: FONTE_TITULO, textTransform: "uppercase" as const, letterSpacing: "0.5px", transition: "all 0.2s" });
+  const tabBtnStyle = (ativa: boolean) => ({ display: "flex", alignItems: "center", gap: 8, padding: "14px 20px", fontSize: 11, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: ativa ? `2px solid ${C.sidebarBg}` : "2px solid transparent", color: ativa ? C.sidebarBg : C.textLight, fontFamily: FONTE_TITULO, textTransform: "uppercase" as const, letterSpacing: "0.5px", transition: "all 0.2s", whiteSpace: "nowrap" as const, flexShrink: 0 });
 
   if (carregando) return <div style={{ padding: 40, color: C.textLight, fontWeight: 700, textAlign: "center" }}>A sincronizar catálogo e preços...</div>;
 
   return (
-    <div style={{ padding: 32, overflowY: "auto", flex: 1, background: C.bg }}>
-      
+    <div className="p-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg }}>
+
       <datalist id="nbs-lista-completa">
         {NBS_COMPLETA.map(n => <option key={n.nbs} value={n.nbs}>{n.descricao}</option>)}
       </datalist>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <FiScissors size={24} color={C.sidebarBg} />
           <div>
@@ -158,7 +158,7 @@ export function AbaServicos({ perfil }: any) {
         )}
       </div>
 
-      <div style={{ display: "flex", borderBottom: `1px solid ${C.borderMid}`, marginBottom: 32, gap: 4 }}>
+      <div style={{ display: "flex", borderBottom: `1px solid ${C.borderMid}`, marginBottom: 32, gap: 4, overflowX: "auto" }}>
         <button style={tabBtnStyle(subAba === 'catalogo')} onClick={() => setSubAba('catalogo')}><FiList size={16} /> Lista do Catálogo</button>
         <button style={tabBtnStyle(subAba === 'reajuste')} onClick={() => setSubAba('reajuste')}><FiTrendingUp size={16} /> Reajuste em Lote</button>
         <button style={tabBtnStyle(subAba === 'tributacao')} onClick={() => setSubAba('tributacao')}><FiShield size={16} /> Edição Rápida Fiscal</button>
@@ -216,7 +216,8 @@ export function AbaServicos({ perfil }: any) {
                 <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: "1px" }}>{categoria}</h3>
                 <span style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 10, padding: "2px 8px", borderRadius: RAIO_XL, fontWeight: 700 }}>{servicosAgrupados[categoria].length}</span>
               </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="overflow-x-auto">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: 700 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${C.borderMid}`, background: C.bg }}>
                     <th style={{ padding: "12px 20px", fontSize: 10, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Serviço</th>
@@ -271,6 +272,7 @@ export function AbaServicos({ perfil }: any) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ))}
         </div>
@@ -279,11 +281,11 @@ export function AbaServicos({ perfil }: any) {
       {/* ================= ABA 2: REAJUSTE EM LOTE ================= */}
       {subAba === 'reajuste' && (
         <div style={{ animation: "fadeIn 0.2s ease-out" }}>
-          <div style={{ background: C.bgCard, border: `1px solid ${C.sidebarBg}`, borderRadius: RAIO_XL, padding: "24px", marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ background: C.bgCard, border: `1px solid ${C.sidebarBg}`, borderRadius: RAIO_XL, padding: "24px", marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase" }}><FiCheckSquare size={16}/> {selecionados.length} Item(ns) Selecionado(s)</h4>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <div style={{ display: "flex", border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, overflow: "hidden" }}>
                 <button onClick={() => setReajusteTipo('aumento')} style={{ background: reajusteTipo === 'aumento' ? C.sidebarBg : C.bgCard, color: reajusteTipo === 'aumento' ? "#fff" : C.textMain, border: "none", padding: "12px 16px", cursor: "pointer", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}><FiArrowUpRight size={14} className="inline mr-1"/> Aumentar</button>
                 <button onClick={() => setReajusteTipo('desconto')} style={{ background: reajusteTipo === 'desconto' ? C.sidebarBg : C.bgCard, color: reajusteTipo === 'desconto' ? "#fff" : C.textMain, border: "none", borderLeft: `1px solid ${C.borderMid}`, padding: "12px 16px", cursor: "pointer", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}><FiArrowDownRight size={14} className="inline mr-1"/> Descontar</button>
@@ -324,7 +326,7 @@ export function AbaServicos({ perfil }: any) {
       {/* ================= ABA 3: EDIÇÃO RÁPIDA FISCAL ================= */}
       {subAba === 'tributacao' && (
         <div style={{ animation: "fadeIn 0.2s ease-out", background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-          <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
                 <FiShield size={20} /> Edição Rápida de Tributação (NFS-e)
@@ -430,7 +432,7 @@ export function AbaServicos({ perfil }: any) {
       {/* ================= ABA 5: RETORNO EM LOTE ================= */}
       {subAba === 'retorno' && (
         <div style={{ animation: "fadeIn 0.2s ease-out", background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-          <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.borderMid}`, background: C.bg, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}>
                 <FiClock size={20} /> Retorno Médio Esperado em Lote

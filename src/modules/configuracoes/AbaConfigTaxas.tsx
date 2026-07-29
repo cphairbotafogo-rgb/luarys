@@ -132,10 +132,10 @@ export function AbaConfigTaxas({ perfil }: any) {
   if (carregando) return <div style={{ padding: 40, color: C.textLight, fontWeight: 700 }}>Carregando configurações de taxas...</div>;
 
   return (
-    <div style={{ padding: 32, maxWidth: 1000, margin: "0 auto" }} className="font-body">
+    <div className="font-body px-4 sm:px-8" style={{ paddingTop: 32, paddingBottom: 32, maxWidth: 1000, margin: "0 auto" }}>
 
       {/* ─── CABEÇALHO ─── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div>
           <h2 className="font-title uppercase tracking-widest" style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 10 }}>
             <FiPercent size={24} /> Taxas e Parcelamentos
@@ -158,7 +158,7 @@ export function AbaConfigTaxas({ perfil }: any) {
         <h3 className="font-title uppercase tracking-widest" style={{ margin: "0 0 20px", fontSize: 13, fontWeight: 800, color: C.textMain, display: "flex", alignItems: "center", gap: 8 }}>
           <FiSettings size={16} /> Configurações Gerais
         </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 24 }}>
           <div>
             <label style={labelStyle}>Limite Máximo de Parcelas Permitido</label>
             <select style={{...inputStyle, textAlign: "left", cursor: "pointer"}} value={maxParcelas} onChange={e => setMaxParcelas(Number(e.target.value))}>
@@ -233,7 +233,7 @@ export function AbaConfigTaxas({ perfil }: any) {
 
         {/* Painel da Bandeira Ativa */}
         {bandeiraAtiva && taxas[bandeiraAtiva] && (
-          <div style={{ padding: 32 }}>
+          <div className="p-4 sm:p-8">
 
             {/* Header: tipo + ativo toggle + remover */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, paddingBottom: 16, borderBottom: `1px dashed ${C.borderMid}`, flexWrap: "wrap", gap: 12 }}>
@@ -273,7 +273,7 @@ export function AbaConfigTaxas({ perfil }: any) {
             </div>
 
             {/* Débito */}
-            <div style={{ marginBottom: 24, width: "30%" }}>
+            <div style={{ marginBottom: 24, width: "100%", maxWidth: 220 }}>
               <label style={labelStyle}>Débito (%) — {bandeiraAtiva}</label>
               <div style={{ position: "relative" }}>
                 <input type="number" step="0.01" style={inputPercent} value={taxas[bandeiraAtiva]?.debito || ""} onChange={e => handleTaxaChange(bandeiraAtiva, 'debito', e.target.value)} />
@@ -284,7 +284,7 @@ export function AbaConfigTaxas({ perfil }: any) {
             <hr style={{ border: "none", borderTop: `1px dashed ${C.borderMid}`, margin: "0 0 24px" }} />
             <h4 style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 800, color: C.textMuted, textTransform: "uppercase" }}>Crédito (Até {maxParcelas}x)</h4>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 16 }}>
               {Array.from({ length: maxParcelas }, (_, i) => i + 1).map(num => (
                 <div key={num}>
                   <label style={labelStyle}>{num}x {num === 1 ? 'à Vista' : 'Parcelado'} (%)</label>

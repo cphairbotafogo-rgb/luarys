@@ -179,7 +179,7 @@ export function GavetaBalanco({ dados, perfil }: any) {
     <div className="font-body" style={{ height: '100%', overflowY: 'auto' }}>
 
       {/* CABEÇALHO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h2 className="font-title uppercase tracking-widest"
             style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.sidebarBg }}>

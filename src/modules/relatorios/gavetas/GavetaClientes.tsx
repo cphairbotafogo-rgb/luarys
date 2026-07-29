@@ -90,6 +90,7 @@ export function GavetaClientes({ dados }: { dados: any }) {
   );
 
   const tabela = (lista: typeof calc.frequentes, colExtra: { label: string; fn: (c: (typeof calc.frequentes)[0]) => string }) => (
+    <div className="overflow-x-auto">
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ background: C.bg }}>
@@ -116,6 +117,7 @@ export function GavetaClientes({ dados }: { dados: any }) {
         )}
       </tbody>
     </table>
+    </div>
   );
 
   return (

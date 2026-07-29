@@ -37,7 +37,7 @@ export function AbaLancamentos({ transacoes, onSelecionarTransacao }: Props) {
     <>
       {/* Tabela principal */}
       <div style={{ background: C.bgCard, borderRadius: RAIO_2XL, border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-        <div className="font-title uppercase tracking-widest" style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 1.5fr 1fr', background: C.bg, padding: '16px 24px', borderBottom: `1px solid ${C.borderMid}`, fontSize: 10, fontWeight: 700, color: C.textLight }}>
+        <div className="font-title uppercase tracking-widest hidden sm:grid sm:grid-cols-[1fr_3fr_1.5fr_1fr]" style={{ background: C.bg, padding: '16px 24px', borderBottom: `1px solid ${C.borderMid}`, fontSize: 10, fontWeight: 700, color: C.textLight }}>
           <div>Data e Status</div>
           <div>Descrição / Profissional / Pgto</div>
           <div>Categoria</div>
@@ -55,8 +55,8 @@ export function AbaLancamentos({ transacoes, onSelecionarTransacao }: Props) {
             const badge  = badgePagamento(t.forma_pagamento || '');
             const alerta = diasVencimento(t);
             return (
-              <div key={t.id} onClick={() => onSelecionarTransacao(t)} className="transition-all hover:bg-slate-50"
-                style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 1.5fr 1fr', padding: '16px 24px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${C.border}`, alignItems: 'center', cursor: 'pointer', borderLeft: alerta.tipo === 'atrasado' ? '3px solid #EF4444' : alerta.tipo === 'proximo' ? '3px solid #F59E0B' : 'none' }}
+              <div key={t.id} onClick={() => onSelecionarTransacao(t)} className="transition-all hover:bg-slate-50 grid grid-cols-1 sm:grid-cols-[1fr_3fr_1.5fr_1fr] sm:items-center"
+                style={{ padding: '16px 24px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${C.border}`, gap: 8, cursor: 'pointer', borderLeft: alerta.tipo === 'atrasado' ? '3px solid #EF4444' : alerta.tipo === 'proximo' ? '3px solid #F59E0B' : 'none' }}
                 title="Clique para ver detalhes, editar ou estornar">
                 <div>
                   <strong style={{ fontSize: 12, color: C.textMain, display: 'block', fontWeight: 600 }}>
@@ -112,12 +112,12 @@ export function AbaLancamentos({ transacoes, onSelecionarTransacao }: Props) {
               {estornos.length} registro{estornos.length > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="font-title uppercase tracking-widest" style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 1.5fr 1fr', background: '#FEF2F2', padding: '10px 24px', borderBottom: '1px solid #FECACA', fontSize: 9, fontWeight: 700, color: '#991B1B' }}>
+          <div className="font-title uppercase tracking-widest hidden sm:grid sm:grid-cols-[1fr_3fr_1.5fr_1fr]" style={{ background: '#FEF2F2', padding: '10px 24px', borderBottom: '1px solid #FECACA', fontSize: 9, fontWeight: 700, color: '#991B1B' }}>
             <div>Data</div><div>Descrição / Motivo</div><div>Categoria</div><div style={{ textAlign: 'right' }}>Valor</div>
           </div>
           {estornos.map((t, i, arr) => (
-            <div key={t.id} onClick={() => onSelecionarTransacao(t)} className="transition-all hover:bg-red-50"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 1.5fr 1fr', padding: '14px 24px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid #FEE2E2', alignItems: 'center', cursor: 'pointer' }}>
+            <div key={t.id} onClick={() => onSelecionarTransacao(t)} className="transition-all hover:bg-red-50 grid grid-cols-1 sm:grid-cols-[1fr_3fr_1.5fr_1fr] sm:items-center"
+              style={{ padding: '14px 24px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid #FEE2E2', gap: 6, cursor: 'pointer' }}>
               <div>
                 <strong style={{ fontSize: 12, color: C.textMain, display: 'block', fontWeight: 600 }}>{new Date(t.data_movimentacao).toLocaleDateString('pt-BR')}</strong>
                 <span className="font-title uppercase tracking-widest" style={{ fontSize: 9, fontWeight: 700, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>

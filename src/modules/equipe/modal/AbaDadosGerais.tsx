@@ -75,7 +75,7 @@ export function AbaDadosGerais({ form, setForm, editandoId }: any) {
 
       {/* ── CREDENCIAIS DE ACESSO ──────────────────────────────────────── */}
       <div style={{ background: C.bg, padding: 20, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <div>
             <h4 style={{ margin: 0, fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: C.sidebarBg, letterSpacing: "0.5px" }}>
               Credenciais de Acesso ao Sistema
