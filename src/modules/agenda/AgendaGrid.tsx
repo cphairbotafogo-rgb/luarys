@@ -13,6 +13,7 @@ import { converterParaMinutos, corPorStatus } from '@/lib/agendaUtils';
 import { MSG_ZAP_PADRAO } from '@/lib/mensagensPadrao';
 import { TooltipAgendamento } from '@/modules/agenda/TooltipAgendamento';
 import { MenuContextoAgendamento } from '@/modules/agenda/modals/MenuContextoAgendamento';
+import { useEhMobile } from '@/lib/useEhMobile';
 
 export function AgendaGrid({
   gridScrollRef,
@@ -49,6 +50,11 @@ export function AgendaGrid({
   dadosSalao,
   perfil,
 }: any) {
+  // No celular, colunas na largura de desktop (140-260px) deixam quase nenhum
+  // profissional visível de uma vez. Cabeçalho e coluna encolhem — o scroll
+  // horizontal continua existindo, só mostra mais gente por tela.
+  const ehMobile = useEhMobile();
+  const larguraColunaEfetiva = ehMobile ? Math.min(LARGURA_COLUNA, 130) : LARGURA_COLUNA;
 
   // ── Tooltip state ───────────────────────────────────────────────────────────
   const [tooltip, setTooltip] = useState<{
@@ -132,10 +138,10 @@ export function AgendaGrid({
         ag,
         screenY: rect.top,
         screenX: rect.right + 8,   // aparece à direita do card
-        larguraColuna: LARGURA_COLUNA,
+        larguraColuna: larguraColunaEfetiva,
       });
     }, 600);
-  }, [LARGURA_COLUNA]);
+  }, [larguraColunaEfetiva]);
 
   const handleMouseLeaveCard = useCallback(() => {
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
@@ -191,8 +197,8 @@ export function AgendaGrid({
     >
 
       {/* COLUNA DE HORÁRIOS */}
-      <div style={{ width: 65, flexShrink: 0, borderRight: `1px solid ${C.borderMid}`, position: 'sticky', left: 0, background: C.bgCard, zIndex: 10 }}>
-        <div style={{ height: 60, borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, position: 'sticky', top: 0, zIndex: 20 }} />
+      <div style={{ width: ehMobile ? 48 : 65, flexShrink: 0, borderRight: `1px solid ${C.borderMid}`, position: 'sticky', left: 0, background: C.bgCard, zIndex: 10 }}>
+        <div style={{ height: ehMobile ? 46 : 60, borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, position: 'sticky', top: 0, zIndex: 20 }} />
         <div style={{ position: 'relative', height: (HORA_FIM - HORA_INICIO + 1) * ALTURA_HORA }}>
           {horasDoDia.map((h: number) => (
             <div key={h} style={{ height: ALTURA_HORA, borderBottom: `1px solid ${C.borderMid}`, position: 'relative', color: C.textLight, fontSize: 12, fontWeight: 700 }}>
@@ -229,20 +235,20 @@ export function AgendaGrid({
 
         {profissionaisFiltrados
           .map((prof: any) => (
-            <div key={prof.id} style={{ flex: 1, minWidth: LARGURA_COLUNA, borderRight: `1px solid ${C.borderMid}`, position: 'relative' }}>
+            <div key={prof.id} style={{ flex: 1, minWidth: larguraColunaEfetiva, borderRight: `1px solid ${C.borderMid}`, position: 'relative' }}>
 
               {/* Cabeçalho da coluna */}
-              <div style={{ height: 60, borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, position: 'sticky', top: 0, zIndex: 15, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
+              <div style={{ height: ehMobile ? 46 : 60, borderBottom: `1px solid ${C.borderMid}`, background: C.bgCard, position: 'sticky', top: 0, zIndex: 15, display: 'flex', alignItems: 'center', gap: ehMobile ? 6 : 10, padding: ehMobile ? '0 8px' : '0 16px' }}>
                 {prof.foto_url ? (
-                  <img src={prof.foto_url} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} alt="Avatar" />
+                  <img src={prof.foto_url} style={{ width: ehMobile ? 26 : 36, height: ehMobile ? 26 : 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} alt="Avatar" />
                 ) : (
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800 }}>
+                  <div style={{ width: ehMobile ? 26 : 36, height: ehMobile ? 26 : 36, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: ehMobile ? 11 : 14, fontWeight: 800, flexShrink: 0 }}>
                     {prof.nome.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: C.charcoal }}>{prof.nome}</p>
-                  <p style={{ margin: 0, fontSize: 11, color: C.textLight }}>{prof.perfil_avancado?.contrato?.funcao || 'Equipe'}</p>
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <p style={{ margin: 0, fontSize: ehMobile ? 11 : 13, fontWeight: 800, color: C.charcoal, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prof.nome}</p>
+                  {!ehMobile && <p style={{ margin: 0, fontSize: 11, color: C.textLight }}>{prof.perfil_avancado?.contrato?.funcao || 'Equipe'}</p>}
                 </div>
               </div>
 

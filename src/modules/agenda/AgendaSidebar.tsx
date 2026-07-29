@@ -1,5 +1,6 @@
 // src/modules/agenda/AgendaSidebar.tsx
 'use client'
+import { useEffect, useRef } from "react";
 import { C } from "@/lib/constants";
 import { COR_POR_STATUS } from "@/lib/agendaUtils";
 import { useEhMobile } from "@/lib/useEhMobile";
@@ -29,6 +30,17 @@ export function AgendaSidebar({
   // inutilizável — 260px de legenda tomam quase toda a tela de 375px. No
   // celular ela vira uma gaveta que desliza por cima, como o menu principal.
   const ehMobile = useEhMobile();
+
+  // `sidebarAberta` nasce true (padrão desktop, empurra a grade). No celular
+  // isso viraria uma gaveta já aberta cobrindo a agenda ao entrar na tela —
+  // fecha uma vez, assim que detecta o celular, sem brigar com o toggle manual depois.
+  const jaFechouAoDetectarMobile = useRef(false);
+  useEffect(() => {
+    if (ehMobile && !jaFechouAoDetectarMobile.current) {
+      jaFechouAoDetectarMobile.current = true;
+      setSidebarAberta?.(false);
+    }
+  }, [ehMobile, setSidebarAberta]);
 
   const conteudo = (
     <div style={{ width: 260 }}>
