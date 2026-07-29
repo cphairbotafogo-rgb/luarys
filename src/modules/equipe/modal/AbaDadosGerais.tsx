@@ -54,14 +54,14 @@ export function AbaDadosGerais({ form, setForm, editandoId }: any) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
         <div>
           <label style={lbFlex}>Nome Completo <Obrig /></label>
           <input style={inputStyle} value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} />
         </div>
         <div><label style={labelStyle}>Apelido / Nome Social</label><input style={inputStyle} value={form.apelido} onChange={e => setForm({ ...form, apelido: e.target.value })} /></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
         <div>
           <label style={lbFlex}>
             CPF <Obrig />
@@ -98,7 +98,7 @@ export function AbaDadosGerais({ form, setForm, editandoId }: any) {
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
           {/* E-mail */}
           <div>
             <label style={{ ...lbFlex, color: C.sidebarBg }}>
@@ -193,7 +193,7 @@ export function AbaDadosGerais({ form, setForm, editandoId }: any) {
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
         <div><label style={labelStyle}>Telefone / WhatsApp</label><input style={inputStyle} value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} /></div>
         <div><label style={labelStyle}>Data de Nascimento</label><input type="date" style={inputStyle} value={form.nascimento} onChange={e => setForm({ ...form, nascimento: e.target.value })} /></div>
       </div>

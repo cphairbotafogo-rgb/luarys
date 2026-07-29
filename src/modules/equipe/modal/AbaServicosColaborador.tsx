@@ -115,7 +115,7 @@ export function AbaServicosColaborador({
             return (
               <div key={nomeGrupo} style={{ borderTop: gi === 0 ? "none" : `1px solid ${C.borderMid}` }}>
                 {/* Cabeçalho do grupo */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", background: `${C.sidebarBg}08`, cursor: "pointer" }}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", background: `${C.sidebarBg}08`, cursor: "pointer", flexWrap: "wrap" }}
                   onClick={() => toggleGrupo(nomeGrupo)}>
                   {aberto ? <FiChevronDown size={13} color={C.sidebarBg} /> : <FiChevronRight size={13} color={C.sidebarBg} />}
                   <input type="checkbox" ref={checkRef} checked={todosHab}

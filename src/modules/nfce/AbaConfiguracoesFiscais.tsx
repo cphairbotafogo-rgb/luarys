@@ -30,7 +30,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             1. Identificação e Tributação
           </h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={S.label}>Ambiente da Sefaz *</label>
               <select style={S.input} value={state.config?.ambiente || '2'} onChange={e => dispatch({ type: 'CFG', p: { ambiente: e.target.value } })}>
@@ -46,7 +46,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={S.label}>Nome Fantasia</label>
               <input style={S.inputBloqueado} value={state.dadosMatriz?.nome_fantasia || 'Não preenchido'} disabled />
@@ -57,7 +57,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <div>
               <label style={S.label}>CNPJ da Empresa</label>
               <input style={S.inputBloqueado} value={state.dadosMatriz?.cnpj || 'Não preenchido'} disabled />
@@ -84,7 +84,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
           <p style={{ margin: '0 0 16px', fontSize: 11, color: C.textMuted }}>
             Define se a NFC-e é emitida sozinha ao finalizar a venda de produtos no Caixa, ou se fica em rascunho para você aprovar em lote.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             {(['Automático', 'Lote Manual'] as const).map(val => (
               <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '12px 16px', borderRadius: RAIO_MD, border: `1px solid ${(state.config?.modo_emissao || 'Lote Manual') === val ? C.sidebarBg : C.borderMid}`, background: (state.config?.modo_emissao || 'Lote Manual') === val ? C.bg : 'transparent' }}>
                 <input type="radio" name="modo_emissao_nfce" value={val} checked={(state.config?.modo_emissao || 'Lote Manual') === val} onChange={() => dispatch({ type: 'CFG', p: { modo_emissao: val } })} style={{ accentColor: C.sidebarBg }} />
@@ -107,7 +107,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
           <p style={{ margin: '0 0 16px', fontSize: 11, color: C.textMuted }}>
             O Código de Segurança do Contribuinte (CSC) é fornecido pelo portal da SEFAZ do seu estado.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <div>
               <label style={S.label}>ID do Token (CSC) *</label>
               <input style={S.input} placeholder="Ex: 000001" maxLength={6} value={state.config?.csc_id || ''}
@@ -128,7 +128,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             3. Localização Fiscal
           </h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginBottom: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={S.label}>CEP</label>
               <input style={S.inputBloqueado} value={state.dadosMatriz?.cep || 'Não preenchido'} disabled />
@@ -139,7 +139,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: 16, marginBottom: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16, marginBottom: 16 }}>
             <div>
               <label style={S.label}>Número</label>
               <input style={S.inputBloqueado} value={state.dadosMatriz?.numero || 'S/N'} disabled />
@@ -154,7 +154,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
             <div>
               <label style={S.label}>UF</label>
               <input style={S.inputBloqueado} value={state.dadosMatriz?.estado || 'Não preenchido'} disabled />

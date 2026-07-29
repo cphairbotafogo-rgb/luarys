@@ -273,7 +273,7 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             <div>
               <label style={labelSt}>Regime Tributário</label>
               <select value={regime} onChange={e => setRegime(e.target.value)} style={{ ...inputAdmin }}>

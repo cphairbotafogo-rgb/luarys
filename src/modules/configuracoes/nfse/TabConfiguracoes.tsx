@@ -103,7 +103,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
       {/* PARÂMETROS FISCAIS */}
       <div style={card}>
         <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Parâmetros Fiscais</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
@@ -169,7 +169,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 24, marginTop: 20, padding: '16px 0 0', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', gap: 24, marginTop: 20, padding: '16px 0 0', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
           {CHECKS.map(({ key, label }) => (
             <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.textMain }}>
               <input type="checkbox" checked={cfg[key] as boolean} onChange={e => up(key, e.target.checked)}
@@ -181,7 +181,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
       </div>
 
       {/* REGIME + MODO */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
         <div style={card}>
           <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Regime Tributário</h3>
           <select style={inputAdmin} value={cfg.regime_tributario} onChange={e => up('regime_tributario', e.target.value)}>

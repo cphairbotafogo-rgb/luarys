@@ -304,7 +304,7 @@ export function ModalComparacaoPreco({ servico, config, form, onClose, onSalvarP
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: 12 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12 }}>
               <div>
                 <label style={{ ...labelMiniStyle, display: 'block', marginBottom: 6 }}>Código Federal (NBS) *</label>
                 <input style={inputMiniStyle} value={nbs} onChange={e => setNbs(e.target.value.replace(/\D/g, ''))} placeholder="Ex: 126021000" maxLength={9} />

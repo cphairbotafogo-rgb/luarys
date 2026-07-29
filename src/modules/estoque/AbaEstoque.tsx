@@ -168,8 +168,8 @@ export function AbaEstoque({ perfil }: any) {
   if (carregando) return <div style={{ padding: 28, color: C.sidebarBg, fontWeight: 800 }}>Contando o estoque...</div>;
 
   return (
-    <div style={{ padding: 28, overflowY: "auto", flex: 1, background: C.bg }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+    <div className="p-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.sidebarBg }}>Armazém Inteligente</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textLight }}>Gestão de Mega Hairs, produtos e fornecedores.</p>
@@ -190,7 +190,7 @@ export function AbaEstoque({ perfil }: any) {
 
       {abaAtiva === 'prateleira' && (
         <div style={{ animation: "fadeIn 0.3s ease-out" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16, marginBottom: 24 }}>
             <Card style={{ padding: 20 }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase" }}>Total de Itens</p>
               <p style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 900, color: C.textMain }}>{produtos.length}</p>
@@ -207,8 +207,8 @@ export function AbaEstoque({ perfil }: any) {
             </Card>
           </div>
 
-          <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Procurar produto..." style={{ ...inputAdmin, maxWidth: 300 }} />
+          <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Procurar produto..." style={{ ...inputAdmin, maxWidth: 300, flex: "1 1 200px" }} />
             <select value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} style={{ ...inputAdmin, maxWidth: 200, cursor: "pointer" }}>
               <option value="">Todas as Categorias</option>
               <option value="Mega Hair">Mega Hair</option>

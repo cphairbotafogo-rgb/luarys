@@ -190,7 +190,7 @@ export function AbaConfiguracoes({ perfil }: any) {
   if (carregando) return <div className="flex h-full w-full items-center justify-center font-title uppercase tracking-widest font-bold text-sm" style={{ color: C.textLight }}>A carregar configurações administrativas... ⏳</div>;
 
   return (
-    <div className="font-body" style={{ padding: 32, overflowY: "auto", flex: 1, background: C.bg, position: "relative" }}>
+    <div className="font-body p-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg, position: "relative" }}>
       
       <div style={{ marginBottom: 32 }}>
         <h2 className="font-title uppercase tracking-widest" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.sidebarBg }}>Configurações do Sistema</h2>
@@ -254,7 +254,7 @@ export function AbaConfiguracoes({ perfil }: any) {
           <form onSubmit={solicitarSenhaDeSeguranca} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <Card className="shadow-sm" style={{ padding: 32, background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.sidebarBg}` }}>
               
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
                 <div><label style={labelStyle}>Nome Fantasia *</label><input style={inputStyle} required value={formSalao.nome_fantasia} onChange={e => setFormSalao({...formSalao, nome_fantasia: e.target.value})} /></div>
                 <div><label style={labelStyle}>Razão Social</label><input style={inputStyle} value={formSalao.razao_social} onChange={e => setFormSalao({...formSalao, razao_social: e.target.value})} /></div>
               </div>
@@ -262,7 +262,7 @@ export function AbaConfiguracoes({ perfil }: any) {
               <h4 className="font-title uppercase tracking-widest" style={{ margin: "24px 0 16px", fontSize: 11, fontWeight: 700, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 8 }}>
                 <FiFileText size={16} color={C.textLight} /> Documentação Fiscal
               </h4>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
+              <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 16 }}>
                 <div><label style={labelStyle}>CNPJ</label><input style={inputStyle} value={formSalao.cnpj} onChange={e => setFormSalao({...formSalao, cnpj: e.target.value})} placeholder="00.000.000/0000-00" /></div>
                 <div><label style={labelStyle}>Inscrição Municipal</label><input style={inputStyle} value={formSalao.inscricao_municipal} onChange={e => setFormSalao({...formSalao, inscricao_municipal: e.target.value})} /></div>
                 <div><label style={labelStyle}>Inscrição Estadual</label><input style={inputStyle} value={formSalao.inscricao_estadual} onChange={e => setFormSalao({...formSalao, inscricao_estadual: e.target.value})} /></div>
@@ -283,20 +283,20 @@ export function AbaConfiguracoes({ perfil }: any) {
               <h4 className="font-title uppercase tracking-widest" style={{ margin: "24px 0 16px", fontSize: 11, fontWeight: 700, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 8 }}>
                 <FiMapPin size={16} color={C.textLight} /> Contato e Endereço Operacional
               </h4>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
                 <div><label style={labelStyle}>Telefone Comercial</label><input style={inputStyle} value={formSalao.telefone} onChange={e => setFormSalao({...formSalao, telefone: e.target.value})} placeholder="(00) 00000-0000" /></div>
                 <div><label style={labelStyle}>E-mail de Suporte</label><input type="email" style={inputStyle} value={formSalao.email_contato} onChange={e => setFormSalao({...formSalao, email_contato: e.target.value})} placeholder="contato@empresa.com.br" /></div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr 1.5fr", gap: 16 }}>
+                <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 16 }}>
                   <div><label style={labelStyle}>CEP</label><input style={inputStyle} value={formSalao.cep} onChange={e => buscarCep(e.target.value)} maxLength={9} placeholder="00000-000" /></div>
                   <div><label style={labelStyle}>Logradouro</label><input style={inputStyle} value={formSalao.logradouro} onChange={e => setFormSalao({...formSalao, logradouro: e.target.value})} /></div>
                   <div><label style={labelStyle}>Número</label><input style={inputStyle} value={formSalao.numero} onChange={e => setFormSalao({...formSalao, numero: e.target.value})} /></div>
                   <div><label style={labelStyle}>Complemento</label><input style={inputStyle} value={formSalao.complemento} onChange={e => setFormSalao({...formSalao, complemento: e.target.value})} placeholder="Loja, Sala..." /></div>
                 </div>
                 
-                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1.5fr 1fr", gap: 16 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
                   <div><label style={labelStyle}>Bairro</label><input style={inputStyle} value={formSalao.bairro} onChange={e => setFormSalao({...formSalao, bairro: e.target.value})} /></div>
                   <div><label style={labelStyle}>Cidade</label><input style={inputStyle} value={formSalao.cidade} onChange={e => setFormSalao({...formSalao, cidade: e.target.value})} /></div>
                   <div><label style={labelStyle}>Estado</label><input style={inputStyle} value={formSalao.estado} onChange={e => setFormSalao({...formSalao, estado: e.target.value})} placeholder="UF" maxLength={2} /></div>
@@ -327,26 +327,28 @@ export function AbaConfiguracoes({ perfil }: any) {
         {gaveta === "horarios" && (
           <form onSubmit={solicitarSenhaDeSeguranca} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <Card className="shadow-sm" style={{ padding: 24, background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.sidebarBg}` }}>
+              <div className="overflow-x-auto">
               <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                 <thead>
                   <tr className="font-title uppercase tracking-widest" style={{ background: C.bg, color: C.textLight, fontSize: 10, fontWeight: 700, borderBottom: `1px solid ${C.borderMid}` }}>
-                    <th style={{ padding: "12px 16px" }}>Atende</th>
-                    <th style={{ padding: "12px 16px" }}>Dia Útil</th>
-                    <th style={{ padding: "12px 16px" }}>Abertura</th>
-                    <th style={{ padding: "12px 16px" }}>Fechamento</th>
+                    <th style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>Atende</th>
+                    <th style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>Dia Útil</th>
+                    <th style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>Abertura</th>
+                    <th style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>Fechamento</th>
                   </tr>
                 </thead>
                 <tbody>
                   {horarios.map((h, index) => (
                     <tr key={h.dia} style={{ borderBottom: `1px solid ${C.border}`, background: h.ativo ? C.bgCard : C.bg }}>
                       <td style={{ padding: "14px 16px" }}><input type="checkbox" checked={h.ativo} onChange={(e) => atualizarHorario(index, 'ativo', e.target.checked)} style={{ width: 16, height: 16, accentColor: C.sidebarBg }} /></td>
-                      <td className="font-title" style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, color: h.ativo ? C.sidebarBg : C.textLight }}>{h.dia}</td>
+                      <td className="font-title" style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, color: h.ativo ? C.sidebarBg : C.textLight, whiteSpace: "nowrap" }}>{h.dia}</td>
                       <td style={{ padding: "14px 16px" }}><input type="time" disabled={!h.ativo} value={h.inicio} onChange={(e) => atualizarHorario(index, 'inicio', e.target.value)} style={{...inputStyle, padding: "8px 12px", width: 120}} /></td>
                       <td style={{ padding: "14px 16px" }}><input type="time" disabled={!h.ativo} value={h.fim} onChange={(e) => atualizarHorario(index, 'fim', e.target.value)} style={{...inputStyle, padding: "8px 12px", width: 120}} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </Card>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button type="submit" className="font-title uppercase tracking-wider transition-all hover:opacity-95 shadow-sm" style={{ padding: "14px 40px", fontSize: 12, background: C.sidebarBg, color: "#fff", border: "none", borderRadius: RAIO_MD, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -374,7 +376,7 @@ export function AbaConfiguracoes({ perfil }: any) {
         {gaveta === "perfil" && (
           <form onSubmit={solicitarSenhaDeSeguranca} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <Card className="shadow-sm" style={{ padding: 32, background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.sidebarBg}` }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
                 <div><label style={labelStyle}>Nome Completo</label><input style={inputStyle} required value={formPerfil.nome} onChange={e => setFormPerfil({...formPerfil, nome: e.target.value})} /></div>
                 <div><label style={labelStyle}>Telefone Pessoal</label><input style={inputStyle} value={formPerfil.telefone} onChange={e => setFormPerfil({...formPerfil, telefone: e.target.value})} placeholder="(00) 00000-0000" /></div>
               </div>
@@ -392,7 +394,7 @@ export function AbaConfiguracoes({ perfil }: any) {
             <Card className="shadow-sm" style={{ padding: 32, background: C.bgCard, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.danger}` }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div><label style={labelStyle}>Senha Atual</label><input type="password" required style={inputStyle} value={formSenha.atual} onChange={e => setFormSenha({...formSenha, atual: e.target.value})} /></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
                   <div><label style={labelStyle}>Nova Senha</label><input type="password" required style={inputStyle} value={formSenha.nova} onChange={e => setFormSenha({...formSenha, nova: e.target.value})} placeholder="Mínimo 6 caracteres" /></div>
                   <div><label style={labelStyle}>Confirmar Nova Senha</label><input type="password" required style={inputStyle} value={formSenha.confirmacao} onChange={e => setFormSenha({...formSenha, confirmacao: e.target.value})} /></div>
                 </div>

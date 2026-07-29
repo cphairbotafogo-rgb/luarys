@@ -17,7 +17,7 @@ interface Props {
 export function FormProduto({ form, setForm, editandoId, subcategoriasUnicas, onSubmit, onClose, onExcluir }: Props) {
   return (
     <div style={{ ...overlayModal, zIndex: 999 }}>
-      <div style={{ background: C.bgCard, borderRadius: RAIO_3XL, padding: 32, width: 700, maxHeight: "90vh", overflowY: "auto", boxShadow: SOMBRA_MODAL }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_3XL, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", boxShadow: SOMBRA_MODAL }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: C.sidebarBg }}>{editandoId ? "Editar Produto" : "Novo Produto"}</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textMuted }}><FiX size={24} /></button>
@@ -29,7 +29,7 @@ export function FormProduto({ form, setForm, editandoId, subcategoriasUnicas, on
             <input style={inputAdmin} required value={form.nome_produto} onChange={e => setForm({ ...form, nome_produto: e.target.value })} placeholder="Ex: Cabelo Humano Loiro 60cm" />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12 }}>
             <div>
               <label style={labelPadrao}>Categoria</label>
               <select style={inputAdmin} value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
@@ -53,19 +53,19 @@ export function FormProduto({ form, setForm, editandoId, subcategoriasUnicas, on
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             <div><label style={labelPadrao}>Quantidade Atual</label><input type="number" step="0.01" style={inputAdmin} value={form.quantidade_atual} onChange={e => setForm({ ...form, quantidade_atual: e.target.value })} /></div>
             <div><label style={labelPadrao}>Aviso de Estoque Mínimo</label><input type="number" step="0.01" style={inputAdmin} value={form.estoque_minimo} onChange={e => setForm({ ...form, estoque_minimo: e.target.value })} /></div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: C.bg, padding: 12, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12, background: C.bg, padding: 12, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
             <div><label style={labelPadrao}>Custo de Compra (R$)</label><input type="number" step="0.01" style={inputAdmin} value={form.custo_medio} onChange={e => setForm({ ...form, custo_medio: e.target.value })} /></div>
             <div><label style={labelPadrao}>Preço de Venda (R$)</label><input type="number" step="0.01" style={inputAdmin} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value })} disabled={form.categoria === 'Uso Interno'} /></div>
           </div>
 
           <div style={{ background: C.bg, padding: 16, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
             <h4 style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: C.sidebarBg, textTransform: "uppercase" }}>Parâmetros Fiscais (NFC-e)</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 12 }}>
               <div><label style={labelPadrao}>SKU</label><input style={inputAdmin} value={form.codigo_sku} onChange={e => setForm({ ...form, codigo_sku: e.target.value })} placeholder="Cód. Interno" /></div>
               <div><label style={labelPadrao}>GTIN (Cód. Barras)</label><input style={inputAdmin} value={form.codigo_barras} onChange={e => setForm({ ...form, codigo_barras: e.target.value })} /></div>
               <div>
@@ -77,7 +77,7 @@ export function FormProduto({ form, setForm, editandoId, subcategoriasUnicas, on
                 </select>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 12 }}>
               <div><label style={labelPadrao}>NCM *</label><input style={inputAdmin} required={form.categoria !== 'Uso Interno'} value={form.ncm} onChange={e => setForm({ ...form, ncm: e.target.value })} maxLength={8} /></div>
               <div><label style={labelPadrao}>CEST</label><input style={inputAdmin} value={form.cest} onChange={e => setForm({ ...form, cest: e.target.value })} maxLength={7} /></div>
               <div><label style={labelPadrao}>CFOP *</label><input style={inputAdmin} required value={form.cfop_padrao} onChange={e => setForm({ ...form, cfop_padrao: e.target.value })} maxLength={4} /></div>

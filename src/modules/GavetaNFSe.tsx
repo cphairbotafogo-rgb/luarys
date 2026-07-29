@@ -218,7 +218,7 @@ const inputStyle = { ...inputAdmin };
           </div>
 
           {/* ── Totais ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 12, marginBottom: 16 }}>
             {[
               { label: "Total no período", value: String(notasFiltradas.length) + " nota(s)" },
               { label: "Valor no período", value: brl(valorPeriodo) },

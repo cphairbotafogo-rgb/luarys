@@ -183,7 +183,7 @@ export const overlayModal = {
   alignItems: "center",
   justifyContent: "center",
   zIndex: 999,
-  padding: 24,
+  padding: "clamp(12px, 4vw, 24px)",
 } as const;
 
 // ─── ESTADOS VISUAIS (feedback ao usuário) ───────────────────────────────────

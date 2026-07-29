@@ -96,7 +96,7 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
   return (
     <div style={S.card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {FILTROS.map(f => (
             <button
               key={f.chave}

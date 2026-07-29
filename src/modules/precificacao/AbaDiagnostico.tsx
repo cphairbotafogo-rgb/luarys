@@ -119,7 +119,7 @@ export function AbaDiagnostico({ perfil, config, form }: Props) {
       </div>
 
       {/* Cards de resumo */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Preço saudável', count: ok,       cor: C.success, bg: C.successBg },
           { label: 'Margem apertada', count: atencao,  cor: '#D97706', bg: '#FFFBEB' },
@@ -248,7 +248,7 @@ export function AbaDiagnostico({ perfil, config, form }: Props) {
 
       {/* RANKING DE RENTABILIDADE — quanto cada serviço deixa de lucro por hora, no preço que já é cobrado hoje */}
           {elegiveisRanking.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 24 }}>
               <div style={{ ...cardAdmin, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: C.successBg, borderBottom: `1px solid ${C.border}` }}>
                   <FiTrendingUp size={14} color={C.successText} />
@@ -285,6 +285,7 @@ export function AbaDiagnostico({ perfil, config, form }: Props) {
           )}
 
           <div style={{ ...cardAdmin, overflow: 'hidden', marginTop: 12 }}>
+            <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
@@ -322,6 +323,7 @@ export function AbaDiagnostico({ perfil, config, form }: Props) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
           <p style={{ fontSize: 11, color: C.textLight, marginTop: 12, fontStyle: 'italic' }}>
             * Preço ideal calculado com: comissão {form.percentComissao}%, margem {form.margemDesejada}%, imposto {config.aliquotaImposto}%, cartão {config.taxaCartao}%. Lucro/hora calculado sobre o preço que já é cobrado hoje.

@@ -41,7 +41,7 @@ function BlocoBeneficio({ label, nomeObj, form, setForm }: any) {
 export function AbaFolhaBeneficios({ form, setForm }: any) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
         <div style={{ background: "#F4F8F5", padding: 20, borderRadius: RAIO_XL, border: "1px solid #E8F0EA" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <h4 style={{ margin: 0, fontSize: 11, color: "#047857", fontWeight: 700, textTransform: "uppercase" }}>Revenda de Produtos</h4>
@@ -72,7 +72,7 @@ export function AbaFolhaBeneficios({ form, setForm }: any) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 24 }}>
         <div style={{ background: C.bg, padding: 20, borderRadius: RAIO_XL, border: `1px solid ${C.border}` }}>
           <h4 style={{ margin: "0 0 12px", fontSize: 11, color: C.textMain, fontWeight: 700, textTransform: "uppercase" }}>Ganhos Adicionais</h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -84,7 +84,7 @@ export function AbaFolhaBeneficios({ form, setForm }: any) {
         <div style={{ background: C.dangerBg, padding: 20, borderRadius: RAIO_XL, border: "1px solid #FECACA" }}>
           <h4 style={{ margin: "0 0 12px", fontSize: 11, color: C.danger, fontWeight: 700, textTransform: "uppercase" }}>Deduções e Retenções Oficiais</h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
               <div><label style={labelStyle}>INSS (R$)</label><input type="number" style={inputStyle} value={form.folha_pagamento.inss} onChange={e => setForm({ ...form, folha_pagamento: { ...form.folha_pagamento, inss: e.target.value } })} /></div>
               <div><label style={labelStyle}>IRRF (R$)</label><input type="number" style={inputStyle} value={form.folha_pagamento.irrf} onChange={e => setForm({ ...form, folha_pagamento: { ...form.folha_pagamento, irrf: e.target.value } })} /></div>
             </div>

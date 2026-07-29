@@ -11,6 +11,7 @@ export function TabInformacoesFiscais() {
   };
 
   const Tabela = ({ dados, colunaA, colunaB }: { dados: { [k: string]: string }[]; colunaA: string; colunaB: string }) => (
+    <div className="overflow-x-auto">
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ background: C.bg }}>
@@ -30,6 +31,7 @@ export function TabInformacoesFiscais() {
         })}
       </tbody>
     </table>
+    </div>
   );
 
   return (
@@ -37,7 +39,7 @@ export function TabInformacoesFiscais() {
 
       {/* NBS */}
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Códigos NBS — Nomenclatura Brasileira de Serviços</h3>
             <p style={{ margin: '6px 0 0', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>

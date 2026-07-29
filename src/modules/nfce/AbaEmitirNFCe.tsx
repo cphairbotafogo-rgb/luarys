@@ -65,7 +65,7 @@ export function AbaEmitirNFCe({ state, dispatch, bancoProdutos, salaoId, toast }
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]" style={{ gap: 24, alignItems: 'start' }}>
       {/* COLUNA ESQUERDA: ITENS + CONSUMIDOR */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ ...S.card }}>
@@ -74,7 +74,7 @@ export function AbaEmitirNFCe({ state, dispatch, bancoProdutos, salaoId, toast }
             <button onClick={() => dispatch({ type: 'ADD_ITEM' })} style={{ ...S.btn(), fontSize: 11, padding: '8px 14px' }}><FiPlus size={13} /> Adicionar Item</button>
           </div>
           {state.itens.map((it: any, idx: number) => (
-            <div key={it._uid} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 10, alignItems: 'end' }}>
+            <div key={it._uid} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]" style={{ gap: 8, marginBottom: 10, alignItems: 'end' }}>
               <div>
                 <label style={S.label}>{idx === 0 ? 'Produto' : ''}</label>
                 {bancoProdutos.length > 0 ? (
@@ -121,7 +121,7 @@ export function AbaEmitirNFCe({ state, dispatch, bancoProdutos, salaoId, toast }
 
         <div style={{ ...S.card }}>
           <h4 style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: C.sidebarBg, textTransform: 'uppercase' }}>Consumidor (Opcional)</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             <div>
               <label style={S.label}>CPF</label>
               <input style={S.input} placeholder="000.000.000-00" maxLength={14} value={state.consumidor.CPF}

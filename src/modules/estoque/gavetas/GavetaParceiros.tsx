@@ -149,7 +149,7 @@ export function GavetaParceiros({ perfil }: any) {
       {/* MODAL DE CADASTRO GIGANTE */}
       {modalAberto && (
         <div style={{ ...overlayModal, zIndex: 999 }}>
-          <div style={{ background: C.bgCard, borderRadius: RAIO_3XL, padding: 32, width: 700, maxHeight: "90vh", overflowY: "auto", boxShadow: SOMBRA_MODAL }}>
+          <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_3XL, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", boxShadow: SOMBRA_MODAL }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{margin:0, fontSize:20, fontWeight:800, color:C.sidebarBg, display: "flex", alignItems: "center", gap: 8}}>
                 <FiBriefcase size={22}/> {editandoId ? "Editar Parceiro" : "Novo Parceiro / Fornecedor"}
@@ -163,7 +163,7 @@ export function GavetaParceiros({ perfil }: any) {
               <div>
                 <h4 style={{margin: "0 0 12px", fontSize: 14, color: C.sidebarBg, borderBottom: `1px solid ${C.borderMid}`, paddingBottom: 6}}>Informações Básicas</h4>
                 <div style={{display: "flex", flexDirection: "column", gap: 12}}>
-                  <div style={{display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12}}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12}}>
                     <div><label style={labelStyle}>Nome Fantasia / Marca *</label><input style={inputStyle} required value={form.nome_empresa} onChange={e=>setForm({...form, nome_empresa: e.target.value})} placeholder="Ex: L'Oréal Brasil" /></div>
                     <div style={{display: "flex", alignItems: "flex-end", paddingBottom: 8}}>
                       <label style={{display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, color: C.textMain}}>
@@ -172,7 +172,7 @@ export function GavetaParceiros({ perfil }: any) {
                       </label>
                     </div>
                   </div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12}}>
+                  <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap:12}}>
                     <div><label style={labelStyle}>Nome do Contato/Vendedor</label><input style={inputStyle} value={form.nome_contato} onChange={e=>setForm({...form, nome_contato: e.target.value})} placeholder="Ex: João Silva" /></div>
                     <div><label style={labelStyle}>WhatsApp / Telefone</label><input style={inputStyle} value={form.telefone} onChange={e=>setForm({...form, telefone: e.target.value})} placeholder="(11) 99999-9999" /></div>
                     <div><label style={labelStyle}>E-mail</label><input type="email" style={inputStyle} value={form.email} onChange={e=>setForm({...form, email: e.target.value})} placeholder="vendas@empresa.com" /></div>
@@ -184,11 +184,11 @@ export function GavetaParceiros({ perfil }: any) {
               <div>
                 <h4 style={{margin: "0 0 12px", fontSize: 14, color: C.sidebarBg, borderBottom: `1px solid ${C.borderMid}`, paddingBottom: 6}}>Dados Fiscais & Financeiros</h4>
                 <div style={{display: "flex", flexDirection: "column", gap: 12}}>
-                  <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:12}}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:12}}>
                     <div><label style={labelStyle}>Razão Social</label><input style={inputStyle} value={form.razao_social} onChange={e=>setForm({...form, razao_social: e.target.value})} /></div>
                     <div><label style={labelStyle}>CNPJ</label><input style={inputStyle} value={form.cnpj} onChange={e=>setForm({...form, cnpj: e.target.value})} placeholder="00.000.000/0000-00" /></div>
                   </div>
-                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1.5fr", gap:12}}>
+                  <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap:12}}>
                     <div><label style={labelStyle}>Inscrição Estadual</label><input style={inputStyle} value={form.inscricao_estadual} onChange={e=>setForm({...form, inscricao_estadual: e.target.value})} /></div>
                     <div><label style={labelStyle}>Inscrição Municipal</label><input style={inputStyle} value={form.inscricao_municipal} onChange={e=>setForm({...form, inscricao_municipal: e.target.value})} /></div>
                     <div><label style={{...labelStyle, color: "#059669"}}>Chave PIX (P/ Pagar Faturas)</label><input style={{...inputStyle, borderColor: "#34D399", background: "#ECFDF5"}} value={form.chave_pix} onChange={e=>setForm({...form, chave_pix: e.target.value})} placeholder="CNPJ, E-mail, Celular..." /></div>
@@ -200,13 +200,13 @@ export function GavetaParceiros({ perfil }: any) {
               <div>
                 <h4 style={{margin: "0 0 12px", fontSize: 14, color: C.sidebarBg, borderBottom: `1px solid ${C.borderMid}`, paddingBottom: 6}}>Endereço Físico</h4>
                 <div style={{display: "flex", flexDirection: "column", gap: 12}}>
-                  <div style={{display: "grid", gridTemplateColumns: "1fr 1.5fr 3fr 1fr", gap: 12}}>
+                  <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 12}}>
                     <div><label style={labelStyle}>CEP</label><input style={inputStyle} value={form.cep} onChange={e => buscarCep(e.target.value)} maxLength={9} placeholder="00000-000" /></div>
                     <div><label style={labelStyle}>Tipo</label><select style={inputStyle} value={form.tipo_logradouro} onChange={e=>setForm({...form, tipo_logradouro: e.target.value})}><option value="Rua">Rua</option><option value="Avenida">Avenida</option><option value="Rodovia">Rodovia</option></select></div>
                     <div><label style={labelStyle}>Logradouro</label><input style={inputStyle} value={form.logradouro} onChange={e=>setForm({...form, logradouro: e.target.value})} /></div>
                     <div><label style={labelStyle}>Número</label><input style={inputStyle} value={form.numero} onChange={e=>setForm({...form, numero: e.target.value})} /></div>
                   </div>
-                  <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1.5fr 1fr", gap: 12}}>
+                  <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: 12}}>
                     <div><label style={labelStyle}>Complemento</label><input style={inputStyle} value={form.complemento} onChange={e=>setForm({...form, complemento: e.target.value})} /></div>
                     <div><label style={labelStyle}>Bairro</label><input style={inputStyle} value={form.bairro} onChange={e=>setForm({...form, bairro: e.target.value})} /></div>
                     <div><label style={labelStyle}>Cidade</label><input style={inputStyle} value={form.cidade} onChange={e=>setForm({...form, cidade: e.target.value})} /></div>

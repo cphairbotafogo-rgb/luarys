@@ -10,7 +10,7 @@ import { FiAlertTriangle } from "react-icons/fi";
 export function ModalLimitePlano({ mensagemLimite, onClose, onUpgrade }: any) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 24 }}>
-      <div style={{ background: C.bgCard, borderRadius: RAIO_2XL, padding: 32, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, textAlign: "center" }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, textAlign: "center" }}>
         <div style={{ width: 56, height: 56, borderRadius: 28, background: "#FFFBEB", color: "#D97706", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <FiAlertTriangle size={28} />
         </div>

@@ -11,7 +11,7 @@ import { labelStyle, inputStyle } from "./estilosCompartilhados";
 export function ModalAdiantamento({ formAdiantamento, setFormAdiantamento, processandoAdiantamento, lancarAdiantamento, onClose }: any) {
   return (
     <div style={{ ...overlayModal, zIndex: 1000 }}>
-      <div style={{ background: C.bgCard, borderRadius: RAIO_2XL, boxShadow: SOMBRA_MODAL, padding: 32, width: "100%", maxWidth: 440, border: `1px solid ${C.border}` }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, boxShadow: SOMBRA_MODAL, width: "100%", maxWidth: 440, border: `1px solid ${C.border}` }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.sidebarBg, textTransform: "uppercase" }}>Adiantamento de Salário</h3>
@@ -24,7 +24,7 @@ export function ModalAdiantamento({ formAdiantamento, setFormAdiantamento, proce
             <label style={labelStyle}>Valor do Vale (R$)</label>
             <input type="number" step="0.01" style={{ ...inputStyle, fontSize: 16, fontWeight: 700, color: C.success }} value={formAdiantamento.valor} onChange={e => setFormAdiantamento({ ...formAdiantamento, valor: e.target.value })} required autoFocus />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             <div><label style={labelStyle}>Data da Emissão</label><input type="date" style={inputStyle} value={formAdiantamento.data} onChange={e => setFormAdiantamento({ ...formAdiantamento, data: e.target.value })} required /></div>
             <div><label style={labelStyle}>Competência</label><input type="month" style={{ ...inputStyle, background: C.bg, color: C.textLight }} value={formAdiantamento.data.substring(0, 7)} disabled /></div>
           </div>

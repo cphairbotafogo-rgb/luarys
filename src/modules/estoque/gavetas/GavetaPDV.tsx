@@ -194,7 +194,7 @@ export function GavetaPDV({ perfil }: any) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 24 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr]" style={{ gap: 24 }}>
 
         {/* LADO ESQUERDO: CATÁLOGO DE PRODUTOS */}
         <div>
@@ -203,7 +203,7 @@ export function GavetaPDV({ perfil }: any) {
              <input type="text" placeholder="Buscar insumos ou produtos para venda..." style={{...inputStyle, paddingLeft: 44}} value={busca} onChange={(e) => setBusca(e.target.value)} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxHeight: "55vh", overflowY: "auto", paddingRight: 8 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, maxHeight: "55vh", overflowY: "auto", paddingRight: 8 }}>
             {produtosFiltrados.length === 0 && <p style={{ color: C.textLight, fontSize: 13, fontStyle: "italic", gridColumn: "1 / -1" }}>Nenhum produto com disponibilidade em estoque.</p>}
 
             {produtosFiltrados.map(p => (
@@ -225,7 +225,7 @@ export function GavetaPDV({ perfil }: any) {
         </div>
 
         {/* LADO DIREITO: RESUMO DO CHECKOUT */}
-        <div style={{ background: C.bgCard, borderRadius: RAIO_2XL, padding: 32, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "fit-content", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.02)" }}>
+        <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "fit-content", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.02)" }}>
           <h3 className="font-title uppercase tracking-widest" style={{ margin: "0 0 20px", fontSize: 13, color: C.sidebarBg, fontWeight: 700, borderBottom: `1px solid ${C.border}`, paddingBottom: 16 }}>Resumo da Conta</h3>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>

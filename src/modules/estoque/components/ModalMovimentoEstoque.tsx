@@ -18,7 +18,7 @@ export function ModalMovimentoEstoque({ produto, formMov, onCampoChange, onSubmi
 
   return (
     <div style={{ ...overlayModal, zIndex: 999 }}>
-      <div style={{ background: C.bgCard, padding: 32, borderRadius: RAIO_3XL, width: 400, boxShadow: SOMBRA_MODAL }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_3XL, width: "100%", maxWidth: 400, boxShadow: SOMBRA_MODAL }}>
         <h3 style={{ margin: "0 0 8px", color: isEntrada ? C.success : C.danger, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
           {isEntrada ? <FiArrowDownCircle size={20} /> : <FiArrowUpCircle size={20} />}
           {isEntrada ? "Nova Entrada" : "Baixa de Estoque"}

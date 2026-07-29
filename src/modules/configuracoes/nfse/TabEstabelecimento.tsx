@@ -93,7 +93,7 @@ export function TabEstabelecimento({ perfil }: { perfil: any }) {
         <h3 style={{ margin: '0 0 20px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Dados do Estabelecimento</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
             <div>
               <label style={lbl}>Nome Fantasia</label>
               <div style={campo}>{dados.nome_fantasia || <span style={{ color: C.textLight }}>—</span>}</div>
@@ -109,7 +109,7 @@ export function TabEstabelecimento({ perfil }: { perfil: any }) {
             <div style={campo}>{dados.razao_social || <span style={{ color: C.danger }}>Não informado</span>}</div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
             <div>
               <label style={lbl}>Inscrição Municipal</label>
               <div style={{ ...campo, fontFamily: 'monospace' }}>{dados.inscricao_municipal || <span style={{ color: C.danger }}>Não informado</span>}</div>

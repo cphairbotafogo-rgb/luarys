@@ -29,7 +29,7 @@ export function ModalColaborador({
 }: any) {
   return (
     <div style={{ ...overlayModal, zIndex: 990 }}>
-      <div style={{ ...containerModal, padding: 32, width: "100%", maxWidth: 800, maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="p-4 sm:p-8" style={{ ...containerModal, width: "100%", maxWidth: 800, maxHeight: "90vh", overflowY: "auto" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>

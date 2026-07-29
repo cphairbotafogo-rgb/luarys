@@ -160,7 +160,7 @@ export function AbaPrecificacao({ perfil }: any) {
   if (!liberado) return <BloqueioModulo salaoId={perfil?.salao_id} moduloChave="precificacao" nome="Luarys Precifica" descricao="Calcule o preço certo para cada serviço com base nos seus custos reais, comissões e margem desejada." preco={29.90} itens={['Calculadora de precificação por serviço', 'Dashboard executivo de custos', 'Diagnóstico da tabela de preços', 'Integração com custos do Financeiro', 'Suporte ao modelo Parceiro (Lei 13.352)']} />;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 860, margin: '0 auto' }}>
+    <div className="px-4 sm:px-8" style={{ paddingTop: 24, paddingBottom: 24, maxWidth: 860, margin: '0 auto' }}>
 
       <div style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 40, height: 40, borderRadius: RAIO_LG, background: `linear-gradient(135deg, ${C.douradoLuarys}, #B8960C)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -172,14 +172,14 @@ export function AbaPrecificacao({ perfil }: any) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: `1px solid ${C.border}`, overflowX: 'auto' }}>
         {([['dashboard', 'Visão Geral'], ['calculadora', 'Calculadora'], ['diagnostico', 'Diagnóstico da Tabela']] as const).map(([id, label]) => (
           <button key={id} onClick={() => setAba(id)}
             style={{ padding: '10px 18px', border: 'none', borderRadius: '8px 8px 0 0', fontSize: 13, fontWeight: 700, cursor: 'pointer',
               background: aba === id ? '#fff' : 'transparent',
               color: aba === id ? C.douradoLuarys : C.textMuted,
               borderBottom: aba === id ? `3px solid ${C.douradoLuarys}` : '3px solid transparent',
-              marginBottom: -1 }}
+              marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             {label}
           </button>

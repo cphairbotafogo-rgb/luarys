@@ -11,7 +11,7 @@ import { inputStyle } from "./estilosCompartilhados";
 export function ModalFuncoes({ listaFuncoes, novaFuncaoTexto, setNovaFuncaoTexto, adicionarNovaFuncaoDB, deletarFuncaoDB, onClose }: any) {
   return (
     <div style={{ ...overlayModal, zIndex: 9999 }}>
-      <div style={{ background: C.bgCard, borderRadius: RAIO_2XL, boxShadow: SOMBRA_MODAL, padding: 32, width: "100%", maxWidth: 420, border: `1px solid ${C.border}` }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, boxShadow: SOMBRA_MODAL, width: "100%", maxWidth: 420, border: `1px solid ${C.border}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.sidebarBg, textTransform: "uppercase" }}>Gerenciar Funções</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.textLight, display: "flex" }}><FiX size={24} /></button>

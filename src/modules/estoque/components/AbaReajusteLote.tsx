@@ -24,14 +24,14 @@ interface Props {
 export function AbaReajusteLote({ produtos, selecionados, reajusteValor, reajusteTipo, processandoLote, categoriaLote, categoriasUnicas, setCategoriaLote, setReajusteValor, setReajusteTipo, onToggleSelecao, onSelecionarTodos, onSelecionarPorCategoria, onSelecionarPorSubcategoria, onAplicar }: Props) {
   return (
     <div style={{ animation: "fadeIn 0.2s ease-out" }}>
-      <div style={{ background: C.bgCard, border: `1px solid ${C.sidebarBg}`, borderRadius: RAIO_XL, padding: "24px", marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)" }}>
+      <div style={{ background: C.bgCard, border: `1px solid ${C.sidebarBg}`, borderRadius: RAIO_XL, padding: "24px", marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)", flexWrap: "wrap", gap: 16 }}>
         <div>
           <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase" }}>
             <FiCheckSquare size={16} /> {selecionados.length} Produto(s) Selecionado(s)
           </h4>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textMuted }}>Ajuste em massa o <strong>Preço de Venda</strong> dos produtos marcados.</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <div style={{ display: "flex", border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, overflow: "hidden" }}>
             <button onClick={() => setReajusteTipo('aumento')} style={{ background: reajusteTipo === 'aumento' ? C.sidebarBg : C.bgCard, color: reajusteTipo === 'aumento' ? "#fff" : C.textMain, border: "none", padding: "12px 16px", cursor: "pointer", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>
               <FiArrowUpRight size={14} className="inline mr-1" /> Aumentar

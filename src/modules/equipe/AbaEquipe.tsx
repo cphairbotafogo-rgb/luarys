@@ -313,10 +313,10 @@ export function AbaEquipe({ perfil }: any) {
   if (carregando) return <div className="flex h-full w-full items-center justify-center font-bold text-sm" style={{ color: C.textLight }}>A carregar equipe técnica... ⏳</div>;
 
   return (
-    <div style={{ padding: 32, overflowY: "auto", flex: 1, background: C.bg }}>
+    <div className="p-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg }}>
 
       {/* HEADER TELA */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.sidebarBg }}>Gestão de Equipe & RH</h2>
           <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textMuted, fontWeight: 500 }}>Fichas cadastrais avançadas, departamento pessoal e controle de autonomias.</p>
