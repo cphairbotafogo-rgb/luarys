@@ -40,7 +40,7 @@ export function AbaContatos({ formCliente, set }: Props) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {(formCliente.telefones || []).map((tel: any, idx: number) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '120px 70px 1fr 120px 40px', gap: 10, alignItems: 'end' }}>
+            <div key={idx} className="grid grid-cols-2 sm:grid-cols-[120px_70px_1fr_120px_40px]" style={{ gap: 10, alignItems: 'end' }}>
               <div>
                 <label style={lbl}>País (DDI)</label>
                 <select
@@ -70,7 +70,7 @@ export function AbaContatos({ formCliente, set }: Props) {
           ))}
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
         <div><label style={lbl}>E-mail</label><input type="email" style={inp} value={formCliente.email || ''} onChange={e => set('email', e.target.value)} /></div>
         <div><label style={lbl}>Instagram</label><input style={inp} placeholder="@usuario" value={formCliente.instagram || ''} onChange={e => set('instagram', e.target.value)} /></div>
       </div>

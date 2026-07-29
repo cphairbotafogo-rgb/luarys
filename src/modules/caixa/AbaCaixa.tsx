@@ -160,8 +160,8 @@ export function AbaCaixa({ perfil, setAba }: any) {
         {mostrarTransacoes && <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr]">
 
         {/* Tabela */}
-        <div className="overflow-x-auto" style={{ borderRight: `1px solid ${C.border}` }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+        <div className="overflow-x-auto" style={{ borderRight: `1px solid ${C.border}`, minWidth: 0 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: 600 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.borderMid}`, background: C.bg }}>
                 <th style={{ padding: "16px 20px", fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase" }}>Nº OS</th>
@@ -343,8 +343,8 @@ export function AbaCaixa({ perfil, setAba }: any) {
                 : 'Nenhum agendamento para o profissional selecionado.'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="overflow-x-auto" style={{ minWidth: 0 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
               <thead>
                 <tr style={{ background: "#FFFBEB" }}>
                   {["Horário", "Cliente", "Serviço", "Profissional", "Situação"].map(h => (

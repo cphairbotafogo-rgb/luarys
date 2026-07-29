@@ -71,7 +71,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
   if (fc.clienteConflito) {
     return (
       <div style={{ ...overlayModal, zIndex: 10000 }}>
-        <div style={{ ...containerModal, padding: 32, width: 450 }}>
+        <div className="p-4 sm:p-8" style={{ ...containerModal, width: '100%', maxWidth: 450 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <FiAlertTriangle size={28} color={C.warningText} />
             <h3 className="font-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.warningText }}>Cliente já cadastrado</h3>
@@ -193,7 +193,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
         </div>
 
         {/* RODAPÉ */}
-        <div style={{ display: 'flex', gap: 10, padding: '16px 28px', borderTop: `1px solid ${C.border}`, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, padding: '16px 28px', borderTop: `1px solid ${C.border}`, alignItems: 'center', flexWrap: 'wrap' }}>
           {dataCadastro && <span style={{ fontSize: 11, color: C.textLight, flex: 1 }}>Cadastrado em {dataCadastro}</span>}
           {!dataCadastro && <span style={{ flex: 1 }} />}
           {formCliente.id && (

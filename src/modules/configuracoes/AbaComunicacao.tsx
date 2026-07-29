@@ -104,7 +104,7 @@ export function AbaComunicacao({ perfil }: any) {
     fontWeight: 700, display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 8, cursor: "pointer", transition: "0.2s"
   });
   const tabBtnStyle = (ativa: boolean) => ({
-    display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", fontSize: 12, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: ativa ? `2px solid ${C.sidebarBg}` : "2px solid transparent", color: ativa ? C.sidebarBg : C.textLight, textTransform: "uppercase" as const, letterSpacing: "0.5px", transition: "all 0.2s"
+    display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", fontSize: 12, fontWeight: 700, cursor: "pointer", background: "none", border: "none", borderBottom: ativa ? `2px solid ${C.sidebarBg}` : "2px solid transparent", color: ativa ? C.sidebarBg : C.textLight, textTransform: "uppercase" as const, letterSpacing: "0.5px", transition: "all 0.2s", whiteSpace: "nowrap" as const, flexShrink: 0
   });
 
   if (liberado === null) return <div style={{ padding: 32, color: C.textLight, display: 'flex', alignItems: 'center', gap: 10 }}><FiLoader className="animate-spin" size={16} /> Verificando acesso...</div>;
@@ -112,7 +112,7 @@ export function AbaComunicacao({ perfil }: any) {
   if (carregando) return <div style={{ padding: 32, fontWeight: "bold", color: C.textLight }}>Carregando...</div>;
 
   return (
-    <div className="font-body" style={{ padding: 32, overflowY: "auto", flex: 1, background: C.bg }}>
+    <div className="font-body p-4 sm:p-8" style={{ overflowY: "auto", flex: 1, background: C.bg }}>
 
       <div style={{ marginBottom: 32 }}>
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 12, textTransform: "uppercase", letterSpacing: "1px" }}>
@@ -123,7 +123,7 @@ export function AbaComunicacao({ perfil }: any) {
         </p>
       </div>
 
-      <div style={{ display: "flex", borderBottom: `1px solid ${C.borderMid}`, marginBottom: 32, gap: 16 }}>
+      <div style={{ display: "flex", borderBottom: `1px solid ${C.borderMid}`, marginBottom: 32, gap: 16, overflowX: "auto" }}>
         <button style={tabBtnStyle(abaInterna === 'marketing')} onClick={() => setAbaInterna('marketing')}>
           <FiSend size={16} /> Campanhas (Massa)
         </button>
@@ -142,11 +142,11 @@ export function AbaComunicacao({ perfil }: any) {
       {abaInterna === 'whatsapp' && <PainelWhatsapp />}
 
       {abaInterna === 'marketing' && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: 32 }}>
-          <div style={{ background: C.bgCard, padding: 32, borderRadius: RAIO_2XL, border: `1px solid ${C.border}` }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px]" style={{ gap: 32 }}>
+          <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, border: `1px solid ${C.border}` }}>
             <h3 style={{ margin: "0 0 24px", fontSize: 14, fontWeight: 800, color: C.textMain, textTransform: "uppercase" }}>1. Escolha o Canal</h3>
 
-            <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+            <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
               <button style={btnCanalStyle(canal === 'whatsapp')} onClick={() => setCanal('whatsapp')}>
                 <FiMessageCircle size={24} /> WhatsApp
               </button>
@@ -157,8 +157,8 @@ export function AbaComunicacao({ perfil }: any) {
 
 
             <h3 style={{ margin: "0 0 24px", fontSize: 14, fontWeight: 800, color: C.textMain, textTransform: "uppercase" }}>2. Selecione o Público</h3>
-            <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-              <div style={{ flex: 1, position: "relative" }}>
+            <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 220px", position: "relative" }}>
                 <FiUsers style={{ position: "absolute", left: 14, top: 14, color: C.textLight }} />
                 <select style={{ ...inputStyle, paddingLeft: 42 }} value={publico} onChange={e => setPublico(e.target.value)}>
                   <option value="todos">Todos os Clientes Ativos</option>
@@ -176,7 +176,7 @@ export function AbaComunicacao({ perfil }: any) {
             </div>
 
             {publico === 'sumidas_periodo' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '14px 18px', background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '14px 18px', background: C.bg, borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, flexWrap: 'wrap' }}>
                 <FiCalendar size={14} color={C.textMuted} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}>Sem visita de</span>
                 <InputData value={dataIniSumidas} onChange={setDataIniSumidas} style={{ fontSize: 12, padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, color: C.textMain, background: C.bgCard }} />

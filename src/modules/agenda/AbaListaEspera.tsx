@@ -91,10 +91,10 @@ export function AbaListaEspera({ perfil }: any) {
   );
 
   return (
-    <div className="font-body" style={{ padding: 32, flex: 1, overflowY: "auto", background: C.bg }}>
+    <div className="font-body p-4 sm:p-8" style={{ flex: 1, overflowY: "auto", background: C.bg }}>
 
       {/* Cabeçalho */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div>
           <h2 className="font-title uppercase tracking-widest" style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.sidebarBg, display: "flex", alignItems: "center", gap: 10 }}>
             <FiClock size={20} /> Fila de Espera
@@ -119,7 +119,7 @@ export function AbaListaEspera({ perfil }: any) {
           </div>
         )}
         {lista.map((item, index) => (
-          <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, padding: "20px 24px", borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.sidebarBg}` }}>
+          <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.bgCard, padding: "20px 24px", borderRadius: RAIO_XL, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.sidebarBg}`, flexWrap: "wrap", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
               <div style={{ width: 44, height: 44, background: C.bg, color: C.textMain, borderRadius: RAIO_MD, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
                 {index + 1}º
@@ -159,7 +159,7 @@ export function AbaListaEspera({ perfil }: any) {
       {/* Modal de adição */}
       {modalAberto && (
         <div style={{ ...overlayModal, zIndex: 9999 }}>
-          <div style={{ background: C.bgCard, padding: 32, borderRadius: RAIO_2XL, width: 440, boxShadow: SOMBRA_MODAL }}>
+          <div className="p-4 sm:p-8" style={{ background: C.bgCard, borderRadius: RAIO_2XL, width: "100%", maxWidth: 440, boxShadow: SOMBRA_MODAL }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h3 style={{ margin: 0, fontSize: 14, color: C.sidebarBg, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Nova Fila de Espera</h3>
               <button onClick={() => setModalAberto(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.textLight }}>
@@ -208,7 +208,7 @@ export function AbaListaEspera({ perfil }: any) {
               <input style={inputStyle} placeholder="Qual serviço a cliente deseja?" value={form.servico_desejado}
                 onChange={e => setForm(f => ({ ...f, servico_desejado: e.target.value }))} />
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
                 <div>
                   {label('Data desejada')}
                   <input type="date" style={{ ...inputStyle, marginBottom: 0 }} value={form.data_desejada}
