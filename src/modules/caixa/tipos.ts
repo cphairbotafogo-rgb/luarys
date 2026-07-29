@@ -51,6 +51,7 @@ export function normalizarFinanceiro(f: any): Transacao {
     status: 'Concluído',
     data_hora: f.data_movimentacao,
     _origem: 'financeiro',
+    profissional_nome: f.profissional_nome || undefined,
   };
 }
 
