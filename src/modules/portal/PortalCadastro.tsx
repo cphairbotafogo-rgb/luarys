@@ -214,7 +214,7 @@ export function PortalCadastro({ onCadastroConcluido, irParaLogin }: any) {
                 <label style={labelPadrao}>Endereço (Rua, Nº)</label>
                 <input type="text" value={dados.endereco} onChange={e => setDados({ ...dados, endereco: e.target.value })} placeholder="Rua das Flores, 123" style={inputBase} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
                 <div>
                   <label style={labelPadrao}>Bairro</label>
                   <input type="text" value={dados.bairro} onChange={e => setDados({ ...dados, bairro: e.target.value })} style={inputBase} />

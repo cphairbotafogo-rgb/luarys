@@ -124,7 +124,7 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24, fontFamily: FONTE_CORPO }}>
-      <div style={{ background: C.bgCard, width: "100%", maxWidth: 500, maxHeight: "90vh", borderRadius: RAIO_2XL, padding: 32, display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", overflow: "hidden", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoEleva}` }}>
+      <div className="p-4 sm:p-8" style={{ background: C.bgCard, width: "100%", maxWidth: 500, maxHeight: "90vh", borderRadius: RAIO_2XL, display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", overflow: "hidden", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoEleva}` }}>
 
         {/* Cabeçalho */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -145,7 +145,7 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
             <input type="text" value={dados.nome_completo} onChange={e => setDados({...dados, nome_completo: e.target.value})} required style={inputStyle} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <div>
               <label style={labelStyle}>WhatsApp</label>
               <input
@@ -179,7 +179,7 @@ export function ModalPerfil({ clienteFresh, setClienteFresh, modalAberto, fechar
             <input type="text" value={dados.endereco} onChange={e => setDados({...dados, endereco: e.target.value})} style={inputStyle} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <div>
               <label style={labelStyle}>Bairro</label>
               <input type="text" value={dados.bairro} onChange={e => setDados({...dados, bairro: e.target.value})} style={inputStyle} />

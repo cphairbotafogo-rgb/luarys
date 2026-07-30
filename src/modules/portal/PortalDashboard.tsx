@@ -32,7 +32,7 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FONTE_CORPO }}>
 
       {/* ─── CABEÇALHO ─── */}
-      <div style={{ background: C.bgCard, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, position: "sticky", top: 0, zIndex: 50, boxShadow: SOMBRA_SUAVE }}>
+      <div style={{ background: C.bgCard, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, position: "sticky", top: 0, zIndex: 50, boxShadow: SOMBRA_SUAVE, flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", padding: "6px 14px 6px 10px", borderRadius: RAIO_LG, border: `1.5px solid ${C.douradoEleva}50`, background: `linear-gradient(135deg, ${C.douradoEleva}12, transparent)`, boxShadow: `0 0 0 3px ${C.douradoEleva}10` }}>
             <img src={C.logoUrl} alt="Luarys" style={{ height: 52, objectFit: "contain", display: "block" }} />
           </div>
