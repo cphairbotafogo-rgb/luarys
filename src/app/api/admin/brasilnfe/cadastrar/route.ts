@@ -62,7 +62,7 @@ async function handlePost(req: NextRequest) {
   // ── Dados do salão ────────────────────────────────────────────────────────
   const { data: salao, error: salaoErr } = await supabaseAdmin
     .from('saloes')
-    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal')
+    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')
     .eq('id', salao_id)
     .single();
 
@@ -95,6 +95,10 @@ async function handlePost(req: NextRequest) {
     }, { status: 422 });
   }
 
+  if (!salao.cep) {
+    return NextResponse.json({ erro: 'CEP do salão não cadastrado. Configure em Dados da Empresa antes de registrar na Brasil NFe.' }, { status: 422 });
+  }
+
   // ── Registrar CNPJ como empresa na Brasil NFe ─────────────────────────────
   const resultado = await cadastrarEmpresa(userToken, {
     CNPJ: cnpj,
@@ -104,6 +108,16 @@ async function handlePost(req: NextRequest) {
     CRT: crtDoRegime(salao.regime_tributario),
     CodigoInterno: salao_id,
     Contato: salao.email_fiscal ? { Email: salao.email_fiscal } : undefined,
+    Endereco: {
+      Cep: salao.cep,
+      Logradouro: salao.logradouro || undefined,
+      Numero: salao.numero || undefined,
+      Complemento: salao.complemento || undefined,
+      Bairro: salao.bairro || undefined,
+      CodMunicipio: salao.codigo_ibge || undefined,
+      Municipio: salao.cidade || undefined,
+      Uf: salao.estado || undefined,
+    },
   });
 
   if (resultado.erro || !resultado.token) {
