@@ -203,7 +203,7 @@ export function AbaAssinaturas() {
       {/* MODAL EDIÇÃO */}
       {editando && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: C.bgCard, borderRadius: RAIO_XL, padding: 28, width: 440, maxWidth: '95vw' }}>
+          <div className="p-4 sm:p-7" style={{ background: C.bgCard, borderRadius: RAIO_XL, width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: C.sidebarBg }}>{editando.nome_fantasia || editando.razao_social}</h3>
             <p style={{ margin: '0 0 20px', fontSize: 12, color: C.textMuted, fontFamily: 'monospace' }}>{editando.cnpj}</p>
 
@@ -232,7 +232,7 @@ export function AbaAssinaturas() {
                   <option value="cancelado">Cancelado</option>
                 </select>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
                 <div>
                   <label style={lbl}>Início da assinatura</label>
                   <input type="date" style={inp} value={formInicio} onChange={e => setFormInicio(e.target.value)} />

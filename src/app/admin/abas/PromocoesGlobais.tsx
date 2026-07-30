@@ -113,7 +113,7 @@ export function PromocoesGlobais() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 24, alignItems: "start" }}>
 
         {/* ── LANÇAR PROMOÇÃO ── */}
         <Card style={{ padding: 24 }}>
@@ -206,7 +206,8 @@ export function PromocoesGlobais() {
         <div>
           <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.sidebarBg, textTransform: "uppercase", letterSpacing: "0.5px" }}>Promoções em Andamento</h3>
           <Card style={{ padding: 0, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <div className="overflow-x-auto" style={{ minWidth: 0 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: 420 }}>
               <thead>
                 <tr style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
                   <th style={thStyle}>Módulo</th>
@@ -260,6 +261,7 @@ export function PromocoesGlobais() {
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
         </div>
 

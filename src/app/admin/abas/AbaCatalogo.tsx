@@ -188,7 +188,7 @@ export function AbaCatalogo() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
+    <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 24, alignItems: "start" }}>
 
       {/* ─── PLANOS ─── */}
       <div>

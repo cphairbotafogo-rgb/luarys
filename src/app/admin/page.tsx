@@ -7,7 +7,9 @@ import {
   FiShield, FiLock, FiLogOut, FiEye, FiEyeOff,
   FiGrid, FiUsers, FiCreditCard, FiPackage, FiMessageCircle,
   FiFileText, FiDollarSign, FiAlertCircle, FiBell, FiFolder, FiActivity,
+  FiMenu, FiX,
 } from "react-icons/fi";
+import { useEhMobile } from "@/lib/useEhMobile";
 import { TelaCentral } from "./shared";
 import { AbaDashboard }      from "./abas/AbaDashboard";
 import { AbaEmpresas }       from "./abas/AbaEmpresas";
@@ -146,8 +148,12 @@ export default function AdminPage() {
   const [logado, setLogado]         = useState(false);
   const [autorizado, setAutorizado] = useState(false);
   const [abaAdmin, setAbaAdmin]     = useState<AbaAdmin>('dashboard');
+  const ehMobile = useEhMobile();
+  const [menuAberto, setMenuAberto] = useState(false);
 
   useEffect(() => { verificarAcesso(); }, []);
+  // Fecha a gaveta ao trocar de aba no celular — igual ao menu principal do sistema.
+  useEffect(() => { if (ehMobile) setMenuAberto(false); }, [abaAdmin, ehMobile]);
 
   async function verificarAcesso() {
     setCarregando(true);
@@ -183,22 +189,39 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.bg, fontFamily: "'Poppins','Segoe UI',system-ui,sans-serif" }}>
 
       {/* ── Topbar ── */}
-      <div style={{ background: C.sidebarBg, color: '#fff', padding: '0 28px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="px-4 sm:px-7" style={{ background: C.sidebarBg, color: '#fff', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {ehMobile && (
+            <button onClick={() => setMenuAberto(v => !v)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', padding: 0, marginRight: 2 }}>
+              {menuAberto ? <FiX size={20} /> : <FiMenu size={20} />}
+            </button>
+          )}
           <FiShield size={20} />
-          <span style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px' }}>Luarys Admin</span>
-          <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.5px' }}>PLATAFORMA</span>
+          <span className="hidden sm:inline" style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>Luarys Admin</span>
+          <span className="hidden sm:inline" style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>PLATAFORMA</span>
         </div>
-        <button onClick={sair} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: RAIO_MD, padding: '6px 14px', cursor: 'pointer', fontSize: 12, color: '#fff', fontWeight: 700 }}>
+        <button onClick={sair} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: RAIO_MD, padding: '6px 14px', cursor: 'pointer', fontSize: 12, color: '#fff', fontWeight: 700, flexShrink: 0 }}>
           <FiLogOut size={13} /> Sair
         </button>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+
+        {/* Fundo escurecido — só no celular, com a gaveta aberta */}
+        {ehMobile && menuAberto && (
+          <div onClick={() => setMenuAberto(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', zIndex: 899 }} />
+        )}
 
         {/* ── Sidebar ── */}
-        <nav style={{ width: 220, background: C.bgCard, borderRight: `1px solid ${C.border}`, overflowY: 'auto', flexShrink: 0, paddingTop: 12, paddingBottom: 24 }}>
+        <nav style={{
+          width: 220, background: C.bgCard, borderRight: `1px solid ${C.border}`, overflowY: 'auto', flexShrink: 0, paddingTop: 12, paddingBottom: 24,
+          ...(ehMobile ? {
+            position: 'fixed', top: 56, left: 0, bottom: 0, zIndex: 900,
+            transform: menuAberto ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.25s ease', boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+          } : {}),
+        }}>
           {grupos.map(grupo => (
             <div key={grupo}>
               <p style={{ margin: '16px 20px 6px', fontSize: 9, fontWeight: 800, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{grupo}</p>
@@ -225,7 +248,7 @@ export default function AdminPage() {
         </nav>
 
         {/* ── Conteúdo ── */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '36px 48px' }}>
+        <main className="p-4 sm:p-8 lg:p-9" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
           {abaAdmin === 'dashboard'     && <AbaDashboard />}
           {abaAdmin === 'empresas'      && <AbaEmpresas />}
           {abaAdmin === 'assinaturas'   && <AbaAssinaturas />}

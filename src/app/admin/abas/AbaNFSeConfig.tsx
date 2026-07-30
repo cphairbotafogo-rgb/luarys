@@ -152,7 +152,7 @@ export function AbaNFSeConfig() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             {/* Dados empresariais */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
               <div>
                 <label style={labelSt}>CNPJ da Luarys</label>
                 <input style={inputSt} value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" />
@@ -172,8 +172,8 @@ export function AbaNFSeConfig() {
             </div>
 
             {/* Fiscal */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
+              <div className="sm:col-span-3">
                 <label style={labelSt}>Regime Tributário</label>
                 <select style={inputSt} value={regime} onChange={e => setRegime(e.target.value)}>
                   <option value="Simples Nacional">Simples Nacional</option>
@@ -186,7 +186,7 @@ export function AbaNFSeConfig() {
                 <label style={labelSt}>Alíquota ISS (%)</label>
                 <input type="number" min={0} max={5} step={0.01} style={inputSt} value={aliquota} onChange={e => setAliquota(e.target.value)} placeholder="2.00" />
               </div>
-              <div style={{ gridColumn: '2 / -1' }}>
+              <div className="sm:col-span-2">
                 <label style={labelSt}>Código LC 116 (Serviço SaaS)</label>
                 <input style={inputSt} value={codServ} onChange={e => setCodServ(e.target.value)} placeholder="01.07" />
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: C.textMuted }}>Padrão para SaaS / software: 01.07</p>
@@ -235,7 +235,7 @@ export function AbaNFSeConfig() {
             )}
 
             {/* Ambiente + Modo */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
               <div>
                 <label style={labelSt}>Ambiente</label>
                 <div style={{ display: 'flex', gap: 8 }}>

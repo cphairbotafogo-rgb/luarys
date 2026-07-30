@@ -82,7 +82,7 @@ export function AbaWhatsappConfig() {
         {carregando ? (
           <p style={{ color: C.textLight, fontSize: 13 }}>Carregando...</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 20 }}>
             <div>
               <label style={labelSt}>Provedor</label>
               <select style={inputSt} value={provedor} onChange={e => setProvedor(e.target.value)}>

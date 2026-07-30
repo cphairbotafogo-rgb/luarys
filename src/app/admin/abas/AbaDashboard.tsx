@@ -263,7 +263,7 @@ export function AbaDashboard() {
       </Card>
 
       {/* ── P&L + Despesas ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px]" style={{ gap: 20, alignItems: 'start' }}>
 
         {/* Despesas */}
         <Card style={{ padding: 20 }}>
@@ -285,7 +285,7 @@ export function AbaDashboard() {
           </h3>
 
           {/* Taxas e impostos */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10, marginBottom: 16 }}>
             {[
               { label: 'Taxa Crédito %', val: taxaCredito, set: setTaxaCredito },
               { label: 'Taxa Débito %',  val: taxaDebito,  set: setTaxaDebito  },
