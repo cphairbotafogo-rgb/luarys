@@ -1,3 +1,8 @@
+---
+name: luarys-abas-persistentes
+description: Padrão do Luarys para manter abas pesadas (agenda, crm, caixa, financeiro, relatorios) montadas em background com display:none em vez de desmontar ao trocar de aba, preservando filtros/scroll/dados carregados e evitando re-fetch. Consulte antes de decidir se uma aba nova deve entrar em ABAS_PERSISTENTES (src/app/page.tsx), antes de mudar o comportamento de troca de aba, ou ao investigar por que um filtro/scroll "reseta" ou por que uma aba refaz fetch toda vez que é revisitada.
+---
+
 # Skill: luarys-abas-persistentes
 
 **Última verificação:** 03/07/2026

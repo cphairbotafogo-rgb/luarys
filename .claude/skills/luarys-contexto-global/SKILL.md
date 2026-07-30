@@ -1,3 +1,8 @@
+---
+name: luarys-contexto-global
+description: Padrão do Luarys para evitar queries repetidas ao Supabase — o DadosGlobaisProvider (src/lib/contexto/DadosGlobaisContext.tsx) busca servicos, profissionais e config_taxas uma única vez após o login e expõe via hook useDadosGlobais(). Consulte antes de escrever um novo fetch de servicos/profissionais/config_taxas dentro de um componente — provavelmente já existe no contexto global — e antes de montar ou alterar o DadosGlobaisProvider em LuarysApp.
+---
+
 # Skill: luarys-contexto-global
 
 **Última verificação:** 03/07/2026

@@ -1,3 +1,8 @@
+---
+name: luarys-taxas-cartoes
+description: Padrão obrigatório do Luarys para todo cálculo de taxa de operadora de cartão ou PIX — usar exclusivamente o hook useTaxasConfig, fonte única a tabela config_taxas (tela Configurações → Taxas e Parcelamentos). Nunca hardcode de taxa, nunca ler o campo inexistente taxa_maquina, nunca duplicar o fetch de config_taxas em outro componente. Consulte antes de escrever qualquer cálculo envolvendo taxa de débito/crédito/PIX, parcelamento, ou ao adicionar uma bandeira de cartão nova.
+---
+
 # Skill: luarys-taxas-cartoes
 
 **Última verificação:** 03/07/2026

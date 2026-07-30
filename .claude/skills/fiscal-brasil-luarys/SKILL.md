@@ -27,7 +27,7 @@ Skill de referência sobre a legislação fiscal brasileira em transição (NFS-
 
 - Clientes-alvo: salões pequenos/médios, tipicamente **Simples Nacional, Anexo V** (sem funcionários CLT — Fator R já é tratado no modelo de precificação, não repetir esse cálculo aqui).
 - Luarys **não é emissora de nota fiscal** — é um sistema que se integra a um provedor terceirizado (Focus NFe ou Brasil NFe) via API. A responsabilidade fiscal é do salão/tomador do CNPJ, nunca do Luarys.
-- Módulos fiscais existentes no código: `GavetaNFCe`, `GavetaNFSe`, `GavetaPDV`, `AbaFinanceiro` (ver skill `eleva-padroes` para convenções de código).
+- Módulos fiscais existentes no código: `GavetaNFCe`, `GavetaNFSe`, `GavetaPDV`, `AbaFinanceiro`.
 - Serviço de salão = **NFS-e** (municipal/nacional), não NF-e. NF-e/NFC-e só entram se o salão vender produtos (ex: revenda de cosméticos) via PDV.
 
 ## Checklist rápido — antes de responder sobre fiscal

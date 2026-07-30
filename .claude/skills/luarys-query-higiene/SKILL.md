@@ -1,3 +1,8 @@
+---
+name: luarys-query-higiene
+description: Padrões obrigatórios para queries Supabase no Luarys — nunca select('*'), sempre confirmar nomes exatos de coluna antes de trocar por colunas específicas (uma coluna errada retorna {data:null} silenciosamente, sem erro visível), Promise.all para queries paralelas, paginação em listas, debounce em filtros, .maybeSingle() quando a linha pode não existir. Consulte antes de escrever ou revisar qualquer query Supabase (select/insert/update/filter), antes de trocar select('*') por colunas explícitas, ou ao investigar uma tela que mostra dados vazios/null sem erro aparente.
+---
+
 # Skill: luarys-query-higiene
 
 **Última verificação:** 03/07/2026
