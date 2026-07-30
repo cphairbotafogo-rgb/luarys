@@ -30,6 +30,7 @@ interface Salao {
   a1_path: string | null;
   a1_enviado_em: string | null;
   token_nfse_salao: string | null;
+  config_fiscal: { brasilnfe_company_token?: string } | null;
   nfe_config_empresa: ConfigFiscal | ConfigFiscal[] | null;
 }
 
@@ -37,6 +38,7 @@ interface ModalToken {
   salaoId: string;
   nome: string;
   tokenAtual: string;
+  tokenJaCadastrado: boolean;
   nfseAtual: boolean;
   nfceAtual: boolean;
 }
@@ -60,7 +62,7 @@ export function GavetaFiscalSaloes() {
     setCarregando(true);
     const { data } = await supabase
       .from('saloes')
-      .select('id, nome_fantasia, razao_social, cnpj, status_fiscal, a1_path, a1_enviado_em, token_nfse_salao, nfe_config_empresa(nfse_ativo, nfce_ativo)')
+      .select('id, nome_fantasia, razao_social, cnpj, status_fiscal, a1_path, a1_enviado_em, token_nfse_salao, config_fiscal, nfe_config_empresa(nfse_ativo, nfce_ativo)')
       .not('status_fiscal', 'eq', 'inativo')
       .order('a1_enviado_em', { ascending: false });
     setSaloes((data ?? []) as Salao[]);
@@ -95,14 +97,16 @@ export function GavetaFiscalSaloes() {
 
   function abrirModal(s: Salao) {
     const cfg = Array.isArray(s.nfe_config_empresa) ? s.nfe_config_empresa[0] : s.nfe_config_empresa;
+    const tokenAutomatico = s.config_fiscal?.brasilnfe_company_token || s.token_nfse_salao || '';
     setModalToken({
       salaoId: s.id,
       nome: s.nome_fantasia || s.razao_social || s.id,
-      tokenAtual: s.token_nfse_salao || '',
+      tokenAtual: tokenAutomatico,
+      tokenJaCadastrado: !!tokenAutomatico,
       nfseAtual: cfg?.nfse_ativo ?? false,
       nfceAtual: cfg?.nfce_ativo ?? false,
     });
-    setNovoToken(s.token_nfse_salao || '');
+    setNovoToken('');
     setAtivarNfse(cfg?.nfse_ativo ?? true);
     setAtivarNfce(cfg?.nfce_ativo ?? false);
   }
@@ -113,15 +117,27 @@ export function GavetaFiscalSaloes() {
       toast.aviso('Selecione pelo menos um módulo para ativar (NFS-e ou NFC-e).');
       return;
     }
+    if (!modalToken.tokenJaCadastrado && !novoToken.trim()) {
+      toast.aviso('Cole o CompanyToken — este salão ainda não foi cadastrado automaticamente na Brasil NFe.');
+      return;
+    }
     setSalvandoToken(true);
     try {
-      const { error } = await supabase.rpc('admin_ativar_modulo_fiscal', {
-        p_salao_id:      modalToken.salaoId,
-        p_nfse:          ativarNfse,
-        p_nfce:          ativarNfce,
-        p_company_token: novoToken.trim() || null,
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const res = await fetch('/api/admin/brasilnfe/ativar-modulo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          salao_id: modalToken.salaoId,
+          nfse: ativarNfse,
+          nfce: ativarNfce,
+          company_token: novoToken.trim() || undefined,
+        }),
       });
-      if (error) throw error;
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`);
 
       setSaloes(prev => prev.map(s => s.id === modalToken.salaoId
         ? { ...s, token_nfse_salao: novoToken.trim() || s.token_nfse_salao, status_fiscal: 'ativo', nfe_config_empresa: { nfse_ativo: ativarNfse, nfce_ativo: ativarNfce } }
@@ -245,13 +261,23 @@ export function GavetaFiscalSaloes() {
             <p style={{ margin: '0 0 20px', fontSize: 13, color: C.textMuted }}>{modalToken.nome}</p>
 
             {/* Token */}
-            <label style={labelSt}>CompanyToken (Brasil NFs — mesmo token para NFS-e e NFC-e)</label>
+            <label style={labelSt}>CompanyToken (Brasil NFe — mesmo token para NFS-e e NFC-e)</label>
+            {modalToken.tokenJaCadastrado ? (
+              <p style={{ margin: '8px 0 12px', fontSize: 12, color: '#15803D', fontWeight: 600 }}>
+                ✓ Token já obtido automaticamente no cadastro do CNPJ — não precisa colar de novo.
+                Só preencha abaixo se quiser substituí-lo.
+              </p>
+            ) : (
+              <p style={{ margin: '8px 0 12px', fontSize: 12, color: '#B45309' }}>
+                Este salão ainda não foi cadastrado automaticamente na Brasil NFe — cole o CompanyToken manualmente.
+              </p>
+            )}
             <div style={{ position: 'relative', marginTop: 8, marginBottom: 16 }}>
               <input
                 type={verToken ? 'text' : 'password'}
                 value={novoToken}
                 onChange={e => setNovoToken(e.target.value)}
-                placeholder="Cole o CompanyToken aqui (ou deixe vazio para manter o atual)..."
+                placeholder={modalToken.tokenJaCadastrado ? 'Deixe vazio para manter o token atual...' : 'Cole o CompanyToken aqui...'}
                 style={{ width: '100%', padding: '12px 44px 12px 14px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box' }}
                 autoFocus
               />
