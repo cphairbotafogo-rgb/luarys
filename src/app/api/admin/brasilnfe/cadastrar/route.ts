@@ -2,20 +2,27 @@
  * POST /api/admin/brasilnfe/cadastrar
  *
  * Registra o CNPJ de um salão na Brasil NFe usando o UserToken (master Luarys).
- * Obtém um CompanyToken exclusivo para o CNPJ e armazena em
+ * Obtém um Token exclusivo para a empresa e armazena em
  * saloes.config_fiscal.brasilnfe_company_token.
  *
  * Apenas administradores da plataforma podem chamar esta rota.
  *
  * Body: { salao_id: string }
  *
- * ⚠️  Confirme os endpoints exatos com a Brasil NFe antes de usar em produção.
- *     A implementação abaixo segue o modelo multi-tenant descrito pela empresa.
+ * Endpoint/campos confirmados em 30/07/2026 contra o SDK oficial `brasilnfe`
+ * (npm) e brasilnfe.com.br/api/empresas#adicionar.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { baseUrl } from '@/lib/nfse/brasilnfe';
+import { cadastrarEmpresa } from '@/lib/nfse/brasilnfe';
 import { limparCnpj } from '@/lib/cnpj';
+
+// 1=Simples Nacional, 3=Regime Normal (Brasil NFe não distingue MEI de Simples aqui)
+function crtDoRegime(regime?: string | null): number {
+  const r = (regime || '').toLowerCase();
+  if (r.includes('lucro')) return 3;
+  return 1;
+}
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +30,14 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req);
+  } catch (e: any) {
+    return NextResponse.json({ erro: 'Erro inesperado: ' + (e?.message || String(e)) }, { status: 500 });
+  }
+}
+
+async function handlePost(req: NextRequest) {
   // ── Autenticação: apenas admin da plataforma ──────────────────────────────
   const authHeader = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!authHeader) return NextResponse.json({ erro: 'Não autorizado' }, { status: 401 });
@@ -47,7 +62,7 @@ export async function POST(req: NextRequest) {
   // ── Dados do salão ────────────────────────────────────────────────────────
   const { data: salao, error: salaoErr } = await supabaseAdmin
     .from('saloes')
-    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, config_fiscal')
+    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal')
     .eq('id', salao_id)
     .single();
 
@@ -81,44 +96,25 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Registrar CNPJ como empresa na Brasil NFe ─────────────────────────────
-  const resp = await fetch(`${baseUrl()}/company`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${userToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      cnpj,
-      razao_social:         salao.razao_social || salao.nome_fantasia || '',
-      inscricao_municipal:  salao.inscricao_municipal || undefined,
-      codigo_municipio_ibge: salao.codigo_ibge || undefined,
-      email:                salao.email_fiscal || undefined,
-    }),
+  const resultado = await cadastrarEmpresa(userToken, {
+    CNPJ: cnpj,
+    RzSocial: salao.razao_social || salao.nome_fantasia || '',
+    NmFantasia: salao.nome_fantasia || undefined,
+    IM: salao.inscricao_municipal || undefined,
+    CRT: crtDoRegime(salao.regime_tributario),
+    CodigoInterno: salao_id,
+    Contato: salao.email_fiscal ? { Email: salao.email_fiscal } : undefined,
   });
 
-  const json = await resp.json().catch(() => ({}));
-
-  if (!resp.ok) {
-    const msg = json.mensagem ?? json.message ?? json.error ?? `HTTP ${resp.status}`;
-    return NextResponse.json({ erro: `Brasil NFe recusou o cadastro: ${msg}` }, { status: 422 });
+  if (resultado.erro || !resultado.token) {
+    return NextResponse.json({ erro: `Brasil NFe recusou o cadastro: ${resultado.erro || 'token não recebido'}` }, { status: 422 });
   }
 
-  // A Brasil NFe retorna o CompanyToken exclusivo para este CNPJ
-  const companyToken: string = json.company_token ?? json.token ?? json.access_token ?? '';
-  const companyId: string    = json.company_id ?? json.id ?? '';
-
-  if (!companyToken) {
-    return NextResponse.json({
-      erro: 'Brasil NFe não retornou o CompanyToken. Resposta: ' + JSON.stringify(json),
-    }, { status: 502 });
-  }
-
-  // ── Persiste CompanyToken em config_fiscal do salão ───────────────────────
+  // ── Persiste o Token da empresa em config_fiscal do salão ─────────────────
   const configFiscalAtual = salao.config_fiscal || {};
   const novoConfigFiscal = {
     ...configFiscalAtual,
-    brasilnfe_company_token: companyToken,
-    brasilnfe_company_id:    companyId || undefined,
+    brasilnfe_company_token: resultado.token,
     brasilnfe_cadastrado_em: new Date().toISOString(),
   };
 
@@ -128,13 +124,12 @@ export async function POST(req: NextRequest) {
     .eq('id', salao_id);
 
   if (updateErr) {
-    return NextResponse.json({ erro: 'Erro ao salvar CompanyToken: ' + updateErr.message }, { status: 500 });
+    return NextResponse.json({ erro: 'Erro ao salvar o token: ' + updateErr.message }, { status: 500 });
   }
 
   return NextResponse.json({
     sucesso: true,
     mensagem: `Salão "${salao.nome_fantasia || salao.razao_social}" registrado com sucesso na Brasil NFe.`,
     cnpj,
-    company_id: companyId,
   });
 }

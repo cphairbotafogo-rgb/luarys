@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { uploadCertificadoFocus } from '@/lib/nfce/focusnfe';
-import { baseUrl } from '@/lib/nfse/brasilnfe';
+import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
 import { autenticarRota } from '@/lib/apiAuth';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,7 +153,6 @@ export async function POST(req: NextRequest) {
 
   if (provedorParam === 'brasilnfe') {
     const companyToken: string = salao.config_fiscal?.brasilnfe_company_token || '';
-    const companyId: string    = salao.config_fiscal?.brasilnfe_company_id    || '';
 
     if (!companyToken) {
       return NextResponse.json({
@@ -161,32 +160,16 @@ export async function POST(req: NextRequest) {
       }, { status: 422 });
     }
 
-    const formData = new FormData();
-    formData.append('certificate', new Blob([buffer], { type: 'application/x-pkcs12' }), arquivo.name);
-    formData.append('password', senha);
+    const resultado = await submeterCertificadoA1(buffer.toString('base64'), senha, companyToken);
 
-    const endpoint = companyId
-      ? `${baseUrl()}/company/${companyId}/certificate`
-      : `${baseUrl()}/company/certificate`;
-
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${companyToken}` },
-      body: formData,
-    });
-
-    const json = await resp.json().catch(() => ({}));
-
-    if (!resp.ok) {
-      const msg = json.mensagem ?? json.message ?? json.error ?? `HTTP ${resp.status}`;
-      const mensagemErro = `Brasil NFe recusou o certificado: ${msg}`;
+    if (!resultado.sucesso) {
+      const mensagemErro = `Brasil NFe recusou o certificado: ${resultado.erro ?? 'erro desconhecido'}`;
 
       await gravarAuditoria({ ...metadados, sucesso: false, mensagemErro });
       console.error('[upload-certificado] Falha no envio para Brasil NFe', {
         salao_id: salaoId,
         usuario_id: usuarioId,
-        status_http: resp.status,
-        erro: msg,
+        erro: resultado.erro,
       });
 
       return NextResponse.json({ erro: mensagemErro }, { status: 422 });

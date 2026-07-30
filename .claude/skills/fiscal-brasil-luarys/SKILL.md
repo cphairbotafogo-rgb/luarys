@@ -49,7 +49,7 @@ Cada arquivo em `references/` tem uma linha `**Última verificação:**` no topo
 ## Pendências conhecidas (registrar aqui, não deixar perder)
 
 - **Conexão com Supabase do Luarys ainda não verificada por esta skill.** As referências de tipagem de coluna (`references/07-exemplos-tecnicos.md`) são recomendações genéricas, não uma auditoria real do schema. Assim que o conector Supabase estiver disponível numa sessão, rodar uma checagem em colunas `cnpj`/`chave_acesso` e atualizar este arquivo com o resultado real.
-- **Decisão Focus NFe vs. Brasil NFe ainda em aberto** (ver `references/04-focus-vs-brasil-nfe.md`) — não há dado público verificado sobre compliance da Brasil NFe com o Ambiente Nacional/SEFIN. Assim que Ari decidir, registrar a escolha e o motivo diretamente naquele arquivo.
+- **Decisão Focus NFe vs. Brasil NFe: registrada em 30/07/2026** (ver `references/04-focus-vs-brasil-nfe.md`) — Ari decidiu Brasil NFe como único provedor da plataforma, Focus NFe não será usado. Pendente ainda: confirmar diretamente com a Brasil NFe os pontos técnicos do checklist (compliance Ambiente Nacional/SEFIN, DANFSe v2.0, CNPJ alfanumérico) antes de qualquer salão emitir em `producao`.
 - **Casos de teste da skill ainda não foram rodados formalmente.** Se quiser rigor maior (útil antes de usar em decisão de contrato), pedir para rodar 5-6 prompts reais contra a skill e revisar as respostas.
 
 ## Changelog

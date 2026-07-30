@@ -3,33 +3,37 @@
  *
  * Adaptador Brasil NFe — modelo MULTI-TENANT.
  *
- * Fluxo:
+ * Fluxo (confirmado em 30/07/2026 contra o SDK oficial `brasilnfe` no npm
+ * e a documentação real em brasilnfe.com.br/api — as funções abaixo que
+ * dependiam de endpoint/URL adivinhados foram corrigidas):
  *  1. Admin registra o CNPJ do salão via POST /api/admin/brasilnfe/cadastrar
- *     → Brasil NFe retorna um CompanyToken exclusivo por CNPJ
+ *     (usa bnfe.empresa.adicionarEmpresa com o UserToken master da Luarys)
+ *     → Brasil NFe retorna um Token exclusivo por empresa/CNPJ
  *     → Armazenado em saloes.config_fiscal.brasilnfe_company_token
+ *  2. Certificado A1 do salão é enviado com esse Token (não o UserToken) via
+ *     bnfe.empresa.alterarCertificado — ver submeterCertificadoA1 abaixo.
  *
- *  2. Para emitir, usamos o CompanyToken no header Authorization.
- *     Não há token global — cada salão tem o seu próprio.
- *
- * Documentação: https://brasilnfe.com.br/api (confirmar endpoints com a Brasil NFe antes de produção)
+ * ⚠️ emitir/consultar/cancelar (emissão de NFS-e) AINDA NÃO foram reescritos
+ * contra o SDK real — continuam no modelo antigo (endpoint adivinhado) e vão
+ * falhar até essa etapa ser feita. A API real devolve XML/PDF em base64 no
+ * corpo da resposta (não como link), o que exige decidir onde armazenar esses
+ * arquivos (Supabase Storage) antes de implementar — não adivinhar aqui.
  */
 
+import { Empresa } from 'brasilnfe';
+import type { EmpresaEnvio } from 'brasilnfe';
 import type { PayloadNFSe, ResultadoEmissao, AdaptadorNFSe } from './tipos';
 
+// URL real confirmada no SDK oficial (brasilnfe.js: url padrão + "Empresa/").
+// Única para sandbox e produção — o ambiente é um campo no payload, não a URL.
+const EMPRESA_URL = 'https://api.brasilnfe.com.br/services/Empresa/';
+
 const BASE_URL_PROD  = 'https://api.brasilnfe.com.br/v1';
-const BASE_URL_HOMOL = 'https://homologacao.brasilnfe.com.br/v1';
+const BASE_URL_HOMOL = 'https://homologacao.brasilnfe.com.br/v1'; // ⚠️ domínio não existe — só usado pelas funções antigas abaixo, ainda não corrigidas
 
-// URL base usada para EMISSÃO (CompanyToken) e GESTÃO (UserToken)
-export function baseUrl(): string {
+// URL base usada pelas funções antigas (emitir/consultar/cancelar) — NÃO usar em código novo
+function baseUrl(): string {
   return process.env.BRASIL_NFE_AMBIENTE === 'producao' ? BASE_URL_PROD : BASE_URL_HOMOL;
-}
-
-// UserToken da Luarys (master) — lido do banco pelo admin route, nunca usado para emissão
-export function userTokenHeaders(userToken: string): Record<string, string> {
-  return {
-    Authorization: `Bearer ${userToken}`,
-    'Content-Type': 'application/json',
-  };
 }
 
 function companyTokenHeaders(companyToken: string): Record<string, string> {
@@ -164,58 +168,72 @@ async function cancelar(referencia: string, justificativa: string, companyToken?
 export const BrasilNFeAdaptador: AdaptadorNFSe = { emitir, consultar, cancelar };
 
 // ── Certificado A1 ──────────────────────────────────────────────────────────
+// Confirmado contra o SDK oficial: bnfe.empresa.alterarCertificado, método
+// "AlterarCertificado". Exige o Token DA EMPRESA (devolvido por
+// adicionarEmpresa e salvo em config_fiscal.brasilnfe_company_token) — não o
+// UserToken master. Ou seja, o salão só pode enviar o certificado DEPOIS de o
+// admin ter cadastrado o CNPJ dele na Brasil NFe (ver /api/admin/brasilnfe/cadastrar).
+// A resposta (CertificadoRetorno) não devolve nenhum token novo — só confirma
+// o status e a validade do certificado.
 
 export interface ResultadoCertificado {
-  /** Retornado quando a Brasil NFe processa de forma síncrona */
-  companyToken?: string;
-  /** Retornado quando o processamento é assíncrono (webhook entrega o token depois) */
-  protocolo?: string;
+  sucesso?: boolean;
+  expirado?: boolean;
+  dataExpiracao?: string;
   erro?: string;
 }
 
 /**
  * Envia o certificado A1 do salão para a Brasil NFe.
- *
- * TODO (preencher quando tiver a documentação):
- *  - Confirmar o endpoint: provavelmente POST /company/{cnpj}/certificate
- *  - Confirmar se aceita base64 no body JSON ou multipart/form-data
- *  - Confirmar se a resposta é síncrona (devolve company_token) ou assíncrona (devolve protocolo + webhook)
- *  - Confirmar o nome exato dos campos no body e na response
- *
- * Referência do padrão de auth: UserToken da Luarys (não CompanyToken do salão).
- * O UserToken fica em process.env.BRASIL_NFE_USER_TOKEN.
+ * @param companyToken Token da empresa (config_fiscal.brasilnfe_company_token) — NÃO o UserToken.
  */
 export async function submeterCertificadoA1(
-  cnpj: string,
   certificadoBase64: string,
   senha: string,
-  userToken: string,
+  companyToken: string,
 ): Promise<ResultadoCertificado> {
-  // TODO: ajustar URL e body conforme documentação da Brasil NFe
-  const resp = await fetchComRetry(
-    `${baseUrl()}/company/${cnpj}/certificate`,
-    {
-      method: 'POST',
-      headers: userTokenHeaders(userToken),
-      body: JSON.stringify({ certificado: certificadoBase64, senha }),
-    },
-  );
+  try {
+    const empresa = new Empresa(companyToken, EMPRESA_URL, '');
+    const resp = await empresa.alterarCertificado({
+      Base64CertificateFile: certificadoBase64,
+      Senha: senha,
+    });
 
-  const json = await resp.json().catch(() => ({}));
+    if (resp.Error) return { erro: resp.Error };
 
-  if (!resp.ok) {
-    return { erro: json.mensagem ?? json.message ?? `HTTP ${resp.status}` };
+    return {
+      sucesso: resp.status !== false,
+      expirado: resp.Expirado,
+      dataExpiracao: resp.DtExpiracao,
+    };
+  } catch (e: any) {
+    return { erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
+}
 
-  // Cenário A — síncrono: Brasil NFe devolve o CompanyToken já processado
-  if (json.company_token ?? json.companyToken) {
-    return { companyToken: json.company_token ?? json.companyToken };
+// ── Cadastro de empresa (Admin → Registrar Salão na Brasil NFe) ─────────────
+// Confirmado contra o SDK oficial e a doc pública (brasilnfe.com.br/api/empresas#adicionar):
+// POST .../Empresa/AdicionarEmpresa, headers Token (vazio aqui — empresa ainda
+// não existe) + UserToken (master Luarys), devolve `token` exclusivo da empresa.
+
+export interface ResultadoCadastroEmpresa {
+  token?: string;
+  erro?: string;
+}
+
+export async function cadastrarEmpresa(
+  userToken: string,
+  dados: EmpresaEnvio,
+): Promise<ResultadoCadastroEmpresa> {
+  try {
+    const empresa = new Empresa('', EMPRESA_URL, userToken);
+    const resp = await empresa.adicionarEmpresa(dados);
+
+    if (resp.Error) return { erro: resp.Error };
+    if (!resp.token) return { erro: 'Brasil NFe não retornou o token da empresa. Resposta: ' + JSON.stringify(resp) };
+
+    return { token: resp.token };
+  } catch (e: any) {
+    return { erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
-
-  // Cenário B — assíncrono: Brasil NFe devolve um protocolo e manda webhook depois
-  if (json.protocolo ?? json.protocol) {
-    return { protocolo: json.protocolo ?? json.protocol };
-  }
-
-  return { erro: 'Resposta inesperada da Brasil NFe. Verificar documentação do endpoint de certificado.' };
 }

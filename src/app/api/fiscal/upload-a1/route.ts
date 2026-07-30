@@ -5,16 +5,15 @@
  * Fluxo:
  *  1. Valida auth e arquivo
  *  2. Salva no Supabase Storage (bucket certificados-a1, privado)
- *  3. Tenta submeter automaticamente à Brasil NFe via submeterCertificadoA1()
- *     → Síncrono: salva CompanyToken, ativa módulo (status = 'ativo')
- *     → Assíncrono: salva protocolo, aguarda webhook (status = 'processando')
- *     → Sem configuração / erro: mantém 'pendente_a1' para ativação manual pelo admin
+ *  3. Se o salão já foi cadastrado na Brasil NFe pelo admin (existe
+ *     config_fiscal.brasilnfe_company_token), tenta submeter o certificado
+ *     automaticamente via submeterCertificadoA1() e ativa o módulo (status = 'ativo').
+ *     → Sem cadastro prévio / erro: mantém 'pendente_a1' para ativação manual pelo admin
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
 import { encryptarSegredo } from '@/lib/cripto';
-import { limparCnpj } from '@/lib/cnpj';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,50 +95,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Certificado salvo, mas houve erro ao atualizar status.' }, { status: 500 });
   }
 
-  // ── 6. Automação: submeter à Brasil NFe (se BRASIL_NFE_USER_TOKEN configurado) ──
-  const userToken = process.env.BRASIL_NFE_USER_TOKEN;
+  // ── 6. Automação: submeter à Brasil NFe ──────────────────────────────────────
+  // Exige que o admin já tenha cadastrado o CNPJ do salão na Brasil NFe
+  // (POST /api/admin/brasilnfe/cadastrar) — só depois disso existe o Token
+  // da empresa (config_fiscal.brasilnfe_company_token), exigido pelo endpoint
+  // real de certificado (AlterarCertificado). Sem esse Token não há como
+  // submeter automaticamente; o admin ativa manualmente depois.
+  try {
+    const { data: salao } = await supabaseAdmin
+      .from('saloes')
+      .select('config_fiscal')
+      .eq('id', salaoId)
+      .maybeSingle();
 
-  if (userToken) {
-    try {
-      // Buscar CNPJ do salão para enviar à Brasil NFe
-      const { data: salao } = await supabaseAdmin
-        .from('saloes')
-        .select('cnpj')
-        .eq('id', salaoId)
-        .maybeSingle();
+    const companyToken: string = salao?.config_fiscal?.brasilnfe_company_token || '';
 
-      const cnpj = limparCnpj(salao?.cnpj); // mantém letras — CNPJ alfanumérico (IN RFB 2.229/2024)
+    if (companyToken) {
+      const certBase64 = Buffer.from(bytes).toString('base64');
+      const resultado  = await submeterCertificadoA1(certBase64, senha, companyToken);
 
-      if (cnpj) {
-        const certBase64 = Buffer.from(bytes).toString('base64');
-        const resultado  = await submeterCertificadoA1(cnpj, certBase64, senha, userToken);
-
-        if (resultado.companyToken) {
-          // Cenário A: Brasil NFe respondeu de forma síncrona — ativar imediatamente
-          await supabaseAdmin.from('saloes').update({
-            status_fiscal:     'ativo',
-            token_nfse_salao:  resultado.companyToken,
-            fiscal_ativado_em: new Date().toISOString(),
-          }).eq('id', salaoId);
-          return NextResponse.json({ ok: true, ativado: true, mensagem: 'Certificado aceito e módulo fiscal ativado!' });
-        }
-
-        if (resultado.protocolo) {
-          // Cenário B: Brasil NFe está processando — aguardar webhook
-          await supabaseAdmin.from('saloes').update({
-            status_fiscal:            'processando',
-            a1_protocolo_brasilnfe:   resultado.protocolo,
-          }).eq('id', salaoId);
-          return NextResponse.json({ ok: true, processando: true, mensagem: 'Certificado enviado. Ativação automática em andamento.' });
-        }
-
-        // Submissão retornou erro — log, mas não bloquear (A1 já está salvo)
-        console.warn('[upload-a1] Brasil NFe retornou erro na submissão do certificado:', resultado.erro);
+      if (resultado.sucesso) {
+        await supabaseAdmin.from('saloes').update({
+          status_fiscal:     'ativo',
+          fiscal_ativado_em: new Date().toISOString(),
+        }).eq('id', salaoId);
+        return NextResponse.json({ ok: true, ativado: true, mensagem: 'Certificado aceito e módulo fiscal ativado!' });
       }
-    } catch (e) {
-      // Nunca bloquear o lojista por falha na automação — o admin faz manualmente
-      console.error('[upload-a1] erro inesperado na automação Brasil NFe:', e);
+
+      // Submissão retornou erro — log, mas não bloquear (A1 já está salvo)
+      console.warn('[upload-a1] Brasil NFe recusou o certificado:', resultado.erro);
     }
+  } catch (e) {
+    // Nunca bloquear o lojista por falha na automação — o admin faz manualmente
+    console.error('[upload-a1] erro inesperado na automação Brasil NFe:', e);
   }
 
   return NextResponse.json({ ok: true, mensagem: 'Certificado recebido. Aguardando ativação pelo administrador.' });

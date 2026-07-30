@@ -1,7 +1,17 @@
 # Focus NFe vs. Brasil NFe — comparativo para decisão do Luarys
 
-**Última verificação:** 01/07/2026
+**Última verificação:** 30/07/2026
 **Fontes principais:** focusnfe.com.br, notaas.com.br (comparativos de mercado 2026), nfe.io/blog
+
+## ✅ Decisão registrada (30/07/2026)
+
+**Ari decidiu: Brasil NFe é o único provedor de NFS-e da plataforma.** Focus NFe não será usado.
+
+Contexto que embasou a decisão: nenhum salão tinha `focus_nfe_token` configurado (Focus NFe nunca chegou a emitir nota real), e 4 dos 5 salões já estavam com `config_fiscal.provedor_nfse = 'brasilnfe'` de uma configuração anterior — inclusive o piloto real (Concept Prime Hair, `modulo_fiscal_liberado = true`). Como nada estava emitindo nota de verdade ainda, não havia migração a fazer nem risco de quebrar fluxo em produção.
+
+Passos em andamento: UserToken (conta master Luarys) configurado em `Admin → NFS-e Luarys`, ambiente `sandbox` até validar o cadastro de empresa (`POST /company` via `/api/admin/brasilnfe/cadastrar`) com o piloto real antes de qualquer salão ir para `producao`.
+
+Os itens da seção "Pontos a verificar diretamente com a Brasil NFe antes de decidir" abaixo **continuam válidos como checklist de validação técnica** (compliance Ambiente Nacional, DANFSe v2.0, CNPJ alfanumérico etc.) — decidir o provedor não dispensa confirmar esses pontos antes de qualquer salão emitir em produção.
 
 > **Nota de honestidade**: não encontrei documentação técnica pública recente e específica da Brasil NFe (planos, cobertura de municípios, suporte a IBS/CBS) equivalente ao que a Focus NFe publica. O que está abaixo é o que dá para afirmar com confiança das fontes verificadas — o resto fica marcado como "a confirmar diretamente com o provedor" antes de fechar contrato.
 
