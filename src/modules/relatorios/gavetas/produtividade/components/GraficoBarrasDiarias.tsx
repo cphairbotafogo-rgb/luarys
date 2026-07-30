@@ -75,12 +75,12 @@ export function GraficoBarrasDiarias({ dadosDia, profissionais, meta }: {
           position: 'absolute',
           bottom: 28 + (meta / maxValorHora) * 132,
           left: 0, right: 0,
-          borderTop: `2px dashed ${C.douradoEleva}`,
+          borderTop: `2px dashed ${C.douradoLuarys}`,
           pointerEvents: 'none',
         }}>
           <span style={{
             position: 'absolute', right: 0, top: -18,
-            fontSize: 10, color: C.douradoEleva, fontWeight: 700,
+            fontSize: 10, color: C.douradoLuarys, fontWeight: 700,
             background: C.bgCard, padding: '1px 6px', borderRadius: 4,
           }}>
             Meta {brlLocal(meta)}/h

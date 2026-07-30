@@ -1,4 +1,4 @@
-# TAREFAS.md — Eleva / Luarys
+# TAREFAS.md — Luarys
 > Backlog consolidado. Atualizar a cada sessão de trabalho.
 > Última revisão: 26/06/2026
 

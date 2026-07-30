@@ -63,7 +63,7 @@ export const eyebrow = {
   fontWeight: 700,
   letterSpacing: "1.6px",
   textTransform: "uppercase" as const,
-  color: C.douradoEleva,
+  color: C.douradoLuarys,
 };
 
 /** Filete dourado decorativo sob a logo */
@@ -72,7 +72,7 @@ export const fileteDourado = {
   height: 3,
   margin: "20px auto 0",
   borderRadius: 3,
-  background: `linear-gradient(90deg, transparent, ${C.douradoEleva}, transparent)`,
+  background: `linear-gradient(90deg, transparent, ${C.douradoLuarys}, transparent)`,
 };
 
 /** h1 das telas de autenticação */

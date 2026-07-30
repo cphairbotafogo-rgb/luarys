@@ -32,8 +32,8 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FONTE_CORPO }}>
 
       {/* ─── CABEÇALHO ─── */}
-      <div style={{ background: C.bgCard, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, position: "sticky", top: 0, zIndex: 50, boxShadow: SOMBRA_SUAVE, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", padding: "6px 14px 6px 10px", borderRadius: RAIO_LG, border: `1.5px solid ${C.douradoEleva}50`, background: `linear-gradient(135deg, ${C.douradoEleva}12, transparent)`, boxShadow: `0 0 0 3px ${C.douradoEleva}10` }}>
+      <div style={{ background: C.bgCard, padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoLuarys}`, position: "sticky", top: 0, zIndex: 50, boxShadow: SOMBRA_SUAVE, flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", padding: "6px 14px 6px 10px", borderRadius: RAIO_LG, border: `1.5px solid ${C.douradoLuarys}50`, background: `linear-gradient(135deg, ${C.douradoLuarys}12, transparent)`, boxShadow: `0 0 0 3px ${C.douradoLuarys}10` }}>
             <img src={C.logoUrl} alt="Luarys" style={{ height: 52, objectFit: "contain", display: "block" }} />
           </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -54,7 +54,7 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
 
           {/* ─── BOAS VINDAS ─── */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 8 }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: C.sidebarBg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 22, boxShadow: `0 0 0 3px ${C.bg}, 0 0 0 5px ${C.douradoEleva}` }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: C.sidebarBg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 22, boxShadow: `0 0 0 3px ${C.bg}, 0 0 0 5px ${C.douradoLuarys}` }}>
               {pd.clienteFresh?.nome_completo?.substring(0, 1) || "C"}
             </div>
             <div>
@@ -68,7 +68,7 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
             <div style={{ position: "absolute", top: "-40%", right: "-12%", width: 240, height: 240, background: "rgba(255,255,255,0.04)", borderRadius: "50%" }} />
             <div style={{ position: "absolute", bottom: "-55%", left: "-10%", width: 280, height: 280, background: "rgba(212,175,55,0.06)", borderRadius: "50%" }} />
             <div style={{ position: "relative", zIndex: 1 }}>
-              <p style={{ fontFamily: FONTE_TITULO, margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "1.6px", textTransform: "uppercase", color: C.douradoEleva }}>Agendamento Online</p>
+              <p style={{ fontFamily: FONTE_TITULO, margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "1.6px", textTransform: "uppercase", color: C.douradoLuarys }}>Agendamento Online</p>
               <h2 style={{ fontFamily: FONTE_TITULO, margin: "0 0 8px", fontSize: 22, fontWeight: 800 }}>Pronta para brilhar?</h2>
               <p style={{ margin: 0, fontSize: 13, opacity: 0.85, lineHeight: 1.5 }}>Faça o seu agendamento e consulte as suas informações num só lugar.</p>
               <button onClick={ag.abrirAgendamento} disabled={ag.carregandoDados} className="transition-all hover:opacity-95" style={{ marginTop: 20, background: C.bgCard, color: C.sidebarBg, border: "none", padding: "12px 24px", borderRadius: RAIO_LG, fontWeight: 800, fontSize: 14, cursor: ag.carregandoDados ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, fontFamily: FONTE_TITULO, opacity: ag.carregandoDados ? 0.7 : 1 }}>
@@ -118,7 +118,7 @@ export function PortalDashboard({ clienteLogado, sairDoPortal, salaoSelecionado,
                     {ag.status === 'Finalizado' && (
                       <button onClick={() => pd.setAgendamentoParaAvaliar({ id: ag.id, servico: ag.servicos?.nome_servico || "Serviço", profissional: ag.profissionais?.nome || "Equipe", id_prof: ag.profissional_id, data: ag.data, inicio: ag.inicio })}
                         className="transition-all hover:opacity-90"
-                        style={{ background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                        style={{ background: `${C.douradoLuarys}1A`, border: `1px solid ${C.douradoLuarys}`, color: C.douradoLuarys, padding: "8px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         <FiStar size={13} /> Avaliar este atendimento
                       </button>
                     )}

@@ -110,8 +110,8 @@ export function GavetaCreditoCliente({ perfil }: any) {
   if (!moduloDisponivel) {
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${C.douradoEleva}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-          <FiCreditCard size={28} color={C.douradoEleva} />
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${C.douradoLuarys}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <FiCreditCard size={28} color={C.douradoLuarys} />
         </div>
         <p style={{ fontWeight: 700, color: C.textMain, fontSize: 16, marginBottom: 8 }}>Módulo de crédito não configurado</p>
         <p style={{ fontSize: 13, color: C.textMuted, maxWidth: 340, margin: '0 auto', lineHeight: 1.6 }}>
@@ -127,7 +127,7 @@ export function GavetaCreditoCliente({ perfil }: any) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
         {[
           { label: 'Total em Crédito', valor: brl(totalCredito), icon: <FiDollarSign size={18} color={C.success} />, cor: C.success },
-          { label: 'Clientes com Crédito', valor: String(qtdClientes), icon: <FiUsers size={18} color={C.douradoEleva} />, cor: C.textMain },
+          { label: 'Clientes com Crédito', valor: String(qtdClientes), icon: <FiUsers size={18} color={C.douradoLuarys} />, cor: C.textMain },
           { label: 'Crédito Médio por Cliente', valor: brl(mediaPorCliente), icon: <FiCreditCard size={18} color={C.warning} />, cor: C.textMain },
         ].map(card => (
           <div key={card.label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, padding: 16 }}>
@@ -194,8 +194,8 @@ export function GavetaCreditoCliente({ perfil }: any) {
                   <tr key={c.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${C.border}` : 'none', background: i % 2 === 0 ? C.bgCard : C.bg }}>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${C.douradoEleva}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FiCreditCard size={13} color={C.douradoEleva} />
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${C.douradoLuarys}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FiCreditCard size={13} color={C.douradoLuarys} />
                         </div>
                         <span style={{ fontWeight: 600, color: C.textMain }}>{c.cliente_nome}</span>
                       </div>

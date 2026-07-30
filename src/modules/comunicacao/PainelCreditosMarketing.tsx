@@ -159,7 +159,7 @@ export function PainelCreditosMarketing({ saldo, onCompraFinalizada }: Props) {
                     {p.quantidade}
                     <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 3, color: ativo ? 'rgba(255,255,255,0.65)' : C.textLight }}>msn</span>
                   </p>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ativo ? C.douradoEleva : C.sidebarBg }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: ativo ? C.douradoLuarys : C.sidebarBg }}>
                     {brl(p.preco)}
                   </p>
                 </button>

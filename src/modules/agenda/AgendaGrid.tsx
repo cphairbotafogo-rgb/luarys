@@ -216,7 +216,7 @@ export function AgendaGrid({
                 {prof.foto_url ? (
                   <img src={prof.foto_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${selecionado ? C.sidebarBg : 'transparent'}` }} alt="" />
                 ) : (
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, border: `2px solid ${selecionado ? C.douradoEleva : 'transparent'}`, boxSizing: 'border-box' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, border: `2px solid ${selecionado ? C.douradoLuarys : 'transparent'}`, boxSizing: 'border-box' }}>
                     {prof.nome.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -370,12 +370,12 @@ export function AgendaGrid({
                           boxShadow: ehBloqueado
                             ? 'inset 0 0 0 1px #F0DADA'
                             : ag.eh_encaixe
-                              ? `0 0 0 1px ${C.douradoEleva}, 0 2px 4px rgba(0,0,0,0.1)`
+                              ? `0 0 0 1px ${C.douradoLuarys}, 0 2px 4px rgba(0,0,0,0.1)`
                               : '0 2px 4px rgba(0,0,0,0.1)',
                           cursor: 'pointer',
                           borderLeft: ehBloqueado
                             ? '4px solid #E8B4B8'
-                            : ag.eh_encaixe ? `4px solid ${C.douradoEleva}` : '4px solid rgba(0,0,0,0.2)',
+                            : ag.eh_encaixe ? `4px solid ${C.douradoLuarys}` : '4px solid rgba(0,0,0,0.2)',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center',
@@ -414,7 +414,7 @@ export function AgendaGrid({
                                 )
                               )}
                               {ag.eh_encaixe && (
-                                <span title="Encaixe" style={{ background: C.douradoEleva, color: '#2C3643', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <span title="Encaixe" style={{ background: C.douradoLuarys, color: '#2C3643', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                   <FiZap size={9} />
                                 </span>
                               )}

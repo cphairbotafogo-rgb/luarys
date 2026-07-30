@@ -34,7 +34,7 @@ export function PainelLateral({ passo }: { passo: Passo }) {
             <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: passo > n ? '#10B981' : passo === n ? C.douradoEleva : 'rgba(255,255,255,0.1)',
+                background: passo > n ? '#10B981' : passo === n ? C.douradoLuarys : 'rgba(255,255,255,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, fontWeight: 700,
                 color: passo > n ? '#fff' : passo === n ? C.sidebarBg : 'rgba(255,255,255,0.4)',
@@ -54,9 +54,9 @@ export function PainelLateral({ passo }: { passo: Passo }) {
         </div>
 
         <div style={{ marginTop: 48, display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: RAIO_LG, padding: '12px 16px' }}>
-          <FiCheckCircle size={16} color={C.douradoEleva} />
+          <FiCheckCircle size={16} color={C.douradoLuarys} />
           <div>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: C.douradoEleva }}>5 dias grátis, sem cartão</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: C.douradoLuarys }}>5 dias grátis, sem cartão</p>
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Depois, escolha o plano ideal para o seu negócio.</p>
           </div>
         </div>

@@ -166,7 +166,7 @@ export function GavetaPerformance({ dados }: any) {
                       <div style={{
                         height: '100%', borderRadius: RAIO_XS,
                         width: `${(p.receita / maxReceitaProf) * 100}%`,
-                        background: i === 0 ? C.douradoEleva : C.activeMenuBg,
+                        background: i === 0 ? C.douradoLuarys : C.activeMenuBg,
                         transition: 'width 0.8s ease-out',
                       }} />
                     </div>
@@ -210,7 +210,7 @@ export function GavetaPerformance({ dados }: any) {
                       <div style={{
                         height: '100%', borderRadius: RAIO_XS,
                         width: `${(s.execucoes / maxExecServ) * 100}%`,
-                        background: i === 0 ? C.douradoEleva : C.btnPrimary,
+                        background: i === 0 ? C.douradoLuarys : C.btnPrimary,
                         transition: 'width 0.8s ease-out',
                       }} />
                     </div>
@@ -229,7 +229,7 @@ export function GavetaPerformance({ dados }: any) {
           background: C.sidebarBg, borderRadius: RAIO_XL,
           display: 'flex', gap: 40, alignItems: 'center',
         }}>
-          <FiTrendingUp size={24} color={C.douradoEleva} style={{ flexShrink: 0 }} />
+          <FiTrendingUp size={24} color={C.douradoLuarys} style={{ flexShrink: 0 }} />
           {[
             { label: 'Atendimentos', valor: agsMes.length.toString() },
             { label: 'Receita Total', valor: brl(rankingProfs.reduce((a, p) => a + p.receita, 0)) },

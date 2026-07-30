@@ -217,7 +217,7 @@ export function GavetaMotivosDesconto({ dados }: any) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 20 }}>
         {[
           { label: 'Receita do Período', valor: brl(receitaPeriodo), icon: <FiList size={18} color={C.success} />, sub: 'atendimentos finalizados' },
-          { label: 'Impacto dos Descontos', valor: `${pctReceita.toFixed(1)}% da receita`, icon: <FiPercent size={18} color={C.douradoEleva} />, sub: pctReceita > 10 ? 'acima do ideal — revisar política' : 'dentro do aceitável' },
+          { label: 'Impacto dos Descontos', valor: `${pctReceita.toFixed(1)}% da receita`, icon: <FiPercent size={18} color={C.douradoLuarys} />, sub: pctReceita > 10 ? 'acima do ideal — revisar política' : 'dentro do aceitável' },
         ].map(card => (
           <div key={card.label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>

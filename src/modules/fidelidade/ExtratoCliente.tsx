@@ -128,9 +128,9 @@ export function ExtratoCliente({ perfil, clienteId }: { perfil: any; clienteId: 
     <div style={{ ...cardAdmin, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: C.textMain, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <FiZap size={14} color={C.douradoEleva} /> Fidelidade
+          <FiZap size={14} color={C.douradoLuarys} /> Fidelidade
         </span>
-        <span style={{ fontSize: 20, fontWeight: 800, color: C.douradoEleva }}>{formatarPontos(saldo)} pts</span>
+        <span style={{ fontSize: 20, fontWeight: 800, color: C.douradoLuarys }}>{formatarPontos(saldo)} pts</span>
       </div>
 
       {sucesso && (
@@ -151,12 +151,12 @@ export function ExtratoCliente({ perfil, clienteId }: { perfil: any; clienteId: 
               return (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: RAIO_MD, background: podeResgatar ? '#FFFBEB' : C.bg }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: C.textMain, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FiGift size={12} color={podeResgatar ? C.douradoEleva : C.textLight} /> {p.nome}
+                    <FiGift size={12} color={podeResgatar ? C.douradoLuarys : C.textLight} /> {p.nome}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>{p.custo_pontos} pts</span>
                     <button onClick={() => abrirResgate(p)} disabled={!podeResgatar}
-                      style={{ padding: '4px 10px', borderRadius: RAIO_SM, border: 'none', fontSize: 11, fontWeight: 700, cursor: podeResgatar ? 'pointer' : 'not-allowed', background: podeResgatar ? C.douradoEleva : C.borderMid, color: podeResgatar ? '#fff' : C.textLight }}>
+                      style={{ padding: '4px 10px', borderRadius: RAIO_SM, border: 'none', fontSize: 11, fontWeight: 700, cursor: podeResgatar ? 'pointer' : 'not-allowed', background: podeResgatar ? C.douradoLuarys : C.borderMid, color: podeResgatar ? '#fff' : C.textLight }}>
                       Resgatar
                     </button>
                   </div>
@@ -209,7 +209,7 @@ export function ExtratoCliente({ perfil, clienteId }: { perfil: any; clienteId: 
                 style={{ padding: '6px 10px', borderRadius: RAIO_SM, border: `1px solid ${C.borderMid}`, fontSize: 12, width: 120 }}
               />
               {pontosDesconto && parseInt(pontosDesconto) > 0 && (
-                <span style={{ fontSize: 12, color: C.douradoEleva, fontWeight: 700 }}>
+                <span style={{ fontSize: 12, color: C.douradoLuarys, fontWeight: 700 }}>
                   = {brl(parseInt(pontosDesconto) * configFid.valor_por_ponto)}
                 </span>
               )}

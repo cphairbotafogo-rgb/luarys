@@ -7,7 +7,7 @@ import { RAIO_MD, RAIO_LG } from "@/lib/estiloGlobal";
 import { FiAlertCircle, FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { AnimacaoLogo } from "@/app/AnimacaoLogo";
 
-const D = C.douradoEleva;
+const D = C.douradoLuarys;
 
 export default function LoginLojista() {
   const [email, setEmail]               = useState("");

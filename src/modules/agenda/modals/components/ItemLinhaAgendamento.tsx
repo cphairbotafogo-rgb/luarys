@@ -206,9 +206,9 @@ export function ItemLinhaAgendamento({ item, index, totalItems, dropdownAtivo, s
           <div>
             <label style={miniLabelStyle}>Encaixe</label>
             <button type="button" onClick={() => atualizarItem(item.id, 'eh_encaixe', !item.eh_encaixe)} className="transition-all hover:opacity-90"
-              style={{ ...miniInputContainerStyle, padding: "0 10px", cursor: "pointer", justifyContent: "center", gap: 6, background: item.eh_encaixe ? `${C.douradoEleva}1A` : C.bgCard, border: `1px solid ${item.eh_encaixe ? C.douradoEleva : C.borderMid}` }}>
-              <FiZap size={14} color={item.eh_encaixe ? C.douradoEleva : C.textLight} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: item.eh_encaixe ? C.douradoEleva : C.textLight }}>{item.eh_encaixe ? "É um encaixe" : "Marcar encaixe"}</span>
+              style={{ ...miniInputContainerStyle, padding: "0 10px", cursor: "pointer", justifyContent: "center", gap: 6, background: item.eh_encaixe ? `${C.douradoLuarys}1A` : C.bgCard, border: `1px solid ${item.eh_encaixe ? C.douradoLuarys : C.borderMid}` }}>
+              <FiZap size={14} color={item.eh_encaixe ? C.douradoLuarys : C.textLight} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: item.eh_encaixe ? C.douradoLuarys : C.textLight }}>{item.eh_encaixe ? "É um encaixe" : "Marcar encaixe"}</span>
             </button>
           </div>
           {/* Duração */}

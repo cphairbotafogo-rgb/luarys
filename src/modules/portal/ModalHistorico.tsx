@@ -9,7 +9,7 @@ export function ModalHistorico({ modalAberto, fecharModal, carregando, historico
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24, fontFamily: FONTE_CORPO }}>
-      <div style={{ background: C.bgCard, width: "100%", maxWidth: 580, maxHeight: "85vh", borderRadius: RAIO_2XL, padding: "32px 32px 0", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoEleva}`, overflow: "hidden" }}>
+      <div style={{ background: C.bgCard, width: "100%", maxWidth: 580, maxHeight: "85vh", borderRadius: RAIO_2XL, padding: "32px 32px 0", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoLuarys}`, overflow: "hidden" }}>
 
         {/* Cabeçalho */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -44,7 +44,7 @@ export function ModalHistorico({ modalAberto, fecharModal, carregando, historico
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   {isConcluido && onAvaliar && (
-                    <button onClick={() => { onAvaliar(ag); fecharModal(); }} className="transition-all hover:opacity-80" style={{ background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: "5px 10px", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    <button onClick={() => { onAvaliar(ag); fecharModal(); }} className="transition-all hover:opacity-80" style={{ background: `${C.douradoLuarys}1A`, border: `1px solid ${C.douradoLuarys}`, color: C.douradoLuarys, padding: "5px 10px", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                       <FiStar size={11} /> Avaliar
                     </button>
                   )}

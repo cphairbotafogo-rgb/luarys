@@ -6,7 +6,7 @@ import { AnimacaoLogo } from '@/app/AnimacaoLogo';
 import { RAIO_LG, RAIO_XL } from "@/lib/estiloGlobal";
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
-const D = C.douradoEleva;
+const D = C.douradoLuarys;
 
 const inputBase = {
   width: '100%', padding: '13px 14px',

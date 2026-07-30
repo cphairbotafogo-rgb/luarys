@@ -58,7 +58,7 @@ function renderAbaConteudo(id: string) {
   }
 }
 
-// Container no return do ElevaApp
+// Container no return do LuarysApp
 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
   {/* Abas persistentes: montadas uma vez, visíveis/invisíveis via display */}
   {ABAS_PERSISTENTES.map(id =>

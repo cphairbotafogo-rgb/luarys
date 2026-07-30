@@ -61,7 +61,7 @@ export function GavetaFechamentoContabil({ perfil }: any) {
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 20px', borderRadius: RAIO_MD, border: 'none',
-              background: gerandoPDF === 'kit' ? C.borderMid : C.douradoEleva,
+              background: gerandoPDF === 'kit' ? C.borderMid : C.douradoLuarys,
               color: C.sidebarBg, fontSize: 13, fontWeight: 800,
               cursor: gerandoPDF === 'kit' ? 'not-allowed' : 'pointer',
             }}

@@ -110,7 +110,7 @@ export function ConfigFidelidade({ perfil }: any) {
     <div style={{ maxWidth: 760 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <FiGift size={18} color={C.douradoEleva} />
+          <FiGift size={18} color={C.douradoLuarys} />
           <span style={{ fontSize: 14, fontWeight: 800, color: C.textMain }}>Luarys Fidelidade</span>
         </div>
         <button onClick={alternarAtivo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: config.ativo ? C.success : C.textLight }}>
@@ -128,7 +128,7 @@ export function ConfigFidelidade({ perfil }: any) {
       {/* Taxa de conversão — quantos pontos o cliente ganha por real gasto */}
       <div style={{ ...cardAdmin, padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <FiZap size={14} color={C.douradoEleva} />
+          <FiZap size={14} color={C.douradoLuarys} />
           <span style={{ fontSize: 12, fontWeight: 700, color: C.textMain }}>Taxa de conversão — pontos por real gasto</span>
         </div>
         <p style={{ fontSize: 11, color: C.textLight, margin: '0 0 12px' }}>
@@ -152,7 +152,7 @@ export function ConfigFidelidade({ perfil }: any) {
       <div style={{ ...cardAdmin, padding: 20, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FiDollarSign size={14} color={C.douradoEleva} />
+            <FiDollarSign size={14} color={C.douradoLuarys} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.textMain }}>Resgate como desconto em reais</div>
               <p style={{ fontSize: 11, color: C.textLight, margin: '2px 0 0' }}>
@@ -292,7 +292,7 @@ export function ConfigFidelidade({ perfil }: any) {
                   <span style={{ marginLeft: 10, fontSize: 11, color: C.textLight }}>Valor de referência: {brl(p.valor_real)}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: C.douradoEleva }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: C.douradoLuarys }}>
                     <FiZap size={12} /> {p.custo_pontos} pts
                   </span>
                   <button onClick={() => alternarPremio(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: p.ativo ? C.success : C.textLight }}>

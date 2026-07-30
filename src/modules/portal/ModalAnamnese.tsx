@@ -22,7 +22,7 @@ export function ModalAnamnese({ modalAberto, fecharModal, salvando, dadosAnamnes
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24, fontFamily: FONTE_CORPO }}>
-      <div style={{ background: C.bgCard, width: "100%", maxWidth: 550, maxHeight: "85vh", borderRadius: RAIO_2XL, padding: "32px 32px 0", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", overflow: "hidden", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoEleva}` }}>
+      <div style={{ background: C.bgCard, width: "100%", maxWidth: 550, maxHeight: "85vh", borderRadius: RAIO_2XL, padding: "32px 32px 0", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", overflow: "hidden", border: `1px solid ${C.border}`, borderTop: `4px solid ${C.douradoLuarys}` }}>
 
         {/* Cabeçalho */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>

@@ -7,7 +7,7 @@ import { FONTE_CORPO, FONTE_TITULO, fileteDourado } from './estiloPortal';
 import { AnimacaoLogo } from '@/app/AnimacaoLogo';
 import { RAIO_LG, RAIO_XL } from '@/lib/estiloGlobal';
 
-const D = C.douradoEleva;
+const D = C.douradoLuarys;
 
 export function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: {
   onSalaoSelecionado: (s: any) => void;
@@ -164,7 +164,7 @@ export function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: {
 }
 
 function SalaoCard({ salao: s, idx, onClick }: { salao: any; idx: number; onClick: () => void }) {
-  const D = C.douradoEleva;
+  const D = C.douradoLuarys;
   const [hover, setHover] = useState(false);
   const inicial = s.nome_fantasia?.charAt(0).toUpperCase() || '?';
 
@@ -214,7 +214,7 @@ function SalaoCard({ salao: s, idx, onClick }: { salao: any; idx: number; onClic
 }
 
 function CadastroBtn({ onClick }: { onClick: () => void }) {
-  const D = C.douradoEleva;
+  const D = C.douradoLuarys;
   const [hover, setHover] = useState(false);
   return (
     <button

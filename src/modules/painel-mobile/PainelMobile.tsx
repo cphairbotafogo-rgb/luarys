@@ -47,7 +47,7 @@ export function PainelMobile() {
 
   if (carregando) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.sidebarBg }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.douradoEleva}`, borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.douradoLuarys}`, borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
     </div>
   );
 
@@ -62,7 +62,7 @@ export function PainelMobile() {
           <input type="email" placeholder="E-mail" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '14px 16px', borderRadius: 12, border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 15, outline: 'none', fontFamily: 'var(--font-body)' }} />
           <input type="password" placeholder="Senha" value={senha} onChange={e => setSenha(e.target.value)} required style={{ padding: '14px 16px', borderRadius: 12, border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 15, outline: 'none', fontFamily: 'var(--font-body)' }} />
           {erro && <p style={{ color: '#FCA5A5', fontSize: 13, margin: 0, textAlign: 'center' }}>{erro}</p>}
-          <button type="submit" disabled={entrando} style={{ padding: '14px', borderRadius: 12, border: 'none', background: C.douradoEleva, color: C.sidebarBg, fontWeight: 900, fontSize: 15, cursor: entrando ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-title)', marginTop: 4 }}>{entrando ? 'Entrando...' : 'Entrar'}</button>
+          <button type="submit" disabled={entrando} style={{ padding: '14px', borderRadius: 12, border: 'none', background: C.douradoLuarys, color: C.sidebarBg, fontWeight: 900, fontSize: 15, cursor: entrando ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-title)', marginTop: 4 }}>{entrando ? 'Entrando...' : 'Entrar'}</button>
         </form>
       </div>
     </div>

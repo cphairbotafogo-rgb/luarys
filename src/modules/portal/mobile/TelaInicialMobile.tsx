@@ -128,8 +128,8 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: FONTE_CORPO, paddingBottom: 80 }}>
-      <div style={{ background: C.bgCard, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, position: 'sticky', top: 0, zIndex: 50 }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA_HEADER, objectFit: 'contain' }} />
+      <div style={{ background: C.bgCard, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoLuarys}`, position: 'sticky', top: 0, zIndex: 50 }}>
+        <img src={C.logoUrl} alt="Luarys" style={{ height: LOGO_ALTURA_HEADER, objectFit: 'contain' }} />
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: 1, margin: '0 12px' }}>
           <span style={{ fontFamily: FONTE_TITULO, fontSize: 13, fontWeight: 800, color: C.textMain, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{salaoSelecionado?.nome_fantasia}</span>
           <button onClick={trocarDeSalao} style={{ background: 'none', border: 'none', color: C.sidebarBg, fontSize: 11, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Trocar</button>
@@ -139,7 +139,7 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
 
       <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 20, flexShrink: 0, boxShadow: `0 0 0 3px ${C.bg}, 0 0 0 5px ${C.douradoEleva}` }}>{clienteFresh?.nome_completo?.substring(0, 1) || 'C'}</div>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: C.sidebarBg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 20, flexShrink: 0, boxShadow: `0 0 0 3px ${C.bg}, 0 0 0 5px ${C.douradoLuarys}` }}>{clienteFresh?.nome_completo?.substring(0, 1) || 'C'}</div>
           <div><h1 style={{ fontFamily: FONTE_TITULO, margin: 0, fontSize: 20, fontWeight: 800, color: C.sidebarBg }}>Olá, {clienteFresh?.nome_completo?.split(' ')[0] || 'Cliente'}!</h1>
             <button onClick={() => setModalPerfilAberto(true)} style={{ background: 'none', border: 'none', color: C.sidebarBg, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0', textDecoration: 'underline' }}><FiEdit2 size={11} /> Editar perfil</button>
           </div>
@@ -147,7 +147,7 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
 
         <div style={{ position: 'relative', background: GRADIENTE_SLATE, borderRadius: RAIO_3XL, padding: 24, color: '#fff', overflow: 'hidden', marginBottom: 16 }}>
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p style={{ fontFamily: FONTE_TITULO, margin: '0 0 6px', fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: C.douradoEleva }}>Agendamento Online</p>
+            <p style={{ fontFamily: FONTE_TITULO, margin: '0 0 6px', fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: C.douradoLuarys }}>Agendamento Online</p>
             <h2 style={{ fontFamily: FONTE_TITULO, margin: '0 0 6px', fontSize: 20, fontWeight: 800 }}>Pronta para brilhar?</h2>
             <button onClick={() => setAgendamentoAberto(true)} style={{ marginTop: 16, background: C.bgCard, color: C.sidebarBg, border: 'none', padding: '12px 20px', borderRadius: RAIO_LG, fontWeight: 800, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontFamily: FONTE_TITULO, width: '100%', justifyContent: 'center' }}>
               <FiCalendar size={16} /> Novo Agendamento
@@ -195,7 +195,7 @@ export function TelaInicialMobile({ clienteLogado, salaoSelecionado, sairDoPorta
                     <button onClick={() => { setAgParaCancelar(a); setCienteCancelamento(false); setModalCancelamentoAberto(true); }} style={{ marginTop: 12, background: 'none', border: `1px solid ${C.danger}`, color: C.danger, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%' }}>Cancelar Agendamento</button>
                   )}
                   {a.status === 'Finalizado' && (
-                    <button onClick={() => setAgParaAvaliar({ id: a.id, servico: a.servicos?.nome_servico, profissional: a.profissionais?.nome, id_prof: a.profissional_id, data: a.data, inicio: a.inicio })} style={{ marginTop: 12, background: `${C.douradoEleva}1A`, border: `1px solid ${C.douradoEleva}`, color: C.douradoEleva, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><FiStar size={13} /> Avaliar atendimento</button>
+                    <button onClick={() => setAgParaAvaliar({ id: a.id, servico: a.servicos?.nome_servico, profissional: a.profissionais?.nome, id_prof: a.profissional_id, data: a.data, inicio: a.inicio })} style={{ marginTop: 12, background: `${C.douradoLuarys}1A`, border: `1px solid ${C.douradoLuarys}`, color: C.douradoLuarys, padding: '8px', borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><FiStar size={13} /> Avaliar atendimento</button>
                   )}
                 </div>
               ))}

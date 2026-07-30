@@ -30,7 +30,7 @@ interface ItemRelatorio {
 const COR_BADGE: Record<string, { bg: string; cor: string }> = {
   Financeiro:   { bg: '#D1FAE5', cor: C.success },
   Equipe:       { bg: '#E2E8EF', cor: C.sidebarBg },
-  Clientes:     { bg: '#FDF8E7', cor: C.douradoEleva },
+  Clientes:     { bg: '#FDF8E7', cor: C.douradoLuarys },
   Operacional:  { bg: '#FEF9C3', cor: C.warning },
   Auditoria:    { bg: '#FEE2E2', cor: C.danger },
 };

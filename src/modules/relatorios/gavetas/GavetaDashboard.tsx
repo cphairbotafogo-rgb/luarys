@@ -260,9 +260,9 @@ export function GavetaDashboard({ dados }: any) {
         <div style={sCard}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Ticket Médio</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: C.douradoEleva }}>{brl(kpis.ticketMedio)}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: C.douradoLuarys }}>{brl(kpis.ticketMedio)}</p>
           </div>
-          <FiTarget size={28} color={C.douradoEleva} style={{ opacity: 0.7 }} />
+          <FiTarget size={28} color={C.douradoLuarys} style={{ opacity: 0.7 }} />
         </div>
       </div>
 
@@ -341,7 +341,7 @@ export function GavetaDashboard({ dados }: any) {
                 <div style={{
                   width: '100%',
                   height: `${Math.round((d.qtd / maxGraf3) * 100)}%`,
-                  background: C.douradoEleva, opacity: 0.85,
+                  background: C.douradoLuarys, opacity: 0.85,
                   borderRadius: `${RAIO_XS}px ${RAIO_XS}px 0 0`, minHeight: d.qtd > 0 ? 4 : 0,
                 }} title={`${d.qtd} atendimentos`} />
               </div>

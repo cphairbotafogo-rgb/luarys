@@ -11,7 +11,7 @@ function EstrelasMini({ nota }: { nota: number }) {
   return (
     <span style={{ display: "inline-flex", gap: 2 }}>
       {[1,2,3,4,5].map(n => (
-        <FiStar key={n} size={12} fill={nota >= n ? C.douradoEleva : "none"} color={nota >= n ? C.douradoEleva : C.borderMid} />
+        <FiStar key={n} size={12} fill={nota >= n ? C.douradoLuarys : "none"} color={nota >= n ? C.douradoLuarys : C.borderMid} />
       ))}
     </span>
   );
@@ -73,7 +73,7 @@ export function PainelAvaliacoes({ perfil }: Props) {
           <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Nota do salão</p>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: C.sidebarBg }}>{mediaGeral}</span>
-            <FiStar size={16} fill={C.douradoEleva} color={C.douradoEleva} />
+            <FiStar size={16} fill={C.douradoLuarys} color={C.douradoLuarys} />
           </div>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight }}>{avaliacoes.length} avaliação{avaliacoes.length !== 1 ? "ões" : ""}</p>
         </div>
@@ -82,7 +82,7 @@ export function PainelAvaliacoes({ perfil }: Props) {
           <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Nota profissionais</p>
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <span style={{ fontSize: 28, fontWeight: 800, color: C.sidebarBg }}>{mediaProf}</span>
-            {mediaProf !== "—" && <FiStar size={16} fill={C.douradoEleva} color={C.douradoEleva} />}
+            {mediaProf !== "—" && <FiStar size={16} fill={C.douradoLuarys} color={C.douradoLuarys} />}
           </div>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight }}>{avaliacoesProfissional.length} com nota</p>
         </div>
@@ -133,7 +133,7 @@ export function PainelAvaliacoes({ perfil }: Props) {
                 </span>
               </div>
               {av.comentario && (
-                <div style={{ marginTop: 10, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, borderLeft: `3px solid ${C.douradoEleva}` }}>
+                <div style={{ marginTop: 10, padding: "10px 12px", background: C.bg, borderRadius: RAIO_MD, borderLeft: `3px solid ${C.douradoLuarys}` }}>
                   <p style={{ margin: 0, fontSize: 13, color: C.textMain, lineHeight: 1.5, fontStyle: "italic" }}>&quot;{av.comentario}&quot;</p>
                 </div>
               )}

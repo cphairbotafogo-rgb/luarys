@@ -25,17 +25,17 @@ export function BarraProgressoMesclagem({ atual, total, nomeAtual }: { atual: nu
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: C.textMain }}>
           {!concluido && (
-            <FiLoader size={14} color={C.douradoEleva} style={{ animation: 'eleva-spin 0.8s linear infinite' }} />
+            <FiLoader size={14} color={C.douradoLuarys} style={{ animation: 'eleva-spin 0.8s linear infinite' }} />
           )}
           {concluido ? 'Mesclagem concluída' : `Mesclando: ${nomeAtual || '...'}`}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.douradoEleva }}>{atual} / {total}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.douradoLuarys }}>{atual} / {total}</span>
       </div>
 
       <div style={{ height: 10, background: C.bg, borderRadius: RAIO_SM, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: RAIO_SM, width: `${percent}%`,
-          background: `linear-gradient(90deg, ${C.douradoEleva}, #B8960C)`,
+          background: `linear-gradient(90deg, ${C.douradoLuarys}, #B8960C)`,
           transition: 'width 0.35s ease',
         }} />
       </div>

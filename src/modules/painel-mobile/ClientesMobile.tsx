@@ -32,7 +32,7 @@ export function ClientesMobile({ perfil }: Props) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg }}>
-      <div style={{ background: C.sidebarBg, padding: '16px 20px', borderBottom: `3px solid ${C.douradoEleva}` }}>
+      <div style={{ background: C.sidebarBg, padding: '16px 20px', borderBottom: `3px solid ${C.douradoLuarys}` }}>
         <h2 style={{ fontFamily: 'var(--font-title)', margin: '0 0 12px', fontSize: 16, fontWeight: 800, color: '#fff' }}>Clientes</h2>
         <div style={{ position: 'relative' }}>
           <FiSearch size={15} color="rgba(255,255,255,0.5)" style={{ position: 'absolute', left: 14, top: 14 }} />

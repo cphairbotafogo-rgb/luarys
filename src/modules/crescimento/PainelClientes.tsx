@@ -104,7 +104,7 @@ export function PainelClientes({ fieis, emRisco, perdidos, novos, taxaRetencao, 
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ height: 7, background: 'rgba(255,255,255,0.1)', borderRadius: RAIO_MD, overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: RAIO_MD, width: `${taxaRetencao}%`, background: taxaRetencao >= 70 ? C.success : taxaRetencao >= 50 ? C.douradoEleva : C.danger }} />
+            <div style={{ height: '100%', borderRadius: RAIO_MD, width: `${taxaRetencao}%`, background: taxaRetencao >= 70 ? C.success : taxaRetencao >= 50 ? C.douradoLuarys : C.danger }} />
           </div>
           <p style={{ margin: '4px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
             Meta: 70% de clientes fiéis

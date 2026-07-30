@@ -112,7 +112,7 @@ export function ModalFichaCliente({ clienteId, perfil, onClose, onSalvo, abaInic
             <div onClick={() => fileInputRef.current?.click()} title="Alterar foto" style={{
               width: 44, height: 44, borderRadius: RAIO_LG, background: C.sidebarBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: C.douradoEleva, fontWeight: 800, fontSize: 16, overflow: 'hidden', cursor: 'pointer',
+              color: C.douradoLuarys, fontWeight: 800, fontSize: 16, overflow: 'hidden', cursor: 'pointer',
               opacity: formCliente.ativo === false ? 0.5 : 1,
             }}>
               {formCliente.foto_url

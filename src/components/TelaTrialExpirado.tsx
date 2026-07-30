@@ -105,7 +105,7 @@ export function TelaTrialExpirado({ perfil }: Props) {
               return (
                 <div key={plano.chave} style={{
                   background: destaque ? C.sidebarBg : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${destaque ? C.douradoEleva : 'rgba(255,255,255,0.1)'}`,
+                  border: `1px solid ${destaque ? C.douradoLuarys : 'rgba(255,255,255,0.1)'}`,
                   borderRadius: RAIO_XL, padding: 24,
                   display: 'flex', flexDirection: 'column', gap: 16,
                   position: 'relative',
@@ -113,7 +113,7 @@ export function TelaTrialExpirado({ perfil }: Props) {
                   {destaque && (
                     <div style={{
                       position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                      background: C.douradoEleva, color: C.sidebarBg,
+                      background: C.douradoLuarys, color: C.sidebarBg,
                       fontSize: 10, fontWeight: 800, padding: '3px 12px',
                       borderRadius: 99, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap',
                     }}>
@@ -133,7 +133,7 @@ export function TelaTrialExpirado({ perfil }: Props) {
                   </div>
 
                   <div>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: destaque ? C.douradoEleva : '#fff' }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: destaque ? C.douradoLuarys : '#fff' }}>
                       {brl(plano.preco_mensal ?? 0)}
                     </span>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginLeft: 4 }}>/mês</span>
@@ -155,7 +155,7 @@ export function TelaTrialExpirado({ perfil }: Props) {
                       marginTop: 'auto',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       padding: '13px 0', width: '100%',
-                      background: destaque ? C.douradoEleva : 'rgba(255,255,255,0.1)',
+                      background: destaque ? C.douradoLuarys : 'rgba(255,255,255,0.1)',
                       color: destaque ? C.sidebarBg : '#fff',
                       border: 'none', borderRadius: RAIO_MD,
                       fontSize: 13, fontWeight: 700,

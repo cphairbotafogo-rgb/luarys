@@ -90,7 +90,7 @@ export function AbaCrescimento({ perfil }: any) {
       {/* CABEÇALHO */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: RAIO_LG, background: `linear-gradient(135deg, ${C.douradoEleva}, #B8960C)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 40, height: 40, borderRadius: RAIO_LG, background: `linear-gradient(135deg, ${C.douradoLuarys}, #B8960C)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <FiTrendingUp size={20} color="#fff" />
           </div>
           <div>

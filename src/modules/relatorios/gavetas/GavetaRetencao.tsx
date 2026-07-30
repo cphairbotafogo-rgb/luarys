@@ -177,7 +177,7 @@ export function GavetaRetencao({ dados }: any) {
             <div style={{
               height: '100%', borderRadius: RAIO_MD,
               width: `${taxaRetencao}%`,
-              background: taxaRetencao >= 70 ? '#10B981' : taxaRetencao >= 50 ? C.douradoEleva : '#EF4444',
+              background: taxaRetencao >= 70 ? '#10B981' : taxaRetencao >= 50 ? C.douradoLuarys : '#EF4444',
               transition: 'width 1s ease-out',
             }} />
           </div>

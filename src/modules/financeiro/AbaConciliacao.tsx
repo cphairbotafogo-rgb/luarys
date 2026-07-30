@@ -361,7 +361,7 @@ export function AbaConciliacao({ transacoes, perfil }: Props) {
           <div style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>Após todos os descontos</div>
         </div>
 
-        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, borderRadius: RAIO_XL, padding: '18px 20px', boxShadow: SOMBRA_SUAVE }}>
+        <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoLuarys}`, borderRadius: RAIO_XL, padding: '18px 20px', boxShadow: SOMBRA_SUAVE }}>
           <div className="font-title" style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Status</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
             <div>

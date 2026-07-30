@@ -34,14 +34,14 @@ export function AgendaMobile({ perfil }: Props) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg }}>
-      <div style={{ background: C.sidebarBg, padding: '16px 20px 12px', borderBottom: `3px solid ${C.douradoEleva}` }}>
+      <div style={{ background: C.sidebarBg, padding: '16px 20px 12px', borderBottom: `3px solid ${C.douradoLuarys}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ fontFamily: 'var(--font-title)', margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>Agenda do Dia</h2>
           <input type="date" value={data} onChange={e => setData(e.target.value)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: RAIO_MD, padding: '6px 10px', color: '#fff', fontSize: 13, outline: 'none' }} />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: RAIO_MD, padding: '8px 14px', flex: 1, textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.douradoEleva }}>{total}</p>
+            <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.douradoLuarys }}>{total}</p>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Agendados</p>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: RAIO_MD, padding: '8px 14px', flex: 1, textAlign: 'center' }}>

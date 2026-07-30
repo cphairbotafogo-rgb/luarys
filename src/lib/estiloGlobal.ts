@@ -136,7 +136,7 @@ export const cardAdminDestaque = {
   borderRadius: RAIO_XL,
   border: `1px solid ${C.border}`,
   boxShadow: SOMBRA_SUAVE,
-  borderTop: `3px solid ${C.douradoEleva}`,
+  borderTop: `3px solid ${C.douradoLuarys}`,
 } as const;
 
 /** Card de alerta/perigo */
@@ -161,7 +161,7 @@ export const containerModal = {
   borderRadius: RAIO_2XL,
   boxShadow: SOMBRA_MODAL,
   border: `1px solid ${C.border}`,
-  borderTop: `4px solid ${C.douradoEleva}`,
+  borderTop: `4px solid ${C.douradoLuarys}`,
 } as const;
 
 /** Container de modal destrutivo (cancelamento, exclusão) */

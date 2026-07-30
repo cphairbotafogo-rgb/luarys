@@ -31,7 +31,7 @@ export function CaixaMobile({ perfil }: Props) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg }}>
-      <div style={{ background: C.sidebarBg, padding: '16px 20px 20px', borderBottom: `3px solid ${C.douradoEleva}` }}>
+      <div style={{ background: C.sidebarBg, padding: '16px 20px 20px', borderBottom: `3px solid ${C.douradoLuarys}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ fontFamily: 'var(--font-title)', margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>Caixa</h2>
           <input type="date" value={data} onChange={e => setData(e.target.value)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: RAIO_LG, padding: '6px 10px', color: '#fff', fontSize: 13, outline: 'none' }} />

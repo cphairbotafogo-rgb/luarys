@@ -262,8 +262,8 @@ aplicar os padrões abaixo por conta própria — não esperar o Ari mandar prin
 | Bloqueado | usa `ag.cor` do banco (salvo por `corDoTipoBloqueio` em ModalAusencia) |
 
 ## Skills instaladas (`/mnt/skills/user/`)
-`eleva-padroes` · `eleva-conexoes` · `eleva-seguranca-dados` · `eleva-blindagem-negocio`
-`luarys-visual-lock` · `eleva-design-portal-cliente` · `fiscal-brasil-luarys`
+`luarys-padroes` · `luarys-conexoes` · `luarys-seguranca-dados` · `luarys-blindagem-negocio`
+`luarys-visual-lock` · `luarys-design-portal-cliente` · `fiscal-brasil-luarys`
 
 ## Skills do projeto (`.claude/skills/`)
 - **`luarys-taxas-cartoes`** — padrão obrigatório para todo cálculo de taxa operadora. Hook: `useTaxasConfig(perfil)` em `src/lib/useTaxasConfig.ts`. Fonte única: `config_taxas`. Nunca hardcode de taxa, nunca ler `taxa_maquina`.

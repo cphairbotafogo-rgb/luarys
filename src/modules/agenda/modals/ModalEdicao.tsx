@@ -243,11 +243,11 @@ export function ModalEdicao({
 
             {/* Encaixe */}
             <button type="button" onClick={() => setEditandoAg({ ...editandoAg, eh_encaixe: !editandoAg.eh_encaixe })}
-              style={{ width: "100%", padding: "9px 12px", borderRadius: RAIO_MD, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: editandoAg.eh_encaixe ? `${C.douradoEleva}1A` : C.bgCard, border: `1px solid ${editandoAg.eh_encaixe ? C.douradoEleva : C.borderMid}` }}>
-              <span style={{ background: editandoAg.eh_encaixe ? C.douradoEleva : C.border, color: editandoAg.eh_encaixe ? "#2C3643" : C.textLight, borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              style={{ width: "100%", padding: "9px 12px", borderRadius: RAIO_MD, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: editandoAg.eh_encaixe ? `${C.douradoLuarys}1A` : C.bgCard, border: `1px solid ${editandoAg.eh_encaixe ? C.douradoLuarys : C.borderMid}` }}>
+              <span style={{ background: editandoAg.eh_encaixe ? C.douradoLuarys : C.border, color: editandoAg.eh_encaixe ? "#2C3643" : C.textLight, borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <FiZap size={11} />
               </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: editandoAg.eh_encaixe ? C.douradoEleva : C.textMuted }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: editandoAg.eh_encaixe ? C.douradoLuarys : C.textMuted }}>
                 {editandoAg.eh_encaixe ? "Marcado como Encaixe" : "Marcar como Encaixe"}
               </span>
             </button>

@@ -12,12 +12,12 @@ Evitar queries repetidas ao Supabase para dados que mudam raramente. O `DadosGlo
 
 **Arquivo:** `src/lib/contexto/DadosGlobaisContext.tsx`
 
-Deve ser montado em `ElevaApp` (`src/app/page.tsx`), envolvendo todo o conteúdo da app:
+Deve ser montado em `LuarysApp` (`src/app/page.tsx`), envolvendo todo o conteúdo da app:
 
 ```tsx
 import { DadosGlobaisProvider } from '@/lib/contexto/DadosGlobaisContext';
 
-// Dentro de ElevaApp, logo no return:
+// Dentro de LuarysApp, logo no return:
 <DadosGlobaisProvider perfil={perfil}>
   <Sidebar ... />
   <div style={{ flex: 1, ... }}>

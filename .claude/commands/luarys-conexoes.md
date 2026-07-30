@@ -1,9 +1,9 @@
 ---
-name: eleva-conexoes
-description: Mapa de conexões, fluxos de dados e armadilhas de integração do projeto Eleva/Luarys. USE SEMPRE que for criar ou editar qualquer funcionalidade que grave ou leia dados entre módulos — agenda, caixa, financeiro, relatórios, comissões, estoque, CRM, portal. Previne bugs de desconexão silenciosa: ação que grava numa tabela mas esquece de gravar em outra, query que usa nome de coluna errado, join PostgREST que falha por falta de FK, estado React que não chega ao componente filho. Consultar ANTES de escrever qualquer hook de fechamento, insert multi-tabela, query com join, ou funcionalidade nova que depende de dados de outro módulo.
+name: luarys-conexoes
+description: Mapa de conexões, fluxos de dados e armadilhas de integração do projeto Luarys. USE SEMPRE que for criar ou editar qualquer funcionalidade que grave ou leia dados entre módulos — agenda, caixa, financeiro, relatórios, comissões, estoque, CRM, portal. Previne bugs de desconexão silenciosa: ação que grava numa tabela mas esquece de gravar em outra, query que usa nome de coluna errado, join PostgREST que falha por falta de FK, estado React que não chega ao componente filho. Consultar ANTES de escrever qualquer hook de fechamento, insert multi-tabela, query com join, ou funcionalidade nova que depende de dados de outro módulo.
 ---
 
-# Eleva — Mapa de Conexões e Fluxos de Dados
+# Luarys — Mapa de Conexões e Fluxos de Dados
 
 Este projeto tem um padrão de bug recorrente: **uma ação grava em A mas esquece de gravar em B**, e o módulo que lê de B mostra zero ou vazio sem nenhum erro visível. Esta skill existe para mapear onde cada dado nasce, onde ele precisa chegar, e o que acontece quando a ponte entre eles quebra.
 

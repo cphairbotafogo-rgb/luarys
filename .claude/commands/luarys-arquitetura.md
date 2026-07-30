@@ -1,9 +1,9 @@
 ---
 name: luarys-arquitetura
-description: Mapa completo da arquitetura do sistema Luarys/Eleva — onde ficam os arquivos, como se conectam, e o que atualizar quando uma feature nova é adicionada. USE antes de criar nova aba, modal, gaveta, hook, ou qualquer feature que envolva mais de 1 arquivo. Previne erros de pasta errada, importação esquecida, e falta de conexão entre módulos.
+description: Mapa completo da arquitetura do sistema Luarys — onde ficam os arquivos, como se conectam, e o que atualizar quando uma feature nova é adicionada. USE antes de criar nova aba, modal, gaveta, hook, ou qualquer feature que envolva mais de 1 arquivo. Previne erros de pasta errada, importação esquecida, e falta de conexão entre módulos.
 ---
 
-# Arquitetura do Sistema Luarys/Eleva
+# Arquitetura do Sistema Luarys
 
 Leia esta página **inteira** antes de criar qualquer feature nova. Cada seção tem um checklist específico que evita os erros mais comuns: arquivo criado mas não importado, aba registrada mas sem entrada na sidebar, modal sem estilos corretos, cross-import de lugar errado.
 

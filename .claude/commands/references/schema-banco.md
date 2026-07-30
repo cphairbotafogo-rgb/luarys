@@ -1,4 +1,4 @@
-# Schema do Banco — Eleva/Luarys
+# Schema do Banco — Luarys
 
 Colunas confirmadas por queries explícitas que funcionam no código. Atualizar este arquivo sempre que uma tabela nova for criada ou uma coluna for adicionada/renomeada.
 

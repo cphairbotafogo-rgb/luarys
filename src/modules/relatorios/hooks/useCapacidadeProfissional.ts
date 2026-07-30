@@ -153,7 +153,7 @@ type Params = {
 /**
  * Núcleo do cálculo, como função pura (sem useMemo) — para poder ser
  * chamada de qualquer lugar, incluindo fora de componentes React (ex:
- * dentro de um handler assíncrono, como o HorasAssistente do Eleva
+ * dentro de um handler assíncrono, como o HorasAssistente do Luarys
  * Precifica). useCapacidadeProfissional (abaixo) é a versão com memoização
  * para uso direto em componentes.
  */

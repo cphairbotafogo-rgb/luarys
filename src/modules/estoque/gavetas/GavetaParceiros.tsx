@@ -115,7 +115,7 @@ export function GavetaParceiros({ perfil }: any) {
         {fornecedores.length === 0 && <p style={{color: C.textMuted, gridColumn: "1 / -1"}}>Nenhum fornecedor cadastrado. Comece a montar a sua rede!</p>}
 
         {fornecedores.map(f => (
-          <Card key={f.id} style={{ padding: 20, borderTop: f.is_fabricante ? `4px solid ${C.douradoEleva}` : `4px solid ${C.sidebarBg}` }}>
+          <Card key={f.id} style={{ padding: 20, borderTop: f.is_fabricante ? `4px solid ${C.douradoLuarys}` : `4px solid ${C.sidebarBg}` }}>
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8}}>
               <div>
                 <h4 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: C.sidebarBg }}>{f.nome_empresa}</h4>

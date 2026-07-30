@@ -52,7 +52,7 @@ export function RelatorioConciliacao({ dadosConciliacao, mesAnoLabel, onCSV, onP
 
       <div style={{ background: C.sidebarBg, borderRadius: RAIO_MD, padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>Total Recebido no Período</span>
-        <span className="font-title" style={{ color: C.douradoEleva, fontSize: 20, fontWeight: 800 }}>{brl(dadosConciliacao.totalBruto)}</span>
+        <span className="font-title" style={{ color: C.douradoLuarys, fontSize: 20, fontWeight: 800 }}>{brl(dadosConciliacao.totalBruto)}</span>
       </div>
     </div>
   );

@@ -33,7 +33,7 @@ function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: { onSalaoSel
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: FONTE_CORPO }}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <img src={C.logoUrl} alt="Eleva" style={{ height: LOGO_ALTURA, objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+        <img src={C.logoUrl} alt="Luarys" style={{ height: LOGO_ALTURA, objectFit: 'contain', display: 'block', margin: '0 auto' }} />
         <div style={fileteDourado} />
       </div>
       <div style={{ ...cardPremium, width: '100%', maxWidth: 440, padding: '40px 24px' }}>
@@ -46,7 +46,7 @@ function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: { onSalaoSel
         {saloes.length > 0 && (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 280, overflowY: 'auto' }}>
             {saloes.map(s => (
-              <button key={s.id} onClick={() => onSalaoSelecionado(s)} style={{ width: '100%', padding: '14px 16px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, borderLeft: `3px solid ${C.douradoEleva}`, cursor: 'pointer', textAlign: 'left', minHeight: 56 }}>
+              <button key={s.id} onClick={() => onSalaoSelecionado(s)} style={{ width: '100%', padding: '14px 16px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, borderLeft: `3px solid ${C.douradoLuarys}`, cursor: 'pointer', textAlign: 'left', minHeight: 56 }}>
                 <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: C.textMain }}>{s.nome_fantasia}</p>
                 {s.cidade && <p style={{ margin: '3px 0 0', fontSize: 12, color: C.textLight, display: 'flex', alignItems: 'center', gap: 4 }}><FiMapPin size={11} /> {s.bairro ? `${s.bairro} · ` : ''}{s.cidade}</p>}
               </button>

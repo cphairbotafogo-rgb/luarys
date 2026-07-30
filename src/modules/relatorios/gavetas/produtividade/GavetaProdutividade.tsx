@@ -76,7 +76,7 @@ export function GavetaProdutividade({ perfil }: any) {
               background: C.sidebarBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <FiZap size={20} color={C.douradoEleva} />
+              <FiZap size={20} color={C.douradoLuarys} />
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 800, color: C.textMain }}>
@@ -93,9 +93,9 @@ export function GavetaProdutividade({ perfil }: any) {
         <div style={{
           ...card, padding: '12px 16px',
           display: 'flex', alignItems: 'center', gap: 10,
-          borderLeft: `3px solid ${C.douradoEleva}`,
+          borderLeft: `3px solid ${C.douradoLuarys}`,
         }}>
-          <FiTarget size={15} color={C.douradoEleva} />
+          <FiTarget size={15} color={C.douradoLuarys} />
           <div>
             <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Meta valor/hora
@@ -117,7 +117,7 @@ export function GavetaProdutividade({ perfil }: any) {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                <span style={{ fontSize: 16, fontWeight: 800, color: C.douradoEleva }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: C.douradoLuarys }}>
                   {brlLocal(metaValorHora)}/h
                 </span>
                 <button onClick={() => { setMetaTemp(String(metaValorHora)); setEditandoMeta(true); }}
@@ -192,7 +192,7 @@ export function GavetaProdutividade({ perfil }: any) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           {[
             {
-              icon: <FiTrendingUp size={16} color={C.douradoEleva} />,
+              icon: <FiTrendingUp size={16} color={C.douradoLuarys} />,
               label: 'Valor/hora médio do salão',
               valor: `${brlLocal(mediaValorHora)}/h`,
               cor: corValorHora(mediaValorHora),

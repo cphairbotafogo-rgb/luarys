@@ -243,7 +243,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
             className="font-title font-bold text-xs"
             style={{
               width: '36px', height: '36px', borderRadius: '8px',
-              background: C.douradoEleva, color: C.sidebarBg,
+              background: C.douradoLuarys, color: C.sidebarBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}
@@ -255,7 +255,7 @@ export function Sidebar({ aba, setAba, perfil }: any) {
               <p className="font-body" style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {perfil?.nome}
               </p>
-              <p className="font-title" style={{ margin: '2px 0 0', fontSize: '10px', color: C.douradoEleva, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <p className="font-title" style={{ margin: '2px 0 0', fontSize: '10px', color: C.douradoLuarys, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {perfil?.isDono ? 'Proprietário' : perfil?.permissoes?.perfil_acesso || 'Colaborador'}
               </p>
             </div>

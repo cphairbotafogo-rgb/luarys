@@ -159,7 +159,7 @@ export default function PaginaCadastro() {
                 <span style={{ fontSize: 11, color: C.textLight }}>{Math.round((passo / TOTAL_PASSOS) * 100)}%</span>
               </div>
               <div style={{ height: 4, background: C.border, borderRadius: RAIO_XS, overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: RAIO_XS, width: `${(passo / TOTAL_PASSOS) * 100}%`, background: C.douradoEleva, transition: 'width 0.4s ease' }} />
+                <div style={{ height: '100%', borderRadius: RAIO_XS, width: `${(passo / TOTAL_PASSOS) * 100}%`, background: C.douradoLuarys, transition: 'width 0.4s ease' }} />
               </div>
             </div>
           )}

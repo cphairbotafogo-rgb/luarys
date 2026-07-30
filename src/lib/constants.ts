@@ -20,14 +20,13 @@ export const C = {
   
   // Elementos de Ação e Destaque
   btnPrimary: "#6B788A",   // Botões principais (Azul-acinzentado elegante)
-  douradoEleva: "#D4AF37", // Destaques Premium Luarys (Logotipo e ícones VIP)
-  
+  douradoLuarys: "#D4AF37", // Destaques Premium Luarys (Logotipo e ícones VIP)
+
   // Cards da Agenda Visual (Camaleão para Estética/Salão)
   cardSage: "#8EA291",     // Verde calmante (Ideal para massagens/estética)
   cardSlate: "#727E8D",    // Ardósia médio (Ideal para consultas/cabelo)
 
   // ─── TOKENS DE LEGADO (Para evitar crashes no Portal antigo) ───
-  douradoLuarys: "#D4AF37", // alias de douradoEleva — não remover (usado em 11 arquivos)
   violet: "#6D28D9",
   lavender: "#EDE9FE",
   charcoal: "#1E293B",

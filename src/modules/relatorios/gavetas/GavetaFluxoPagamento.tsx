@@ -11,8 +11,8 @@ export function GavetaFluxoPagamento({ dados, perfil }: any) {
 
   const btnPeriodo = (p: string) => ({
     padding: '6px 12px', borderRadius: RAIO_XS,
-    border: `1px solid ${f.periodo === p ? C.douradoEleva : C.border}`,
-    background: f.periodo === p ? C.douradoEleva : C.bgCard,
+    border: `1px solid ${f.periodo === p ? C.douradoLuarys : C.border}`,
+    background: f.periodo === p ? C.douradoLuarys : C.bgCard,
     color: f.periodo === p ? '#fff' : C.textMuted,
     fontSize: 11, fontWeight: 600, cursor: 'pointer',
   });

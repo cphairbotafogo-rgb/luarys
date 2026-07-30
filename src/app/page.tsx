@@ -107,7 +107,7 @@ export default function AppWrapper() {
     <ConfirmacaoProvider>
       <ToastProvider>
         <ToastInitializer />
-        <ElevaApp perfil={perfil} />
+        <LuarysApp perfil={perfil} />
       </ToastProvider>
     </ConfirmacaoProvider>
   );
@@ -125,7 +125,7 @@ function ToastInitializer() {
 const ABAS_PERSISTENTES = ['agenda', 'crm', 'caixa', 'financeiro', 'relatorios'];
 
 // ─── O SISTEMA (O Maestro) ──────────────────────────────────────────
-function ElevaApp({ perfil }: any) {
+function LuarysApp({ perfil }: any) {
   const [ambienteDemoVisivel, setAmbienteDemoVisivel] = useState<boolean>(!!perfil?.ambienteDemo);
   const [aba, setAba] = useState(() => {
     if (typeof window !== 'undefined' && window.location.hash) {

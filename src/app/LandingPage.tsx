@@ -12,13 +12,13 @@ import { AnimacaoLogo } from './AnimacaoLogo';
 
 const MODULOS_DESTAQUE = [
   {
-    icone: <FiCalendar size={28} color={C.douradoEleva} />,
+    icone: <FiCalendar size={28} color={C.douradoLuarys} />,
     titulo: 'Agenda Visual',
     descricao: 'Calendário por profissional com arrastar e soltar. Confirmações automáticas, bloqueios e lista de espera integrados.',
     destaque: true,
   },
   {
-    icone: <FiDollarSign size={28} color={C.douradoEleva} />,
+    icone: <FiDollarSign size={28} color={C.douradoLuarys} />,
     titulo: 'Caixa & Financeiro',
     descricao: 'Fechamento de conta por atendimento, múltiplas formas de pagamento e comissões calculadas automaticamente. Relatório do dia em segundos.',
     destaque: true,
@@ -26,12 +26,12 @@ const MODULOS_DESTAQUE = [
 ];
 
 const MODULOS_GRID = [
-  { icone: <FiTag size={22} color={C.douradoEleva} />, titulo: 'Precificação', descricao: 'Preço baseado em custo real e margem desejada.' },
-  { icone: <FiUsers size={22} color={C.douradoEleva} />, titulo: 'Equipe', descricao: 'Profissionais, serviços, horários e comissões.' },
-  { icone: <FiPackage size={22} color={C.douradoEleva} />, titulo: 'Estoque & PDV', descricao: 'Produtos, movimentações e venda no balcão.' },
-  { icone: <FiBarChart2 size={22} color={C.douradoEleva} />, titulo: 'Relatórios', descricao: 'Performance, retenção de clientes e rankings.' },
-  { icone: <FiTrendingUp size={22} color={C.douradoEleva} />, titulo: 'Crescimento', descricao: 'Clientes em risco e horários ociosos com ação direta.' },
-  { icone: <FiCheckCircle size={22} color={C.douradoEleva} />, titulo: 'Portal do Cliente', descricao: 'Link próprio com agendamento online e vitrine.' },
+  { icone: <FiTag size={22} color={C.douradoLuarys} />, titulo: 'Precificação', descricao: 'Preço baseado em custo real e margem desejada.' },
+  { icone: <FiUsers size={22} color={C.douradoLuarys} />, titulo: 'Equipe', descricao: 'Profissionais, serviços, horários e comissões.' },
+  { icone: <FiPackage size={22} color={C.douradoLuarys} />, titulo: 'Estoque & PDV', descricao: 'Produtos, movimentações e venda no balcão.' },
+  { icone: <FiBarChart2 size={22} color={C.douradoLuarys} />, titulo: 'Relatórios', descricao: 'Performance, retenção de clientes e rankings.' },
+  { icone: <FiTrendingUp size={22} color={C.douradoLuarys} />, titulo: 'Crescimento', descricao: 'Clientes em risco e horários ociosos com ação direta.' },
+  { icone: <FiCheckCircle size={22} color={C.douradoLuarys} />, titulo: 'Portal do Cliente', descricao: 'Link próprio com agendamento online e vitrine.' },
 ];
 
 const STATS = [
@@ -181,14 +181,14 @@ export function LandingPage() {
 
         <div style={{ marginTop: -16, paddingBottom: 0 }}>
           <div className="hero-fadeup hero-fadeup-1" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(212,175,55,0.15)', border: `1px solid rgba(212,175,55,0.3)`, borderRadius: 99, padding: '6px 16px', marginBottom: 20 }}>
-            <FiCheckCircle size={13} color={C.douradoEleva} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.douradoEleva }}>5 dias grátis · Sem cartão de crédito</span>
+            <FiCheckCircle size={13} color={C.douradoLuarys} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.douradoLuarys }}>5 dias grátis · Sem cartão de crédito</span>
           </div>
           <p className="hero-fadeup hero-fadeup-2" style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, maxWidth: 480, margin: '0 auto 28px' }}>
             Agenda, caixa, equipe, estoque e relatórios num único lugar. Feito para salões que querem crescer de verdade.
           </p>
           <div className="hero-fadeup hero-fadeup-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
-            <button onClick={() => ir('/cadastro')} className="btn-hover" style={{ padding: '14px 32px', borderRadius: RAIO_XL, border: 'none', background: C.douradoEleva, cursor: 'pointer', fontSize: 15, fontWeight: 800, color: C.sidebarBg, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => ir('/cadastro')} className="btn-hover" style={{ padding: '14px 32px', borderRadius: RAIO_XL, border: 'none', background: C.douradoLuarys, cursor: 'pointer', fontSize: 15, fontWeight: 800, color: C.sidebarBg, display: 'flex', alignItems: 'center', gap: 8 }}>
               Começar grátis <FiArrowRight size={15} />
             </button>
             <button onClick={() => ir('/login')} className="btn-hover" style={{ padding: '14px 32px', borderRadius: RAIO_XL, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff' }}>
@@ -265,7 +265,7 @@ export function LandingPage() {
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 36 }}>
           Comece hoje. 5 dias grátis, sem cartão de crédito.
         </p>
-        <button onClick={() => ir('/cadastro')} className="btn-hover" style={{ padding: '16px 40px', borderRadius: RAIO_XL, border: 'none', background: C.douradoEleva, cursor: 'pointer', fontSize: 16, fontWeight: 800, color: C.sidebarBg, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => ir('/cadastro')} className="btn-hover" style={{ padding: '16px 40px', borderRadius: RAIO_XL, border: 'none', background: C.douradoLuarys, cursor: 'pointer', fontSize: 16, fontWeight: 800, color: C.sidebarBg, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           Começar grátis <FiArrowRight size={16} />
         </button>
       </section>

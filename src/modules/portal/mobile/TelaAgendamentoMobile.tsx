@@ -151,7 +151,7 @@ export function TelaAgendamentoMobile({ salaoSelecionado, clienteFresh, onFinali
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: C.bg, zIndex: 200, display: 'flex', flexDirection: 'column', fontFamily: FONTE_CORPO }}>
-      <div style={{ background: C.bgCard, borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoEleva}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: C.bgCard, borderBottom: `1px solid ${C.border}`, borderTop: `3px solid ${C.douradoLuarys}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={passo > 1 && passo < 6 ? () => setPasso(p => p - 1) : onVoltar} style={{ background: 'none', border: 'none', color: C.sidebarBg, cursor: 'pointer', display: 'flex', padding: 4 }}><FiArrowLeft size={22} /></button>
         <h2 style={{ fontFamily: FONTE_TITULO, margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg, flex: 1 }}>{TITULOS[passo]}</h2>
         <div style={{ display: 'flex', gap: 5 }}>{[1,2,3,4,5].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i <= passo && passo < 6 ? C.sidebarBg : C.borderMid }} />)}</div>

@@ -21,7 +21,7 @@ export function NavBarPainelMobile({ aba, onTrocar }: Props) {
       {ABAS.map(({ id, label, icone: Icone }) => {
         const ativo = aba === id;
         return (
-          <button key={id} onClick={() => onTrocar(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 4px', color: ativo ? C.douradoEleva : 'rgba(255,255,255,0.55)', borderTop: ativo ? `2px solid ${C.douradoEleva}` : '2px solid transparent' }}>
+          <button key={id} onClick={() => onTrocar(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 4px', color: ativo ? C.douradoLuarys : 'rgba(255,255,255,0.55)', borderTop: ativo ? `2px solid ${C.douradoLuarys}` : '2px solid transparent' }}>
             <Icone size={20} />
             <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-title)', letterSpacing: '0.5px' }}>{label}</span>
           </button>

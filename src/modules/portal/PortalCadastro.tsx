@@ -8,7 +8,7 @@ import { AnimacaoLogo } from '@/app/AnimacaoLogo';
 import { RAIO_LG, RAIO_MD, RAIO_XL } from "@/lib/estiloGlobal";
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
-const D = C.douradoEleva;
+const D = C.douradoLuarys;
 
 function mascaraTel(v: string): string {
   const comPlus = v.trimStart().startsWith('+');

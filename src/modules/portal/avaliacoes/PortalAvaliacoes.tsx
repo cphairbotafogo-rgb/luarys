@@ -35,8 +35,8 @@ function Estrelas({ valor, onChange, desabilitado }: { valor: number; onChange?:
           <FiStar
             size={28}
             style={{ transition: "all 0.15s" }}
-            fill={(hover || valor) >= n ? C.douradoEleva : "none"}
-            color={(hover || valor) >= n ? C.douradoEleva : C.borderMid}
+            fill={(hover || valor) >= n ? C.douradoLuarys : "none"}
+            color={(hover || valor) >= n ? C.douradoLuarys : C.borderMid}
           />
         </button>
       ))}
@@ -99,7 +99,7 @@ export function PortalAvaliacoes({ agendamento, salaoId, clienteId, onFechar, on
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <p style={{ fontFamily: FONTE_TITULO, margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase", color: C.douradoEleva }}>
+            <p style={{ fontFamily: FONTE_TITULO, margin: 0, fontSize: 10, fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase", color: C.douradoLuarys }}>
               {jaAvaliado ? "Avaliação enviada" : "Avaliar atendimento"}
             </p>
             <h2 style={{ fontFamily: FONTE_TITULO, margin: "4px 0 0", fontSize: 18, fontWeight: 800, color: C.sidebarBg }}>

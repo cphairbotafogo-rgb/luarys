@@ -18,10 +18,10 @@ export function HomeMobile({ perfil, resumo, onTrocarAba, onSair }: Props) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg }}>
-      <div style={{ background: C.sidebarBg, padding: '20px 20px 24px', borderBottom: `3px solid ${C.douradoEleva}` }}>
+      <div style={{ background: C.sidebarBg, padding: '20px 20px 24px', borderBottom: `3px solid ${C.douradoLuarys}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: C.douradoEleva, textTransform: 'uppercase', letterSpacing: '1px' }}>Painel do Lojista</p>
+            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: C.douradoLuarys, textTransform: 'uppercase', letterSpacing: '1px' }}>Painel do Lojista</p>
             <h1 style={{ fontFamily: 'var(--font-title)', margin: 0, fontSize: 22, fontWeight: 900, color: '#fff' }}>Olá, {nome}!</h1>
             <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Hoje, {hoje}</p>
           </div>
@@ -38,7 +38,7 @@ export function HomeMobile({ perfil, resumo, onTrocarAba, onSair }: Props) {
             <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase' }}>Finalizados</p>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: RAIO_LG, padding: '10px 12px' }}>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: C.douradoEleva }}>{brl(resumo.faturamento)}</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: C.douradoLuarys }}>{brl(resumo.faturamento)}</p>
             <p style={{ margin: '2px 0 0', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase' }}>Faturado</p>
           </div>
         </div>

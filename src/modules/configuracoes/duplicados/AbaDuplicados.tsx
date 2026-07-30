@@ -52,7 +52,7 @@ export function AbaDuplicados({ perfil }: any) {
         <div style={{ display: 'flex', gap: 8 }}>
           {totalGruposPendentes > 0 && !confirmacaoPendente && (
             <button onClick={() => setConfirmacaoPendente(true)} disabled={mesclandoTudo}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#fff', background: C.douradoEleva, border: 'none', borderRadius: RAIO_SM, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#fff', background: C.douradoLuarys, border: 'none', borderRadius: RAIO_SM, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>
               <FiZap size={12} /> Mesclar todos
             </button>
           )}

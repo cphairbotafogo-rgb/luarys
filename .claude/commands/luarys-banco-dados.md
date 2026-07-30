@@ -1,9 +1,9 @@
 ---
 name: luarys-banco-dados
-description: Schema do banco Supabase do Eleva/Luarys — nomes reais de tabelas e colunas. USE SEMPRE antes de escrever qualquer query Supabase com colunas explícitas (select, insert, update, filter). Evita erros "column does not exist" e gastos desnecessários de tokens reescrevendo código por nome errado de coluna. USE TAMBÉM antes de criar uma tabela nova para seguir o padrão de nomenclatura do projeto.
+description: Schema do banco Supabase do Luarys — nomes reais de tabelas e colunas. USE SEMPRE antes de escrever qualquer query Supabase com colunas explícitas (select, insert, update, filter). Evita erros "column does not exist" e gastos desnecessários de tokens reescrevendo código por nome errado de coluna. USE TAMBÉM antes de criar uma tabela nova para seguir o padrão de nomenclatura do projeto.
 ---
 
-# Banco de Dados — Eleva/Luarys
+# Banco de Dados — Luarys
 
 Leia esta página antes de escrever qualquer `.select('coluna')`, `.insert({})`, `.update({})` ou `.eq('coluna', ...)`. Errar o nome de uma coluna num select explícito causa erro 404 silencioso ou toast de erro — e exige reescrita com gasto de tokens.
 
