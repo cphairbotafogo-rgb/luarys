@@ -20,9 +20,11 @@
  * arquivos (Supabase Storage) antes de implementar — não adivinhar aqui.
  */
 
+import { createClient } from '@supabase/supabase-js';
 import { Empresa } from 'brasilnfe';
 import type { EmpresaEnvio } from 'brasilnfe';
 import type { PayloadNFSe, ResultadoEmissao, AdaptadorNFSe } from './tipos';
+import { limparCnpj } from '@/lib/cnpj';
 
 // URL real confirmada no SDK oficial (brasilnfe.js: url padrão + "Empresa/").
 // Única para sandbox e produção — o ambiente é um campo no payload, não a URL.
@@ -236,4 +238,81 @@ export async function cadastrarEmpresa(
   } catch (e: any) {
     return { erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
+}
+
+// ── Cadastro automático (chamado pelo admin OU pelo webhook de pagamento) ───
+// Fluxo único compartilhado: busca CNPJ/endereço do salão, busca o UserToken
+// master da Luarys, chama cadastrarEmpresa e persiste o token retornado em
+// config_fiscal. Nunca lança — quem chamar decide se trata o erro como
+// bloqueante (rota manual) ou apenas loga (automação pós-pagamento).
+
+// 1=Simples Nacional, 3=Regime Normal (Brasil NFe não distingue MEI de Simples aqui)
+function crtDoRegime(regime?: string | null): number {
+  const r = (regime || '').toLowerCase();
+  if (r.includes('lucro')) return 3;
+  return 1;
+}
+
+export async function cadastrarEmpresaLuarys(salaoId: string): Promise<ResultadoCadastroEmpresa> {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: salao, error: salaoErr } = await supabaseAdmin
+    .from('saloes')
+    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')
+    .eq('id', salaoId)
+    .single();
+
+  if (salaoErr || !salao) return { erro: 'Salão não encontrado.' };
+
+  const cnpj = limparCnpj(salao.cnpj);
+  if (cnpj.length !== 14) return { erro: 'CNPJ do salão inválido ou não cadastrado.' };
+  if (!salao.cep) return { erro: 'CEP do salão não cadastrado (Dados da Empresa).' };
+
+  const { data: cfg } = await supabaseAdmin
+    .from('plataforma_nfse_config')
+    .select('token_brasilnfe')
+    .eq('id', 1)
+    .maybeSingle();
+  const userToken = process.env.BRASIL_NFE_USER_TOKEN || cfg?.token_brasilnfe || '';
+  if (!userToken) return { erro: 'UserToken Brasil NFe não configurado (Admin → NFS-e Luarys).' };
+
+  const resultado = await cadastrarEmpresa(userToken, {
+    CNPJ: cnpj,
+    RzSocial: salao.razao_social || salao.nome_fantasia || '',
+    NmFantasia: salao.nome_fantasia || undefined,
+    IM: salao.inscricao_municipal || undefined,
+    CRT: crtDoRegime(salao.regime_tributario),
+    CodigoInterno: salaoId,
+    Contato: salao.email_fiscal ? { Email: salao.email_fiscal } : undefined,
+    Endereco: {
+      Cep: salao.cep,
+      Logradouro: salao.logradouro || undefined,
+      Numero: salao.numero || undefined,
+      Complemento: salao.complemento || undefined,
+      Bairro: salao.bairro || undefined,
+      CodMunicipio: salao.codigo_ibge || undefined,
+      Municipio: salao.cidade || undefined,
+      Uf: salao.estado || undefined,
+    },
+  });
+
+  if (resultado.erro || !resultado.token) return resultado;
+
+  const novoConfigFiscal = {
+    ...(salao.config_fiscal || {}),
+    brasilnfe_company_token: resultado.token,
+    brasilnfe_cadastrado_em: new Date().toISOString(),
+  };
+
+  const { error: updateErr } = await supabaseAdmin
+    .from('saloes')
+    .update({ config_fiscal: novoConfigFiscal })
+    .eq('id', salaoId);
+
+  if (updateErr) return { erro: 'Cadastrado na Brasil NFe, mas falhou ao salvar o token: ' + updateErr.message };
+
+  return { token: resultado.token };
 }

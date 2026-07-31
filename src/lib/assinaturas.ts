@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notificarCobranca } from './notificacoes';
+import { cadastrarEmpresaLuarys } from './nfse/brasilnfe';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -216,6 +217,30 @@ export async function registrarPagamentoAssinatura({
     .update({ status: 'approved' })
     .eq('pagamento_externo_id', pagamentoExternoId);
   if (erroAprovarModulo) console.error('[registrarPagamentoAssinatura] Erro ao marcar pagamento (módulo) como approved:', erroAprovarModulo.message);
+
+  // Módulo fiscal pago (nfse ou nfce) → cadastra o CNPJ na Brasil NFe
+  // automaticamente, se ainda não tiver sido feito. Nunca bloqueia a
+  // ativação do módulo — mesma regra do fechamento de conta ("falha na nota
+  // não pode travar a venda"). Renovação de assinatura já cadastrada é
+  // ignorada aqui (checa config_fiscal antes de chamar a Brasil NFe de novo).
+  if (moduloChave === 'nfse' || moduloChave === 'nfce') {
+    try {
+      const { data: salaoFiscal } = await supabaseAdmin
+        .from('saloes')
+        .select('config_fiscal')
+        .eq('id', salaoId)
+        .maybeSingle();
+
+      if (!salaoFiscal?.config_fiscal?.brasilnfe_company_token) {
+        const resultadoCadastro = await cadastrarEmpresaLuarys(salaoId);
+        if (resultadoCadastro.erro) {
+          console.warn('[registrarPagamentoAssinatura] Cadastro automático na Brasil NFe falhou (módulo continua ativado, admin cadastra manualmente depois):', resultadoCadastro.erro);
+        }
+      }
+    } catch (e: any) {
+      console.error('[registrarPagamentoAssinatura] Erro inesperado no cadastro automático Brasil NFe:', e?.message || e);
+    }
+  }
 
   return { registrado: true, ativado: true, tipo: 'modulo', periodo };
 }
