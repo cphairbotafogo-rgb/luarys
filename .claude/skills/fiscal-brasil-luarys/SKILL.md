@@ -50,8 +50,11 @@ Cada arquivo em `references/` tem uma linha `**Última verificação:**` no topo
 
 - **Conexão com Supabase do Luarys ainda não verificada por esta skill.** As referências de tipagem de coluna (`references/07-exemplos-tecnicos.md`) são recomendações genéricas, não uma auditoria real do schema. Assim que o conector Supabase estiver disponível numa sessão, rodar uma checagem em colunas `cnpj`/`chave_acesso` e atualizar este arquivo com o resultado real.
 - **Decisão Focus NFe vs. Brasil NFe: registrada em 30/07/2026** (ver `references/04-focus-vs-brasil-nfe.md`) — Ari decidiu Brasil NFe como único provedor da plataforma, Focus NFe não será usado. Pendente ainda: confirmar diretamente com a Brasil NFe os pontos técnicos do checklist (compliance Ambiente Nacional/SEFIN, DANFSe v2.0, CNPJ alfanumérico) antes de qualquer salão emitir em `producao`.
+- **Ativação paga por CNPJ na Brasil NFe (`GerarLinkAtivacao`) — pendência de negócio, não técnica** (ver `references/04-focus-vs-brasil-nfe.md`, seção "Pendência de negócio"). Cadastrar um salão não ativa emissão de produção sozinho; cada CNPJ pode ter custo próprio (~R$49,90/mês). Ari precisa decidir se repassa esse custo no preço do módulo ou absorve — confirmar com a Brasil NFe antes de escalar o cadastro automático (já ativo, ver `src/lib/assinaturas.ts`) para muitos salões.
+- **`emitir`/`consultar`/`cancelar` de NFS-e via Brasil NFe ainda não foram reescritos contra o modelo real da API** (só cadastro de empresa e certificado A1 foram corrigidos) — endpoint antigo adivinhado, vai falhar se chamado. Requer decidir onde armazenar XML/PDF (a API devolve em base64, não como link) antes de implementar.
 - **Casos de teste da skill ainda não foram rodados formalmente.** Se quiser rigor maior (útil antes de usar em decisão de contrato), pedir para rodar 5-6 prompts reais contra a skill e revisar as respostas.
 
 ## Changelog
 
 - **01/07/2026**: criação da skill (SKILL.md + 06 referências). Description otimizada manualmente (sem `claude -p`, indisponível no claude.ai). Adicionado `07-exemplos-tecnicos.md` com payloads de referência.
+- **30/07/2026**: decisão de provedor único (Brasil NFe) registrada; integração real (cadastro de empresa + certificado A1) corrigida contra o SDK oficial e testada com o piloto (Concept Prime Hair); descoberta a pendência de ativação paga por CNPJ (`GerarLinkAtivacao`).

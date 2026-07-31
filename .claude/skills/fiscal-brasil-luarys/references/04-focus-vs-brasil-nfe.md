@@ -1,7 +1,7 @@
 # Focus NFe vs. Brasil NFe — comparativo para decisão do Luarys
 
 **Última verificação:** 30/07/2026
-**Fontes principais:** focusnfe.com.br, notaas.com.br (comparativos de mercado 2026), nfe.io/blog
+**Fontes principais:** focusnfe.com.br, notaas.com.br (comparativos de mercado 2026), nfe.io/blog, brasilnfe.com.br/docs (SDK oficial `brasilnfe` no npm + doc pública, confirmado em 30/07/2026)
 
 ## ✅ Decisão registrada (30/07/2026)
 
@@ -13,7 +13,27 @@ Passos em andamento: UserToken (conta master Luarys) configurado em `Admin → N
 
 Os itens da seção "Pontos a verificar diretamente com a Brasil NFe antes de decidir" abaixo **continuam válidos como checklist de validação técnica** (compliance Ambiente Nacional, DANFSe v2.0, CNPJ alfanumérico etc.) — decidir o provedor não dispensa confirmar esses pontos antes de qualquer salão emitir em produção.
 
-> **Nota de honestidade**: não encontrei documentação técnica pública recente e específica da Brasil NFe (planos, cobertura de municípios, suporte a IBS/CBS) equivalente ao que a Focus NFe publica. O que está abaixo é o que dá para afirmar com confiança das fontes verificadas — o resto fica marcado como "a confirmar diretamente com o provedor" antes de fechar contrato.
+## ✅ Integração real confirmada (30/07/2026) — API, headers e modelo de token
+
+Testado de ponta a ponta contra o SDK oficial `brasilnfe` (npm) + doc pública (brasilnfe.com.br/docs). O código do Luarys usava URL/headers/endpoints **adivinhados** numa sessão anterior — todos errados. Modelo real:
+
+- **URL única**: `https://api.brasilnfe.com.br/services/` (sandbox e produção — não existe subdomínio de homologação; `homologacao.brasilnfe.com.br` não existe no DNS, confirmado via `vercel logs`).
+- **Ambiente é um campo do payload** (`TipoAmbiente: 1` produção / `2` homologação), não a URL.
+- **Dois headers de auth**: `Token` (por empresa/CNPJ, usado pra emissão) + `UserToken` (conta master Luarys, usado só pra gerenciar empresas — cadastrar/editar/listar/certificado).
+- **Cadastro de empresa** (`POST .../Empresa/AdicionarEmpresa`, com `UserToken`) devolve um `token` exclusivo daquela empresa — é esse token, não um "CompanyToken" genérico, que fica salvo em `saloes.config_fiscal.brasilnfe_company_token`. Exige `Endereco` com `Cep` preenchido (a doc lista como opcional, mas a API recusa sem isso — testado com erro real "Não foi informado o CEP da empresa").
+- **Certificado A1** (`AlterarCertificado`) exige o `Token` da empresa (não o `UserToken`) — só funciona depois do cadastro. Campo do payload é `Base64CertificateFile` (não `Base64Certificado`, como a doc em prosa sugere — o `.d.ts` do SDK é a fonte confiável aqui).
+- Implementado em `src/lib/nfse/brasilnfe.ts` (`cadastrarEmpresaLuarys`, `submeterCertificadoA1`) — cadastro roda automaticamente quando o salão compra o módulo `nfse`/`nfce` (hook em `src/lib/assinaturas.ts`, disparado pelo webhook Asaas).
+- **`emitir`/`consultar`/`cancelar` (emissão de nota de verdade) ainda NÃO foram reescritos contra esse modelo real** — continuam com endpoint adivinhado, vão falhar se chamados. A API real devolve XML/PDF em **base64 no corpo da resposta** (não como link) — decidir onde armazenar (Supabase Storage) antes de implementar.
+
+## ⚠️ Pendência de negócio (não é técnica): ativação paga por CNPJ
+
+Pesquisa em 30/07/2026 encontrou um método `GerarLinkAtivacao` na API/SDK (grupo "Empresas") que gera um link de checkout (processado pela **Fintely**, mesma empresa do fundador da Brasil NFe) para contratar o plano daquele CNPJ especificamente. Preços públicos (brasilnfe.com.br/#precos): ~R$49,90/mês por CNPJ para NF-e/NFC-e, ~R$24,90/mês para MDF-e — **por CNPJ cadastrado**, não uma taxa única da integradora.
+
+Isso significa que **cadastrar um salão (`AdicionarEmpresa`) não ativa emissão de produção sozinho** — cada CNPJ pode precisar dessa ativação paga separada antes de emitir nota real. Não testamos ainda se isso bloqueia emissão em `TipoAmbiente: 2` (homologação/sandbox) ou só em produção.
+
+**Isso afeta diretamente o modelo de precificação do Luarys** — se a Luarys paga esse valor por salão ativo, precisa entrar na conta de ponto de equilíbrio (a mesma citada no item 5 da seção anterior). Ari precisa decidir: repassar esse custo no preço do módulo NFS-e/NFC-e pro salão, ou absorver como custo fixo da Luarys. Confirmar com o suporte da Brasil NFe (contato@brasilnfe.com.br / WhatsApp (31) 97168-5947) antes de escalar o cadastro automático para muitos salões.
+
+> **Nota de honestidade**: não encontrei documentação técnica pública recente e específica da Brasil NFe (cobertura de municípios, suporte a IBS/CBS) equivalente ao que a Focus NFe publica. O que está acima é o que dá para afirmar com confiança das fontes verificadas — o resto (KYC de integrador em alto volume, se `GerarLinkAtivacao` bloqueia sandbox) fica marcado como "a confirmar diretamente com o provedor" antes de escalar.
 
 ## O que qualquer provedor de nota fiscal faz
 
