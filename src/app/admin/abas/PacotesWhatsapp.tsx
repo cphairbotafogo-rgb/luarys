@@ -13,6 +13,9 @@ import { C } from "@/lib/constants";
 import { RAIO_MD } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { thStyle, tdStyle, ToggleBtn, PrecoInput } from "../shared";
+import { useToast } from "@/components/Toast";
+import { confirmarAcaoGlobal } from "@/components/ConfirmacaoGlobal";
+import { FiRefreshCw } from "react-icons/fi";
 
 const NOME_TIPO: Record<string, string> = {
   atendimento: 'Atendimento (24h)',
@@ -20,8 +23,10 @@ const NOME_TIPO: Record<string, string> = {
 };
 
 export function PacotesWhatsapp() {
+  const toast = useToast();
   const [pacotes, setPacotes] = useState<any[]>([]);
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
+  const [reajustandoId, setReajustandoId] = useState<string | null>(null);
 
   useEffect(() => { carregarPacotes(); }, []);
 
@@ -59,6 +64,54 @@ export function PacotesWhatsapp() {
     setSalvandoId(null);
   }
 
+  // Reajusta o valor das PRÓXIMAS cobranças de quem já assina o pacote —
+  // mudar o preço aqui em cima não propaga sozinho pra Asaas (a subscription
+  // já criada fica "congelada" no valor de quando foi contratada).
+  async function reajustarAssinantes(pacote: any) {
+    const nome = `${NOME_TIPO[pacote.tipo] || pacote.tipo} — ${pacote.quantidade} créditos`;
+    setReajustandoId(pacote.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` };
+
+      const respPreview = await fetch('/api/admin/whatsapp/reajustar-assinaturas', {
+        method: 'POST', headers, body: JSON.stringify({ pacote_id: pacote.id, preview: true }),
+      });
+      const preview = await respPreview.json();
+      if (!respPreview.ok) { toast.erro(preview.erro || 'Erro ao consultar assinantes.'); return; }
+
+      if (!preview.total_afetados) {
+        toast.info(`Nenhuma assinatura ativa de "${nome}" no Asaas — nada para reajustar.`);
+        return;
+      }
+
+      const confirmou = await confirmarAcaoGlobal({
+        titulo: `Reajustar ${preview.total_afetados} assinante(s) de "${nome}"?`,
+        descricao: `As próximas cobranças passam a ser R$ ${Number(pacote.preco).toFixed(2)}/mês. Faturas já geradas não são alteradas.`,
+        perigoso: true,
+        rotuloCta: 'Reajustar agora',
+      });
+      if (!confirmou) return;
+
+      const respExec = await fetch('/api/admin/whatsapp/reajustar-assinaturas', {
+        method: 'POST', headers, body: JSON.stringify({ pacote_id: pacote.id }),
+      });
+      const resultado = await respExec.json();
+      if (!respExec.ok) { toast.erro(resultado.erro || 'Erro ao reajustar.'); return; }
+
+      if (resultado.falhas?.length > 0) {
+        console.error('[PacotesWhatsapp] Falhas ao reajustar:', resultado.falhas);
+        toast.aviso(`${resultado.atualizados} reajustado(s), ${resultado.falhas.length} falharam (veja o console).`);
+      } else {
+        toast.sucesso(`${resultado.atualizados} assinante(s) reajustado(s) com sucesso!`);
+      }
+    } catch (e: any) {
+      toast.erro('Erro: ' + e.message);
+    } finally {
+      setReajustandoId(null);
+    }
+  }
+
   return (
     <div style={{ marginTop: 32 }}>
       <div style={{ marginBottom: 12 }}>
@@ -77,6 +130,7 @@ export function PacotesWhatsapp() {
               <th style={{ ...thStyle, textAlign: "right" }}>Quantidade</th>
               <th style={{ ...thStyle, textAlign: "right" }}>Preço</th>
               <th style={{ ...thStyle, textAlign: "right" }}>Ativo</th>
+              <th style={{ ...thStyle, textAlign: "right" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -97,10 +151,20 @@ export function PacotesWhatsapp() {
                 <td style={{ ...tdStyle, textAlign: "right" }}>
                   <ToggleBtn ativo={!!p.ativo} carregando={salvandoId === `${p.id}-ativo`} onClick={() => alternarAtivo(p)} />
                 </td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>
+                  <button
+                    onClick={() => reajustarAssinantes(p)}
+                    disabled={reajustandoId === p.id}
+                    title="Aplica o preço atual às assinaturas já ativas no Asaas"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, background: C.bgCard, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: reajustandoId === p.id ? "wait" : "pointer" }}
+                  >
+                    <FiRefreshCw size={12} className={reajustandoId === p.id ? "animate-spin" : ""} /> Reajustar
+                  </button>
+                </td>
               </tr>
             ))}
             {pacotes.length === 0 && (
-              <tr><td colSpan={4} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum pacote cadastrado.</td></tr>
+              <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: C.textLight, fontStyle: "italic" }}>Nenhum pacote cadastrado.</td></tr>
             )}
           </tbody>
         </table>
