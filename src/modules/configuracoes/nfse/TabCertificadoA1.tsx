@@ -6,7 +6,7 @@ import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
 import {
   FiUpload, FiCheckCircle, FiClock, FiAlertCircle,
-  FiShield, FiInfo, FiEye, FiEyeOff,
+  FiShield, FiInfo, FiEye, FiEyeOff, FiRefreshCw, FiX,
 } from 'react-icons/fi';
 
 type StatusFiscal = 'inativo' | 'pendente_a1' | 'a1_recebido' | 'processando' | 'ativo';
@@ -32,6 +32,7 @@ export function TabCertificadoA1({ perfil }: Props) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [enviando, setEnviando]         = useState(false);
   const [carregando, setCarregando]     = useState(true);
+  const [renovando, setRenovando]       = useState(false);
 
   useEffect(() => {
     supabase
@@ -73,11 +74,13 @@ export function TabCertificadoA1({ perfil }: Props) {
       setArquivo(null);
       setSenha('');
       setEnviadoEm(new Date().toISOString());
+      setRenovando(false);
 
       if (json.ativado) {
         // Cenário A: Brasil NFe respondeu de forma síncrona — módulo já ativo
+        // (cobre tanto a primeira ativação quanto a renovação de um certificado vencido)
         setStatus('ativo');
-        toast.sucesso('Módulo fiscal ativado com sucesso!');
+        toast.sucesso(status === 'ativo' ? 'Certificado renovado com sucesso!' : 'Módulo fiscal ativado com sucesso!');
       } else if (json.processando) {
         // Cenário B: enviado automaticamente, aguardando resposta da Brasil NFe
         setStatus('processando');
@@ -115,13 +118,23 @@ export function TabCertificadoA1({ perfil }: Props) {
       </div>
 
       {/* Módulo ativo — estado final */}
-      {status === 'ativo' && (
+      {status === 'ativo' && !renovando && (
         <div style={{ padding: 24, borderRadius: RAIO_XL, background: '#F0FDF4', border: '1px solid #BBF7D0', textAlign: 'center' }}>
           <FiCheckCircle size={40} color="#15803D" />
           <h3 style={{ margin: '12px 0 6px', fontWeight: 800, color: '#15803D', fontSize: 15 }}>Emissão de Notas Fiscais Ativa</h3>
           <p style={{ margin: 0, fontSize: 13, color: '#166534' }}>
             Seu CNPJ está registrado e o canal com NFs do Brasil está ativo.<br />
             Acesse as abas <strong>NFS-e</strong> ou <strong>NFC-e</strong> para emitir notas.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRenovando(true)}
+            style={{ marginTop: 16, padding: '8px 16px', borderRadius: RAIO_MD, border: '1px solid #BBF7D0', background: '#fff', color: '#15803D', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <FiRefreshCw size={13} /> Renovar certificado A1
+          </button>
+          <p style={{ margin: '8px 0 0', fontSize: 11, color: '#166534' }}>
+            O certificado A1 costuma valer 1 ano. Envie um novo antes do vencimento para não perder a emissão de notas.
           </p>
         </div>
       )}
@@ -156,25 +169,40 @@ export function TabCertificadoA1({ perfil }: Props) {
         </div>
       )}
 
-      {/* Formulário de envio — só quando inativo */}
-      {status === 'inativo' && (
+      {/* Formulário de envio — primeiro cadastro (inativo) ou renovação de um certificado ativo */}
+      {(status === 'inativo' || renovando) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Explicação do processo */}
-          <div style={{ padding: 20, borderRadius: RAIO_XL, background: C.bgCard, border: `1px solid ${C.border}` }}>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-              <FiInfo size={16} color={C.sidebarBg} style={{ flexShrink: 0, marginTop: 2 }} />
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.sidebarBg }}>Como funciona a emissão de notas pelo Luarys</p>
+          {status === 'inativo' ? (
+            <div style={{ padding: 20, borderRadius: RAIO_XL, background: C.bgCard, border: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <FiInfo size={16} color={C.sidebarBg} style={{ flexShrink: 0, marginTop: 2 }} />
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.sidebarBg }}>Como funciona a emissão de notas pelo Luarys</p>
+              </div>
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: C.textMuted, lineHeight: 2 }}>
+                <li>Você envia abaixo o certificado digital A1 do seu CNPJ (arquivo .pfx ou .p12) e a senha.</li>
+                <li>A equipe Luarys encaminha o A1 para a NFs do Brasil e ativa seu canal de emissão.</li>
+                <li>Assim que o canal estiver ativo você pode emitir NFS-e e NFC-e diretamente aqui.</li>
+              </ol>
+              <p style={{ margin: '12px 0 0', fontSize: 11, color: C.textLight, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+                🔒 Seu certificado é transmitido com criptografia (HTTPS) e armazenado com segurança. Ele é usado exclusivamente para emissão de notas fiscais em seu nome.
+              </p>
             </div>
-            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: C.textMuted, lineHeight: 2 }}>
-              <li>Você envia abaixo o certificado digital A1 do seu CNPJ (arquivo .pfx ou .p12) e a senha.</li>
-              <li>A equipe Luarys encaminha o A1 para a NFs do Brasil e ativa seu canal de emissão.</li>
-              <li>Assim que o canal estiver ativo você pode emitir NFS-e e NFC-e diretamente aqui.</li>
-            </ol>
-            <p style={{ margin: '12px 0 0', fontSize: 11, color: C.textLight, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
-              🔒 Seu certificado é transmitido com criptografia (HTTPS) e armazenado com segurança. Ele é usado exclusivamente para emissão de notas fiscais em seu nome.
-            </p>
-          </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: RAIO_XL, background: C.bgCard, border: `1px solid ${C.border}` }}>
+              <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>
+                Envie o novo certificado A1 (.pfx ou .p12) e a senha para renovar. O módulo continua ativo enquanto isso.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setRenovando(false); setArquivo(null); setSenha(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: C.textLight, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+              >
+                <FiX size={14} /> Cancelar
+              </button>
+            </div>
+          )}
 
           {/* Upload do arquivo */}
           <div>
@@ -230,7 +258,7 @@ export function TabCertificadoA1({ perfil }: Props) {
             disabled={enviando || !arquivo || !senha.trim()}
             style={{ padding: '14px', borderRadius: RAIO_MD, border: 'none', background: (enviando || !arquivo || !senha.trim()) ? C.borderMid : C.sidebarBg, color: '#fff', fontSize: 13, fontWeight: 800, cursor: (enviando || !arquivo || !senha.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            <FiUpload size={15} /> {enviando ? 'Enviando...' : 'Enviar Certificado para Luarys'}
+            <FiUpload size={15} /> {enviando ? 'Enviando...' : (renovando ? 'Enviar Novo Certificado' : 'Enviar Certificado para Luarys')}
           </button>
         </div>
       )}

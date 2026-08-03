@@ -90,9 +90,11 @@ export async function POST(req: NextRequest) {
     const resultado  = await submeterCertificadoA1(certBase64, senha, companyToken);
 
     if (resultado.sucesso) {
+      const agora = new Date().toISOString();
       await supabaseAdmin.from('saloes').update({
         status_fiscal:     'ativo',
-        fiscal_ativado_em: new Date().toISOString(),
+        fiscal_ativado_em: agora,
+        a1_enviado_em:     agora, // também cobre renovação de um certificado já ativo
       }).eq('id', salaoId);
 
       await gravarAuditoria({ salaoId, usuarioId: user!.id, nomeArquivo: arquivo.name, tamanhoBytes: arquivo.size, sucesso: true });
