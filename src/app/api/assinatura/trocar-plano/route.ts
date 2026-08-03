@@ -94,11 +94,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: contaAtiva } = await supabaseAdmin
+    // Busca pela conta Asaas especificamente (gateway='asaas'), não pela conta
+    // "ativa" — a subscription foi criada com a chave da conta Asaas de
+    // então, e o PUT precisa usar essa mesma chave mesmo que a plataforma
+    // tenha trocado o gateway ativo depois (mesmo cuidado de cancelarAssinaturaAsaas).
+    const { data: contasAsaas } = await supabaseAdmin
       .from('plataforma_contas_recebimento')
-      .select('asaas_api_key, asaas_environment')
-      .eq('ativa', true)
-      .maybeSingle();
+      .select('asaas_api_key, asaas_environment, ativa')
+      .eq('gateway', 'asaas')
+      .order('ativa', { ascending: false })
+      .limit(1);
+    const contaAtiva = contasAsaas?.[0] as any;
 
     const asaasKey = (contaAtiva as any)?.asaas_api_key || process.env.ASAAS_API_KEY;
     if (!asaasKey) {

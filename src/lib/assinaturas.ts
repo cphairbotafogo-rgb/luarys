@@ -100,6 +100,34 @@ export async function cancelarAssinaturaAsaas(
   return { cancelado: true };
 }
 
+/**
+ * Detecta pagamento de webhook atrasado referente a uma subscription que já
+ * não é mais a vigente no registro (saloes ou salao_modulos) — cenário real:
+ * o salão cancela (cancelarAssinaturaAsaas apaga a subscription de verdade e
+ * zera asaas_subscription_id) e o webhook PAYMENT_RECEIVED daquele ciclo que
+ * já tinha sido cobrado antes do cancelamento chega depois. Sem esse guard,
+ * registrarPagamentoAssinatura reativaria o cancelamento e sobrescreveria o
+ * asaas_subscription_id — inclusive o de uma reassinatura nova, se já houver.
+ *
+ * Só ignora quando já existia estado anterior indicando que isso não é a
+ * primeira ativação: OU já tinha um asaas_subscription_id diferente do que
+ * chegou agora, OU está com cancelamento_agendado=true e sem subscription
+ * (cancelamento já concluído). Primeira ativação (registro vazio) sempre
+ * passa normalmente.
+ */
+function pagamentoEhDeSubscriptionDesatualizada(
+  registroAtual: { asaas_subscription_id?: string | null; cancelamento_agendado?: boolean | null } | null | undefined,
+  asaasSubscriptionId: string | null | undefined,
+): boolean {
+  if (!asaasSubscriptionId || !registroAtual) return false;
+
+  const subscriptionAtual = registroAtual.asaas_subscription_id;
+  if (subscriptionAtual && subscriptionAtual !== asaasSubscriptionId) return true;
+  if (!subscriptionAtual && registroAtual.cancelamento_agendado === true) return true;
+
+  return false;
+}
+
 function calcularRenovacao(periodo: PeriodoAssinatura): Date {
   const d = new Date();
   d.setDate(d.getDate() + (periodo === 'anual' ? 365 : 30));
@@ -164,9 +192,27 @@ export async function registrarPagamentoAssinatura({
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+  // ── Webhook de uma subscription que já não é mais a vigente ────────────────────
+  // Checado ANTES de decidir sobre notificação/ativação, pra cobrir tanto o
+  // caso de reativar indevidamente (approved) quanto o de mandar um e-mail de
+  // "pagamento recusado" para um cancelamento voluntário — cancelar a
+  // subscription no Asaas (cancelarAssinaturaAsaas) costuma gerar um evento
+  // PAYMENT_DELETED pra fatura pendente daquele ciclo, que sem este guard
+  // seria tratado como recusa de cartão e notificado como tal.
+  const ehPlano = await ehPlanoBase(moduloChave);
+  const { data: registroAtual, error: erroRegistroAtual } = ehPlano
+    ? await supabaseAdmin.from('saloes').select('plano_chave, asaas_subscription_id, cancelamento_agendado').eq('id', salaoId).maybeSingle()
+    : await supabaseAdmin.from('salao_modulos').select('asaas_subscription_id, cancelamento_agendado').eq('salao_id', salaoId).eq('modulo_chave', moduloChave).maybeSingle();
+  if (erroRegistroAtual) console.error('[registrarPagamentoAssinatura] Erro ao buscar registro atual:', erroRegistroAtual.message);
+
+  if (pagamentoEhDeSubscriptionDesatualizada(registroAtual, asaasSubscriptionId)) {
+    console.warn(`[registrarPagamentoAssinatura] Pagamento ignorado — subscription desatualizada (cancelada/trocada depois do pagamento). pagamento_externo_id=${pagamentoExternoId}`);
+    await supabaseAdmin.from('pagamentos_assinatura').update({ status: 'approved' }).eq('pagamento_externo_id', pagamentoExternoId);
+    return { registrado: true, ativado: false, ignorado: 'subscription_desatualizada' };
+  }
+
   // ── Pagamento rejeitado ───────────────────────────────────────────────────────
   if (status === 'rejected' && salao?.email_contato) {
-    const ehPlano = await ehPlanoBase(moduloChave);
     let itemNome = moduloChave;
     if (ehPlano) {
       const { data: p } = await supabaseAdmin.from('planos').select('nome').eq('chave', moduloChave).maybeSingle();
@@ -194,13 +240,8 @@ export async function registrarPagamentoAssinatura({
   const renovacaoEm = calcularRenovacao(periodo);
 
   // ── Plano base → atualiza saloes ─────────────────────────────────────────────
-  if (await ehPlanoBase(moduloChave)) {
-    const { data: salaoAtual, error: erroSalaoAtual } = await supabaseAdmin
-      .from('saloes')
-      .select('plano_chave')
-      .eq('id', salaoId)
-      .maybeSingle();
-    if (erroSalaoAtual) console.error('[registrarPagamentoAssinatura] Erro ao buscar plano_chave atual:', erroSalaoAtual.message);
+  if (ehPlano) {
+    const salaoAtual = registroAtual as { plano_chave?: string | null } | null;
 
     // Erro aqui faz limite_profissionais não ser atualizado silenciosamente
     // ao trocar de plano — o salão pagaria por mais vagas sem o limite subir.
