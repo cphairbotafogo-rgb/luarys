@@ -448,7 +448,12 @@ export function AbaMeuPlano({ perfil }: any) {
                       <button disabled style={btnAtivo}><FiCheckCircle size={14} /> Plano Atual</button>
                     ) : salao?.cancelamento_agendado ? (
                       <button onClick={() => reativarPlano(p)} disabled={!!processandoChave} style={btnPrimary}>
-                        {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : "Manter Assinatura"}
+                        {carregandoEste
+                          ? <FiLoader className="animate-spin" size={14} />
+                          // A subscription no Asaas já foi cancelada de verdade ao agendar o
+                          // cancelamento (não tem como desfazer lá) — reativar aqui sempre abre
+                          // um novo checkout, então o rótulo não pode prometer "manter" a atual.
+                          : salao?.asaas_subscription_id ? "Manter Assinatura" : "Reativar (nova cobrança)"}
                       </button>
                     ) : (
                       <button onClick={() => desativarPlano(p)} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
@@ -518,7 +523,11 @@ export function AbaMeuPlano({ perfil }: any) {
                     <button disabled style={btnAtivo}><FiCheckCircle size={14} /> Incluído</button>
                   ) : cancelamentoAgendado ? (
                     <button onClick={() => reativarModulo({ ...m, ...info })} disabled={!!processandoChave} style={btnPrimary}>
-                      {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : "Manter Assinatura"}
+                      {carregandoEste
+                        ? <FiLoader className="animate-spin" size={14} />
+                        // Mesmo caso do plano: a subscription já foi cancelada de verdade no
+                        // Asaas ao agendar o cancelamento, reativar sempre abre novo checkout.
+                        : info?.asaas_subscription_id ? "Manter Assinatura" : "Reativar (nova cobrança)"}
                     </button>
                   ) : (
                     <button onClick={() => desativarModulo({ ...m, ...info })} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
