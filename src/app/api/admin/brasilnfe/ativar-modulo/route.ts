@@ -59,5 +59,30 @@ async function handlePost(req: NextRequest) {
 
   if (error) return NextResponse.json({ erro: error.message }, { status: 422 });
 
+  // Módulo ativado: o A1 guardado como fallback manual (upload-a1, sem
+  // company_token na hora do envio) não tem mais razão de existir — a senha
+  // do certificado nunca pode ficar retida além do necessário para ativar.
+  await limparCertificadoArmazenado(salao_id);
+
   return NextResponse.json({ sucesso: true });
+}
+
+/** Apaga o .pfx do Storage e limpa a senha/caminho salvos em `saloes` após a ativação. */
+async function limparCertificadoArmazenado(salaoId: string): Promise<void> {
+  const { data: salao } = await supabaseAdmin
+    .from('saloes')
+    .select('a1_path')
+    .eq('id', salaoId)
+    .maybeSingle();
+
+  if (!salao?.a1_path) return;
+
+  const { error: removeErr } = await supabaseAdmin.storage.from('certificados-a1').remove([salao.a1_path]);
+  if (removeErr) console.error('[ativar-modulo] falha ao remover A1 do storage:', removeErr);
+
+  const { error: updateErr } = await supabaseAdmin
+    .from('saloes')
+    .update({ a1_path: null, a1_senha_enc: null })
+    .eq('id', salaoId);
+  if (updateErr) console.error('[ativar-modulo] falha ao limpar a1_path/a1_senha_enc:', updateErr);
 }

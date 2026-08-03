@@ -4,16 +4,20 @@
  *
  * Fluxo:
  *  1. Valida auth e arquivo
- *  2. Salva no Supabase Storage (bucket certificados-a1, privado)
- *  3. Se o salão já foi cadastrado na Brasil NFe pelo admin (existe
- *     config_fiscal.brasilnfe_company_token), tenta submeter o certificado
- *     automaticamente via submeterCertificadoA1() e ativa o módulo (status = 'ativo').
- *     → Sem cadastro prévio / erro: mantém 'pendente_a1' para ativação manual pelo admin
+ *  2. Se o salão já foi cadastrado na Brasil NFe pelo admin (existe
+ *     config_fiscal.brasilnfe_company_token), submete o certificado
+ *     diretamente ao provedor via submeterCertificadoA1() — NUNCA persiste o
+ *     .pfx/senha nesse caminho — e ativa o módulo (status = 'ativo').
+ *     → Recusado pelo provedor: erro 422 devolvido ao usuário (senha errada etc.)
+ *  3. Sem cadastro prévio (cadastro automático ainda não rodou/falhou): guarda
+ *     no Supabase Storage (bucket certificados-a1, privado) só como fallback,
+ *     para o admin baixar manualmente e ativar depois (GavetaFiscalSaloes).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
 import { encryptarSegredo } from '@/lib/cripto';
+import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,28 +28,30 @@ const supabaseAdmin = createClient(
 const BUCKET = 'certificados-a1';
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
+/** Grava entrada na tabela de auditoria (best-effort — nunca bloqueia a resposta ao usuário). */
+async function gravarAuditoria(params: {
+  salaoId: string; usuarioId: string; nomeArquivo: string; tamanhoBytes: number;
+  sucesso: boolean; mensagemErro?: string;
+}): Promise<void> {
+  const { error } = await supabaseAdmin.from('auditoria_certificados').insert({
+    salao_id:      params.salaoId,
+    usuario_id:    params.usuarioId,
+    provedor:      'brasilnfe',
+    nome_arquivo:  params.nomeArquivo,
+    tamanho_bytes: params.tamanhoBytes,
+    sucesso:       params.sucesso,
+    mensagem_erro: params.mensagemErro ?? null,
+  });
+  if (error) console.error('[upload-a1] falha ao gravar auditoria:', error);
+}
+
 export async function POST(req: NextRequest) {
-  // ── 1. Autenticar usuário ────────────────────────────────────────────────────
-  const bearer = req.headers.get('authorization')?.replace('Bearer ', '').trim();
-  if (!bearer) return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+  // ── 1. Autenticar usuário e resolver salão ───────────────────────────────────
+  const { user, perfil, erro } = await autenticarRota(req, 'POST /api/fiscal/upload-a1');
+  if (erro) return erro;
+  const salaoId = perfil!.salao_id;
 
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(bearer);
-  if (authErr || !user) return NextResponse.json({ erro: 'Sessão inválida.' }, { status: 401 });
-
-  // ── 2. Buscar salao_id do perfil ─────────────────────────────────────────────
-  const { data: perfil } = await supabaseAdmin
-    .from('perfis_usuarios')
-    .select('salao_id')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (!perfil?.salao_id) {
-    return NextResponse.json({ erro: 'Perfil de salão não encontrado.' }, { status: 403 });
-  }
-
-  const salaoId = perfil.salao_id as string;
-
-  // ── 3. Extrair FormData ──────────────────────────────────────────────────────
+  // ── 2. Extrair FormData ──────────────────────────────────────────────────────
   const form = await req.formData();
   const arquivo = form.get('certificado') as File | null;
   const senha   = (form.get('senha') as string | null)?.trim();
@@ -61,9 +67,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Arquivo muito grande. Máximo 5 MB.' }, { status: 400 });
   }
 
-  // ── 4. Upload para o Storage ─────────────────────────────────────────────────
-  const bytes    = await arquivo.arrayBuffer();
-  const caminho  = `${salaoId}/certificado.${ext}`;
+  const bytes = await arquivo.arrayBuffer();
+
+  // ── 4. Salão já cadastrado na Brasil NFe? ────────────────────────────────────
+  // Exige que o admin já tenha cadastrado o CNPJ do salão na Brasil NFe
+  // (POST /api/admin/brasilnfe/cadastrar) — só depois disso existe o Token
+  // da empresa (config_fiscal.brasilnfe_company_token), exigido pelo endpoint
+  // real de certificado (AlterarCertificado).
+  const { data: salao } = await supabaseAdmin
+    .from('saloes')
+    .select('config_fiscal')
+    .eq('id', salaoId)
+    .maybeSingle();
+
+  const companyToken: string = salao?.config_fiscal?.brasilnfe_company_token || '';
+
+  // ── 5a. Com cadastro prévio: submete direto ao provedor, sem persistir nada ──
+  // O .pfx e a senha nunca tocam disco/storage nesse caminho — trafegam só em
+  // memória até a chamada HTTPS pra Brasil NFe.
+  if (companyToken) {
+    const certBase64 = Buffer.from(bytes).toString('base64');
+    const resultado  = await submeterCertificadoA1(certBase64, senha, companyToken);
+
+    if (resultado.sucesso) {
+      await supabaseAdmin.from('saloes').update({
+        status_fiscal:     'ativo',
+        fiscal_ativado_em: new Date().toISOString(),
+      }).eq('id', salaoId);
+
+      await gravarAuditoria({ salaoId, usuarioId: user!.id, nomeArquivo: arquivo.name, tamanhoBytes: arquivo.size, sucesso: true });
+      return NextResponse.json({ ok: true, ativado: true, mensagem: 'Certificado aceito e módulo fiscal ativado!' });
+    }
+
+    console.warn('[upload-a1] Brasil NFe recusou o certificado:', resultado.erro);
+    await gravarAuditoria({ salaoId, usuarioId: user!.id, nomeArquivo: arquivo.name, tamanhoBytes: arquivo.size, sucesso: false, mensagemErro: resultado.erro });
+    return NextResponse.json({ erro: `Brasil NFe recusou o certificado: ${resultado.erro ?? 'erro desconhecido'}` }, { status: 422 });
+  }
+
+  // ── 5b. Sem cadastro prévio: guarda no Storage como fallback manual ─────────
+  // Cadastro automático ainda não rodou (ou falhou) — sem Token não há como
+  // submeter agora. Guarda o A1 pro admin baixar (GavetaFiscalSaloes) e ativar
+  // manualmente depois que o cadastro do CNPJ for concluído.
+  const caminho = `${salaoId}/certificado.${ext}`;
 
   const { error: uploadErr } = await supabaseAdmin.storage
     .from(BUCKET)
@@ -74,10 +119,10 @@ export async function POST(req: NextRequest) {
 
   if (uploadErr) {
     console.error('[upload-a1] storage error:', uploadErr);
+    await gravarAuditoria({ salaoId, usuarioId: user!.id, nomeArquivo: arquivo.name, tamanhoBytes: arquivo.size, sucesso: false, mensagemErro: uploadErr.message });
     return NextResponse.json({ erro: 'Erro ao salvar o certificado. Tente novamente.' }, { status: 500 });
   }
 
-  // ── 5. Atualizar salão ───────────────────────────────────────────────────────
   // C6: senha do A1 criptografada em repouso (AES-256-GCM) via SEGREDO_ENCRYPTION_KEY.
   // O certificado A1 dá poder de emitir nota em nome do salão — nunca em texto puro.
   const { error: updateErr } = await supabaseAdmin
@@ -95,40 +140,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Certificado salvo, mas houve erro ao atualizar status.' }, { status: 500 });
   }
 
-  // ── 6. Automação: submeter à Brasil NFe ──────────────────────────────────────
-  // Exige que o admin já tenha cadastrado o CNPJ do salão na Brasil NFe
-  // (POST /api/admin/brasilnfe/cadastrar) — só depois disso existe o Token
-  // da empresa (config_fiscal.brasilnfe_company_token), exigido pelo endpoint
-  // real de certificado (AlterarCertificado). Sem esse Token não há como
-  // submeter automaticamente; o admin ativa manualmente depois.
-  try {
-    const { data: salao } = await supabaseAdmin
-      .from('saloes')
-      .select('config_fiscal')
-      .eq('id', salaoId)
-      .maybeSingle();
-
-    const companyToken: string = salao?.config_fiscal?.brasilnfe_company_token || '';
-
-    if (companyToken) {
-      const certBase64 = Buffer.from(bytes).toString('base64');
-      const resultado  = await submeterCertificadoA1(certBase64, senha, companyToken);
-
-      if (resultado.sucesso) {
-        await supabaseAdmin.from('saloes').update({
-          status_fiscal:     'ativo',
-          fiscal_ativado_em: new Date().toISOString(),
-        }).eq('id', salaoId);
-        return NextResponse.json({ ok: true, ativado: true, mensagem: 'Certificado aceito e módulo fiscal ativado!' });
-      }
-
-      // Submissão retornou erro — log, mas não bloquear (A1 já está salvo)
-      console.warn('[upload-a1] Brasil NFe recusou o certificado:', resultado.erro);
-    }
-  } catch (e) {
-    // Nunca bloquear o lojista por falha na automação — o admin faz manualmente
-    console.error('[upload-a1] erro inesperado na automação Brasil NFe:', e);
-  }
-
+  await gravarAuditoria({ salaoId, usuarioId: user!.id, nomeArquivo: arquivo.name, tamanhoBytes: arquivo.size, sucesso: true, mensagemErro: 'sem company_token — aguardando cadastro/ativação manual' });
   return NextResponse.json({ ok: true, mensagem: 'Certificado recebido. Aguardando ativação pelo administrador.' });
 }
