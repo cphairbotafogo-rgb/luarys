@@ -38,6 +38,68 @@ export async function ehPlanoBase(chave: string): Promise<boolean> {
   return !!data;
 }
 
+/**
+ * Cancela a subscription recorrente no Asaas de um módulo ou do plano base
+ * de um salão, e limpa o `asaas_subscription_id` correspondente. Extraído
+ * de /api/assinatura/cancelar-recorrencia para ser reaproveitado por
+ * qualquer caminho que desative um módulo/plano — inclusive as telas de
+ * admin, que antes só desligavam `ativo` localmente sem tocar no Asaas,
+ * deixando a cobrança recorrente rodando mesmo com o módulo "desativado".
+ */
+export async function cancelarAssinaturaAsaas(
+  salaoId: string,
+  moduloChave: string,
+): Promise<{ cancelado: boolean; erro?: string }> {
+  const ehPlano = await ehPlanoBase(moduloChave);
+  const tabela = ehPlano ? 'saloes' : 'salao_modulos';
+  const filtroId = ehPlano ? { id: salaoId } : { salao_id: salaoId, modulo_chave: moduloChave };
+
+  const { data: registro } = await supabaseAdmin
+    .from(tabela)
+    .select('asaas_subscription_id')
+    .match(filtroId)
+    .maybeSingle();
+
+  const subscriptionId = registro?.asaas_subscription_id;
+  if (!subscriptionId) return { cancelado: false };
+
+  // Busca pela conta Asaas especificamente (gateway='asaas'), não pela conta
+  // "ativa" — a assinatura foi criada com a chave da conta Asaas de então, e
+  // precisa continuar cancelável mesmo que a plataforma tenha trocado o
+  // gateway ativo pra outro depois. Prioriza a ativa se houver mais de uma
+  // conta Asaas cadastrada (troca de CNPJ).
+  const { data: contasAsaas } = await supabaseAdmin
+    .from('plataforma_contas_recebimento')
+    .select('asaas_api_key, asaas_environment, ativa')
+    .eq('gateway', 'asaas')
+    .order('ativa', { ascending: false })
+    .limit(1);
+  const contaAtiva = contasAsaas?.[0] as any;
+
+  const asaasKey = contaAtiva?.asaas_api_key || process.env.ASAAS_API_KEY;
+  if (!asaasKey) return { cancelado: false, erro: 'ASAAS_API_KEY não configurado — não foi possível cancelar a recorrência no Asaas.' };
+
+  const asaasEnv = contaAtiva?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production';
+  const asaasBase = asaasEnv === 'sandbox'
+    ? 'https://sandbox.asaas.com/api/v3'
+    : 'https://api.asaas.com/v3';
+
+  const cancelResp = await fetch(`${asaasBase}/subscriptions/${subscriptionId}`, {
+    method: 'DELETE',
+    headers: { 'access_token': asaasKey },
+  });
+
+  // 404 = já não existe mais no Asaas (cancelada por outro caminho) — trata
+  // como sucesso, o objetivo (não cobrar de novo) já está garantido.
+  if (!cancelResp.ok && cancelResp.status !== 404) {
+    const cancelData = await cancelResp.json().catch(() => ({}));
+    return { cancelado: false, erro: 'Falha ao cancelar a assinatura no Asaas: ' + (cancelData.errors?.[0]?.description || JSON.stringify(cancelData)) };
+  }
+
+  await supabaseAdmin.from(tabela).update({ asaas_subscription_id: null }).match(filtroId);
+  return { cancelado: true };
+}
+
 function calcularRenovacao(periodo: PeriodoAssinatura): Date {
   const d = new Date();
   d.setDate(d.getDate() + (periodo === 'anual' ? 365 : 30));

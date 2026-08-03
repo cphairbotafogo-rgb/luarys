@@ -162,37 +162,39 @@ export function AbaMeuPlano({ perfil }: any) {
     if (!await confirmarAcaoGlobal({ titulo: `Cancelar "${modulo.nome}"?`, descricao: mensagem, perigoso: true, rotuloCta: 'Cancelar módulo' })) return;
 
     setProcessandoChave(modulo.chave);
+
+    // Cancela a cobrança recorrente no Asaas ANTES de marcar o cancelamento
+    // aqui — sem isso, ele continuaria sendo cobrado automaticamente no
+    // próximo ciclo mesmo com o módulo marcado como "cancelado" no sistema.
+    // Se a chamada falhar, não marca nada: melhor o usuário tentar de novo
+    // do que o sistema achar que cancelou sem a cobrança ter sido suspensa.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const respRecorrencia = await fetch('/api/assinatura/cancelar-recorrencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: modulo.chave }),
+      });
+      if (!respRecorrencia.ok) {
+        const j = await respRecorrencia.json().catch(() => ({}));
+        throw new Error(j?.erro || `Erro ${respRecorrencia.status}`);
+      }
+    } catch (e: any) {
+      setProcessandoChave(null);
+      toast.erro('Não foi possível cancelar a cobrança recorrente no cartão: ' + e.message + ' — o módulo continua ativo, tente novamente.');
+      return;
+    }
+
     const { error } = await supabase.from('salao_modulos')
       .update({ cancelamento_agendado: true })
       .eq('salao_id', perfil.salao_id)
       .eq('modulo_chave', modulo.chave);
 
-    if (error) { setProcessandoChave(null); toast.erro('Erro ao cancelar: ' + error.message); return; }
-
-    // Se este módulo tinha cobrança recorrente no cartão (Asaas subscription),
-    // cancela no Asaas também — sem isso, ele continuaria sendo cobrado
-    // automaticamente no próximo ciclo mesmo após cancelar aqui. Falha aqui é
-    // avisada à parte (não é só log) porque o risco é cobrança indevida real.
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const respRecorrencia = await fetch('/api/assinatura/cancelar-recorrencia', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: modulo.chave }),
-        });
-        if (!respRecorrencia.ok) {
-          const j = await respRecorrencia.json().catch(() => ({}));
-          console.error('[AbaMeuPlano] Falha ao cancelar recorrência no Asaas:', j?.erro);
-          toast.aviso('Módulo cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
-        }
-      }
-    } catch (e) {
-      console.error('[AbaMeuPlano] Erro ao cancelar recorrência no Asaas:', e);
-      toast.aviso('Módulo cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
-    }
-
     setProcessandoChave(null);
+    if (error) { toast.erro('Cobrança cancelada, mas houve erro ao registrar o cancelamento: ' + error.message); return; }
+
     toast.sucesso('Cancelamento agendado. Seu acesso continua até o fim do período pago.');
     carregarDados();
   }
@@ -229,32 +231,35 @@ export function AbaMeuPlano({ perfil }: any) {
     if (!await confirmarAcaoGlobal({ titulo: `Cancelar o plano "${plano.nome}"?`, descricao: mensagem, perigoso: true, rotuloCta: 'Cancelar plano' })) return;
 
     setProcessandoChave(plano.chave);
+
+    // Mesma ordem de desativarModulo: cancela no Asaas primeiro, só marca o
+    // cancelamento aqui se a cobrança recorrente foi de fato suspensa.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const respRecorrencia = await fetch('/api/assinatura/cancelar-recorrencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: plano.chave }),
+      });
+      if (!respRecorrencia.ok) {
+        const j = await respRecorrencia.json().catch(() => ({}));
+        throw new Error(j?.erro || `Erro ${respRecorrencia.status}`);
+      }
+    } catch (e: any) {
+      setProcessandoChave(null);
+      toast.erro('Não foi possível cancelar a cobrança recorrente no cartão: ' + e.message + ' — o plano continua ativo, tente novamente.');
+      return;
+    }
+
     const { error } = await supabase.from('saloes')
       .update({ cancelamento_agendado: true })
       .eq('id', perfil.salao_id);
 
-    if (error) { setProcessandoChave(null); toast.erro('Erro ao cancelar: ' + error.message); return; }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const respRecorrencia = await fetch('/api/assinatura/cancelar-recorrencia', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ salao_id: perfil.salao_id, modulo_chave: plano.chave }),
-        });
-        if (!respRecorrencia.ok) {
-          const j = await respRecorrencia.json().catch(() => ({}));
-          console.error('[AbaMeuPlano] Falha ao cancelar recorrência do plano no Asaas:', j?.erro);
-          toast.aviso('Plano cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
-        }
-      }
-    } catch (e) {
-      console.error('[AbaMeuPlano] Erro ao cancelar recorrência do plano no Asaas:', e);
-      toast.aviso('Plano cancelado, mas não foi possível confirmar o cancelamento da cobrança recorrente no cartão — verifique manualmente para evitar cobrança indevida.');
-    }
-
     setProcessandoChave(null);
+    if (error) { toast.erro('Cobrança cancelada, mas houve erro ao registrar o cancelamento: ' + error.message); return; }
+
     toast.sucesso('Cancelamento agendado. Seu acesso continua até o fim do período pago.');
     carregarDados();
   }

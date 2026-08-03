@@ -12,8 +12,10 @@ import { C } from "@/lib/constants";
 import { RAIO_MD } from "@/lib/estiloGlobal";
 import { Card } from "@/components/ui";
 import { ToggleBtn } from "../shared";
+import { useToast } from "@/components/Toast";
 
 export function LiberarModulosPorSalao() {
+  const toast = useToast();
   const [saloes, setSaloes] = useState<any[]>([]);
   const [modulosAdicionais, setModulosAdicionais] = useState<any[]>([]);
   const [salaoSelecionadoId, setSalaoSelecionadoId] = useState('');
@@ -66,24 +68,21 @@ export function LiberarModulosPorSalao() {
     const chaveSalvando = `salaomod-${moduloChave}`;
     setSalvandoId(chaveSalvando);
 
-    const payload: any = {
-      salao_id: salaoSelecionadoId,
-      modulo_chave: moduloChave,
-      ativo: novoValor,
-      origem: 'admin',
-      cancelamento_agendado: false,
-    };
-    if (novoValor) {
-      payload.ativado_em = new Date().toISOString();
-      payload.renovacao_em = null; // liberação manual: sem prazo definido
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
 
-    const { error } = await supabase
-      .from('salao_modulos')
-      .upsert(payload, { onConflict: 'salao_id,modulo_chave' });
+      const res = await fetch('/api/admin/modulos/alternar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ salao_id: salaoSelecionadoId, modulo_chave: moduloChave, ativo: novoValor }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`);
 
-    if (!error) {
       setModulosDoSalao(prev => ({ ...prev, [moduloChave]: { ...prev[moduloChave], modulo_chave: moduloChave, ativo: novoValor, cancelamento_agendado: false, renovacao_em: novoValor ? null : prev[moduloChave]?.renovacao_em } }));
+    } catch (e: any) {
+      toast.erro(e.message);
     }
 
     setSalvandoId(null);

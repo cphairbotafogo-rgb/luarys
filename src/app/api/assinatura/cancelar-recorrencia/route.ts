@@ -13,7 +13,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarRota } from '@/lib/apiAuth';
-import { ehPlanoBase } from '@/lib/assinaturas';
+import { cancelarAssinaturaAsaas } from '@/lib/assinaturas';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,60 +45,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erro: 'Você não tem permissão para alterar a assinatura deste salão.' }, { status: 403 });
     }
 
-    const ehPlano = await ehPlanoBase(modulo_chave);
-    const tabela = ehPlano ? 'saloes' : 'salao_modulos';
-    const filtroId = ehPlano ? { id: salao_id } : { salao_id, modulo_chave };
+    const resultado = await cancelarAssinaturaAsaas(salao_id, modulo_chave);
+    if (resultado.erro) return NextResponse.json({ erro: resultado.erro }, { status: 400 });
 
-    const { data: registro } = await supabaseAdmin
-      .from(tabela)
-      .select('asaas_subscription_id')
-      .match(filtroId)
-      .maybeSingle();
-
-    const subscriptionId = registro?.asaas_subscription_id;
-
-    if (!subscriptionId) {
-      // Nada a cancelar no Asaas (cobrança avulsa de outro gateway, ou já cancelado antes)
-      return NextResponse.json({ sucesso: true, cancelado: false });
-    }
-
-    // Busca pela conta Asaas especificamente (gateway='asaas'), não pela conta
-    // "ativa" — a assinatura foi criada com a chave da conta Asaas de então, e
-    // precisa continuar cancelável mesmo que a plataforma tenha trocado o
-    // gateway ativo pra outro depois. Prioriza a ativa se houver mais de uma
-    // conta Asaas cadastrada (troca de CNPJ).
-    const { data: contasAsaas } = await supabaseAdmin
-      .from('plataforma_contas_recebimento')
-      .select('asaas_api_key, asaas_environment, ativa')
-      .eq('gateway', 'asaas')
-      .order('ativa', { ascending: false })
-      .limit(1);
-    const contaAtiva = contasAsaas?.[0] as any;
-
-    const asaasKey = contaAtiva?.asaas_api_key || process.env.ASAAS_API_KEY;
-    if (!asaasKey) {
-      return NextResponse.json({ erro: 'ASAAS_API_KEY não configurado — não foi possível cancelar a recorrência no Asaas.' }, { status: 500 });
-    }
-    const asaasEnv = contaAtiva?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production';
-    const asaasBase = asaasEnv === 'sandbox'
-      ? 'https://sandbox.asaas.com/api/v3'
-      : 'https://api.asaas.com/v3';
-
-    const cancelResp = await fetch(`${asaasBase}/subscriptions/${subscriptionId}`, {
-      method: 'DELETE',
-      headers: { 'access_token': asaasKey },
-    });
-
-    // 404 = já não existe mais no Asaas (cancelada por outro caminho) — trata
-    // como sucesso, o objetivo (não cobrar de novo) já está garantido.
-    if (!cancelResp.ok && cancelResp.status !== 404) {
-      const cancelData = await cancelResp.json().catch(() => ({}));
-      return NextResponse.json({ erro: 'Falha ao cancelar a assinatura no Asaas: ' + (cancelData.errors?.[0]?.description || JSON.stringify(cancelData)) }, { status: 400 });
-    }
-
-    await supabaseAdmin.from(tabela).update({ asaas_subscription_id: null }).match(filtroId);
-
-    return NextResponse.json({ sucesso: true, cancelado: true });
+    return NextResponse.json({ sucesso: true, cancelado: resultado.cancelado });
 
   } catch (err: any) {
     console.error('Erro ao cancelar recorrência Asaas:', err);

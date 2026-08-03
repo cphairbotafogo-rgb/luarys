@@ -5,8 +5,10 @@ import { C } from "@/lib/constants";
 import { RAIO_LG, RAIO_MD, RAIO_2XL } from "@/lib/estiloGlobal";
 import { FiX } from "react-icons/fi";
 import { ToggleBtn } from "../../shared";
+import { useToast } from "@/components/Toast";
 
 export function ModalModulosSalao({ salao, onClose }: { salao: any; onClose: () => void }) {
+  const toast = useToast();
   const [catalogo, setCatalogo] = useState<any[]>([]);
   const [modulosAtivos, setModulosAtivos] = useState<Record<string, any>>({});
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
@@ -30,11 +32,24 @@ export function ModalModulosSalao({ salao, onClose }: { salao: any; onClose: () 
   async function toggleModulo(chave: string, ativoAtual: boolean) {
     setSalvandoId(`toggle-${chave}`);
     const novoValor = !ativoAtual;
-    const { error } = await supabase.from('salao_modulos').upsert(
-      { salao_id: salao.id, modulo_chave: chave, ativo: novoValor, origem: 'admin', ativado_em: novoValor ? new Date().toISOString() : undefined, cancelamento_agendado: false },
-      { onConflict: 'salao_id,modulo_chave' }
-    );
-    if (!error) setModulosAtivos(prev => ({ ...prev, [chave]: { ...prev[chave], modulo_chave: chave, ativo: novoValor } }));
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const res = await fetch('/api/admin/modulos/alternar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ salao_id: salao.id, modulo_chave: chave, ativo: novoValor }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`);
+
+      setModulosAtivos(prev => ({ ...prev, [chave]: { ...prev[chave], modulo_chave: chave, ativo: novoValor } }));
+    } catch (e: any) {
+      toast.erro(e.message);
+    }
+
     setSalvandoId(null);
   }
 
