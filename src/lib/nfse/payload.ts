@@ -24,6 +24,8 @@ export function buildPayloadNFSe(opts: {
     item_lista_servico?: string;
     /** ISS do serviço prestado (servicos.aliquota_iss). Ver comentário abaixo. */
     aliquota_iss?: number | null;
+    /** Código de tributação da prefeitura (cTribMun), complementar ao cTribNac. */
+    codigo_tributacao_municipio?: string | null;
     // campos de cota-parte (Fatia 5 — discriminação gDed na NFS-e)
     cnpj_profissional?: string | null;
     tipo_parceiro?: string | null;
@@ -144,6 +146,11 @@ export function buildPayloadNFSe(opts: {
       // do XML: aceita o valor ja correto, converte NBS/"06.01" legados e cai no
       // padrao quando vazio. Nunca deixa passar codigo que a prefeitura recusaria.
       item_lista_servico: resolverLc116(nota.item_lista_servico),
+      // Complemento municipal do enquadramento. O adaptador ja repassava este
+      // campo ao provedor, mas ele nunca era preenchido aqui — saia undefined
+      // em toda nota, deixando a prefeitura sem o codigo dela para reconhecer o
+      // servico (rejeicao E0312).
+      codigo_tributario_municipio: String(nota.codigo_tributacao_municipio ?? '').trim() || undefined,
       valor_servico: centavos(nota.valor),
       valor_deducoes: valorDeducoes > 0 ? valorDeducoes : undefined,
     }],

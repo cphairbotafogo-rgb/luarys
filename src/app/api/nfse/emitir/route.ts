@@ -72,10 +72,14 @@ export async function POST(req: NextRequest) {
   // Busca as notas fiscais garantindo que pertencem ao salão do usuário
   const { data: notas } = await supabaseAdmin
     .from('notas_fiscais')
-    .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, item_lista_servico, aliquota_iss, cnpj_profissional, tipo_parceiro, valor_cota_profissional, valor_cota_salao')
+    .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, item_lista_servico, aliquota_iss, codigo_tributacao_municipio, cnpj_profissional, tipo_parceiro, valor_cota_profissional, valor_cota_salao')
     .in('id', nota_ids)
     .eq('salao_id', perfil.salao_id)
-    .eq('status', 'Não Emitido');
+    // Aceita reenvio de nota rejeitada: sem isto uma recusa da prefeitura
+    // travava a nota para sempre, porque a tela nao deixava selecionar e a rota
+    // nao aceitaria mesmo se deixasse. 'Pendente' segue de fora — ja esta em
+    // processamento e reenviar duplicaria.
+    .in('status', ['Não Emitido', 'Erro']);
 
   if (!notas || notas.length === 0) {
     return NextResponse.json({ erro: 'Nenhuma nota válida encontrada' }, { status: 404 });

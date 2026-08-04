@@ -326,6 +326,9 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         // ISS do servico prestado. Sem isto a emissao usava a aliquota geral
         // do salao e ignorava o percentual cadastrado por servico.
         aliquota_iss: servicoFiscal?.aliquota_iss ?? null,
+        // Codigo da prefeitura, complementar ao nacional. Sem ele a nota vai
+        // so com o cTribNac e o municipio nao reconhece o enquadramento.
+        codigo_tributacao_municipio: servicoFiscal?.codigo_municipio ?? null,
         valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
         valor_cota_profissional: valorTotalComissoes,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,

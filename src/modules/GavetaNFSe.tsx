@@ -142,11 +142,19 @@ export function GavetaNFSe({ perfil }: any) {
   const semCodigoFiscal = notasFiltradasBase.filter(n => !n.item_lista_servico).length;
   const comCodigoInvalido = notasFiltradasBase.filter(codigoInvalido).length;
 
+  // Nota rejeitada tem de poder ser retransmitida depois de corrigida — antes
+  // so 'Não Emitido' era selecionavel, entao uma recusa da prefeitura virava
+  // beco sem saida: nao dava para cancelar nem reenviar. 'Pendente' fica de
+  // fora de proposito: ja esta em processamento na prefeitura e reenviar
+  // duplicaria a nota.
+  const podeTransmitir = (status: string | null | undefined) =>
+    status === 'Não Emitido' || status === 'Erro';
+
   const toggleNota = (id: string) => {
     setNotasSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
   const selecionarTodas = () => {
-    const elegiveisIds = notasFiltradas.filter(n => n.status === 'Não Emitido').map(n => n.id);
+    const elegiveisIds = notasFiltradas.filter(n => podeTransmitir(n.status)).map(n => n.id);
     const todasSelecionadas = elegiveisIds.length > 0 && elegiveisIds.every(id => notasSelecionadas.includes(id));
     setNotasSelecionadas(todasSelecionadas ? [] : elegiveisIds);
   };
@@ -349,7 +357,7 @@ const inputStyle = { ...inputAdmin };
                     <th style={{ padding: "14px 20px", width: 40 }}>
                       <input type="checkbox"
                         onChange={selecionarTodas}
-                        checked={notasFiltradas.filter(n => n.status === 'Não Emitido').length > 0 && notasFiltradas.filter(n => n.status === 'Não Emitido').every(n => notasSelecionadas.includes(n.id))}
+                        checked={notasFiltradas.filter(n => podeTransmitir(n.status)).length > 0 && notasFiltradas.filter(n => podeTransmitir(n.status)).every(n => notasSelecionadas.includes(n.id))}
                         style={{ accentColor: C.sidebarBg, width: 16, height: 16, cursor: "pointer" }} />
                     </th>
                     {(['Movimentação','Cliente','Serviços Realizados','Status','Cód. Fiscal'] as const).map(h => (
@@ -373,10 +381,10 @@ const inputStyle = { ...inputAdmin };
                       : '—';
                     const temCodigoFiscal = !!nota.item_lista_servico;
                     return (
-                      <tr key={nota.id} onClick={() => nota.status === 'Não Emitido' && toggleNota(nota.id)}
-                        style={{ borderBottom: `1px solid ${C.border}`, cursor: nota.status === 'Não Emitido' ? "pointer" : "default", background: notasSelecionadas.includes(nota.id) ? "#F0FDF4" : "transparent", transition: "0.2s" }}>
+                      <tr key={nota.id} onClick={() => podeTransmitir(nota.status) && toggleNota(nota.id)}
+                        style={{ borderBottom: `1px solid ${C.border}`, cursor: podeTransmitir(nota.status) ? "pointer" : "default", background: notasSelecionadas.includes(nota.id) ? "#F0FDF4" : "transparent", transition: "0.2s" }}>
                         <td style={{ padding: "14px 20px" }}>
-                          {nota.status === 'Não Emitido' && <input type="checkbox" checked={notasSelecionadas.includes(nota.id)} readOnly style={{ accentColor: "#10B981", width: 16, height: 16, cursor: "pointer" }} />}
+                          {podeTransmitir(nota.status) && <input type="checkbox" checked={notasSelecionadas.includes(nota.id)} readOnly style={{ accentColor: "#10B981", width: 16, height: 16, cursor: "pointer" }} />}
                         </td>
                         <td style={{ padding: "14px 0", fontSize: 11, color: C.textLight, whiteSpace: "nowrap" }}>{dataMovimentacao}</td>
                         <td style={{ padding: "14px 0" }}>
