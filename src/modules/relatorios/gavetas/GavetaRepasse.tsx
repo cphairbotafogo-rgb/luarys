@@ -8,11 +8,14 @@ import { FiAlertTriangle, FiCheckCircle, FiInfo, FiLoader, FiFileText, FiPrinter
 import { ModalRpa } from './ModalRpa';
 import { limparCnpj, formatarCnpj } from '@/lib/cnpj';
 import { calcularRepassePessoaFisica, INSS_ALIQUOTA, TETO_INSS } from '@/lib/salaoParceiro';
+import { ControleDocumentosParceiro } from './ControleDocumentosParceiro';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface LinhaRepasse {
   profissional_nome: string;
+  /** Resolvido pelo nome contra a equipe: notas_fiscais guarda so o texto. */
+  profissional_id: string | null;
   cnpj_profissional: string | null;
   tipo_parceiro: string | null;
   total_cota: number;
@@ -143,6 +146,17 @@ function CardRepasse({ linha, salaoId, mes, ano }: {
         </div>
       )}
 
+      {ehCnpj && (
+        <ControleDocumentosParceiro
+          salaoId={salaoId}
+          profissionalId={linha.profissional_id}
+          profissionalNome={linha.profissional_nome}
+          totalCota={linha.total_cota}
+          mes={mes}
+          ano={ano}
+        />
+      )}
+
       {ehCpf && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: '#FFFBEB',
           border: '1px solid #FDE68A', borderRadius: RAIO_MD, padding: '10px 14px' }}>
@@ -198,6 +212,14 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
       .gte('data_movimentacao', inicio)
       .lte('data_movimentacao', fimStr);
 
+    // notas_fiscais guarda profissional_nome como texto; para vincular os
+    // documentos mensais precisamos do id, entao resolvemos pelo nome.
+    const { data: equipe } = await supabase
+      .from('profissionais')
+      .select('id, nome')
+      .eq('salao_id', perfil.salao_id);
+    const idPorNome = new Map<string, string>((equipe ?? []).map(p => [String(p.nome).trim().toLowerCase(), p.id]));
+
     if (!error && data) {
       const agrupado: Record<string, LinhaRepasse> = {};
       for (const row of data) {
@@ -205,6 +227,7 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
         if (!agrupado[chave]) {
           agrupado[chave] = {
             profissional_nome: row.profissional_nome!,
+            profissional_id: null,
             cnpj_profissional: row.cnpj_profissional ?? null,
             tipo_parceiro: row.tipo_parceiro ?? null,
             total_cota: 0,
@@ -213,6 +236,7 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
         }
         agrupado[chave].total_cota += Number(row.valor_cota_profissional) || 0;
         agrupado[chave].qtd_notas  += 1;
+        agrupado[chave].profissional_id = idPorNome.get(chave.trim().toLowerCase()) ?? null;
         if (!agrupado[chave].cnpj_profissional && row.cnpj_profissional)
           agrupado[chave].cnpj_profissional = row.cnpj_profissional;
         if (!agrupado[chave].tipo_parceiro && row.tipo_parceiro)

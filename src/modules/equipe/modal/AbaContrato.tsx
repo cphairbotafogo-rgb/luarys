@@ -8,6 +8,7 @@ import { C } from "@/lib/constants";
 import { RAIO_XL, RAIO_MD } from "@/lib/estiloGlobal";
 import { labelStyle, inputStyle } from "./estilosCompartilhados";
 import { limparCnpj } from '@/lib/cnpj';
+import { contratoEhParceria, pendenciasContratoParceria } from '@/lib/salaoParceiro';
 
 function BannerFiscal({ tipo, cnpj }: { tipo: string; cnpj: string }) {
   const temCnpj = limparCnpj(cnpj).length === 14; // mantém letras — CNPJ alfanumérico
@@ -108,6 +109,94 @@ export function AbaContrato({ form, setForm, listaFuncoes, setModalFuncoesAberto
           </div>
         )}
       </div>
+      {contratoEhParceria(form.contrato.tipo) && (() => {
+        // Art. 1o-A, par. 10: sete clausulas obrigatorias, mais a homologacao
+        // sindical do par. 1o. Clausula ausente e o motivo mais comum de
+        // descaracterizacao da parceria em reclamacao trabalhista.
+        const c = form.contrato;
+        const up = (campo: string, valor: any) => setForm({ ...form, contrato: { ...c, [campo]: valor } });
+        const pendencias = pendenciasContratoParceria(c);
+        const check = (campo: string, rotulo: string, disp: string) => (
+          <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: C.textMain, cursor: 'pointer' }}>
+            <input type="checkbox" checked={c[campo] === true} onChange={e => up(campo, e.target.checked)} style={{ marginTop: 2, accentColor: C.sidebarBg }} />
+            <span>{rotulo} <span style={{ color: C.textLight, fontSize: 11 }}>({disp})</span></span>
+          </label>
+        );
+        return (
+          <div>
+            <h4 style={{ margin: "0 0 8px", fontSize: 12, color: C.sidebarBg, borderBottom: `1px solid ${C.border}`, paddingBottom: 8, textTransform: "uppercase" }}>
+              Cláusulas obrigatórias — Lei 13.352/2016
+            </h4>
+            <p style={{ margin: "0 0 16px", fontSize: 11, color: C.textLight, lineHeight: 1.6 }}>
+              Registro do que foi pactuado. Não substitui o contrato escrito e assinado — serve para o salão
+              comprovar que os requisitos da lei foram observados.
+            </p>
+
+            {pendencias.length > 0 && (
+              <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: RAIO_MD, padding: '10px 14px', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
+                  {pendencias.length} requisito(s) ainda não registrado(s)
+                </div>
+                <div style={{ fontSize: 11, color: '#92400E', lineHeight: 1.7 }}>
+                  {pendencias.map(p => p.rotulo).join(' · ')}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Retenção do salão (%) *</label>
+                  <input type="number" min={0} max={100} step="0.01" style={inputStyle} placeholder="Ex: 40"
+                    value={c.percentualRetencao ?? ""} onChange={e => up('percentualRetencao', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Periodicidade do pagamento *</label>
+                  <select style={inputStyle} value={c.periodicidadePagamento ?? ""} onChange={e => up('periodicidadePagamento', e.target.value)}>
+                    <option value="">Selecione...</option>
+                    <option value="Semanal">Semanal</option>
+                    <option value="Quinzenal">Quinzenal</option>
+                    <option value="Mensal (até o dia 20 do mês seguinte)">Mensal (até o dia 20 do mês seguinte)</option>
+                    <option value="A cada atendimento">A cada atendimento</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Aviso prévio (dias) *</label>
+                  <input type="number" min={30} style={inputStyle} placeholder="30"
+                    value={c.avisoPrevioDias ?? ""} onChange={e => up('avisoPrevioDias', e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Direitos de uso dos bens e acesso ao salão *</label>
+                <textarea style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }}
+                  placeholder="Ex: cadeira 3, secador e lavatório de uso compartilhado; acesso das 9h às 20h."
+                  value={c.direitosUsoBens ?? ""} onChange={e => up('direitosUsoBens', e.target.value)} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {check('retencaoTributos', 'O salão retém e recolhe os tributos e contribuições do profissional', '§ 10, II')}
+                {check('responsabilidadeCompartilhada', 'Responsabilidade compartilhada por manutenção, higiene e bom atendimento', '§ 10, VI')}
+                {check('regularidadeFiscal', 'O profissional se obriga a manter sua inscrição fiscal regular', '§ 10, VII')}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Homologação — sindicato ou órgão *</label>
+                  <input style={inputStyle} placeholder="Ex: SINDBELEZA-RJ"
+                    value={c.homologacaoSindicato ?? ""} onChange={e => up('homologacaoSindicato', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Data da homologação</label>
+                  <input type="date" style={inputStyle}
+                    value={c.homologacaoData ?? ""} onChange={e => up('homologacaoData', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div>
         <h4 style={{ margin: "0 0 16px", fontSize: 12, color: C.sidebarBg, borderBottom: `1px solid ${C.border}`, paddingBottom: 8, textTransform: "uppercase" }}>Repasse Bancário</h4>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

@@ -154,3 +154,84 @@ export function calcularRepassePessoaFisica(cotaParte: number, dependentes = 0) 
     baseIrrf: Math.max(0, Math.round((bruto - inss - dependentes * DEDUCAO_DEPENDENTE) * 100) / 100),
   };
 }
+
+// ─── Cláusulas obrigatórias do contrato (art. 1º-A, § 10) ────────────────────
+//
+// A lei lista sete cláusulas que o contrato de parceria DEVE conter, além da
+// homologação no sindicato da categoria (art. 1º-A, § 1º). Cláusula ausente é
+// o motivo mais comum de descaracterização em reclamação trabalhista — por isso
+// o sistema passa a registrar cada uma, em vez de só guardar CNPJ e função.
+//
+// Isto é registro do que foi pactuado, não substitui o contrato assinado.
+
+export interface ContratoParceria {
+  /** § 10, I — percentual de retenção do salão sobre cada serviço. */
+  percentualRetencao?: number | string | null;
+  /** § 10, II — salão retém e recolhe os tributos do profissional. */
+  retencaoTributos?: boolean;
+  /** § 10, III — condições e periodicidade do pagamento. */
+  periodicidadePagamento?: string | null;
+  /** § 10, IV — direitos de uso de bens materiais e acesso às dependências. */
+  direitosUsoBens?: string | null;
+  /** § 10, V — rescisão unilateral com aviso prévio mínimo de 30 dias. */
+  avisoPrevioDias?: number | string | null;
+  /** § 10, VI — responsabilidade compartilhada por manutenção e higiene. */
+  responsabilidadeCompartilhada?: boolean;
+  /** § 10, VII — profissional mantém inscrição fiscal regular. */
+  regularidadeFiscal?: boolean;
+  /** § 1º — homologação no sindicato (ou órgão substituto). */
+  homologacaoSindicato?: string | null;
+  homologacaoData?: string | null;
+  [k: string]: unknown;
+}
+
+/** Aviso prévio mínimo que a lei exige para rescisão unilateral (§ 10, V). */
+export const AVISO_PREVIO_MINIMO_DIAS = 30;
+
+export interface PendenciaClausula {
+  chave: string;
+  rotulo: string;
+  dispositivo: string;
+}
+
+/**
+ * Quais cláusulas obrigatórias ainda faltam no contrato.
+ *
+ * Devolve lista vazia quando está tudo registrado. Não bloqueia o salvamento —
+ * o salão precisa conseguir cadastrar o profissional antes de ter o contrato
+ * assinado em mãos —, mas alimenta o aviso na tela e o checklist de conformidade.
+ */
+export function pendenciasContratoParceria(c: ContratoParceria | null | undefined): PendenciaClausula[] {
+  const contrato = c ?? {};
+  const faltando: PendenciaClausula[] = [];
+  const vazio = (v: unknown) => v === null || v === undefined || String(v).trim() === '';
+
+  const percentual = Number(contrato.percentualRetencao);
+  if (vazio(contrato.percentualRetencao) || !Number.isFinite(percentual) || percentual <= 0) {
+    faltando.push({ chave: 'percentualRetencao', rotulo: 'Percentual de retenção do salão', dispositivo: '§ 10, I' });
+  }
+  if (contrato.retencaoTributos !== true) {
+    faltando.push({ chave: 'retencaoTributos', rotulo: 'Cláusula de retenção e recolhimento de tributos', dispositivo: '§ 10, II' });
+  }
+  if (vazio(contrato.periodicidadePagamento)) {
+    faltando.push({ chave: 'periodicidadePagamento', rotulo: 'Condições e periodicidade do pagamento', dispositivo: '§ 10, III' });
+  }
+  if (vazio(contrato.direitosUsoBens)) {
+    faltando.push({ chave: 'direitosUsoBens', rotulo: 'Direitos de uso dos bens e acesso ao salão', dispositivo: '§ 10, IV' });
+  }
+  const aviso = Number(contrato.avisoPrevioDias);
+  if (!Number.isFinite(aviso) || aviso < AVISO_PREVIO_MINIMO_DIAS) {
+    faltando.push({ chave: 'avisoPrevioDias', rotulo: `Aviso prévio de rescisão (mínimo ${AVISO_PREVIO_MINIMO_DIAS} dias)`, dispositivo: '§ 10, V' });
+  }
+  if (contrato.responsabilidadeCompartilhada !== true) {
+    faltando.push({ chave: 'responsabilidadeCompartilhada', rotulo: 'Responsabilidade compartilhada por manutenção e higiene', dispositivo: '§ 10, VI' });
+  }
+  if (contrato.regularidadeFiscal !== true) {
+    faltando.push({ chave: 'regularidadeFiscal', rotulo: 'Obrigação de manter inscrição fiscal regular', dispositivo: '§ 10, VII' });
+  }
+  if (vazio(contrato.homologacaoSindicato)) {
+    faltando.push({ chave: 'homologacaoSindicato', rotulo: 'Homologação no sindicato da categoria', dispositivo: '§ 1º' });
+  }
+
+  return faltando;
+}

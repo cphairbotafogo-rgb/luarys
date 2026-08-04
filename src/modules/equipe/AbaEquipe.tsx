@@ -96,7 +96,13 @@ export function AbaEquipe({ perfil }: any) {
       Domingo: { ativo: false, entrada: '09:00', saida: '12:00', almocoEntrada: '12:00', almocoSaida: '13:00' }
     },
     banco: { banco: '', agencia: '', conta: '', tipoConta: 'Corrente', tipoPix: 'CPF/CNPJ', chavePix: '' },
-    contrato: { tipo: 'Profissional Parceiro (Lei 13.352/2016)', funcao: '', admissao: '', ctps: '', serieCtps: '', pis: '', razaoSocial: '', cnpj: '', inscricaoMunicipal: '', inicioContrato: '' },
+    contrato: { tipo: 'Profissional Parceiro (Lei 13.352/2016)', funcao: '', admissao: '', ctps: '', serieCtps: '', pis: '', razaoSocial: '', cnpj: '', inscricaoMunicipal: '', inicioContrato: '',
+      // Clausulas obrigatorias da Lei 13.352/2016 (art. 1o-A, par. 10).
+      // avisoPrevioDias ja nasce no minimo legal, para o salao nao ter de
+      // descobrir o numero; abaixo de 30 o requisito conta como pendente.
+      percentualRetencao: '', retencaoTributos: false, periodicidadePagamento: '',
+      direitosUsoBens: '', avisoPrevioDias: 30, responsabilidadeCompartilhada: false,
+      regularidadeFiscal: false, homologacaoSindicato: '', homologacaoData: '' },
     endereco: { cep: '', tipoLogradouro: 'Rua', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' },
     permissoes: { perfil_acesso: 'Sem Acesso', acesso_sistema: false, ver_dashboard: false, ver_financeiro: false, fazer_estorno: false, aplicar_desconto: false, editar_equipe: false, ver_propria_agenda: false, criar_proprio_agendamento: false, editar_valores_proprio_agendamento: false, ver_proprio_faturamento: false, bloquear_proprio_horario: false }
   };
