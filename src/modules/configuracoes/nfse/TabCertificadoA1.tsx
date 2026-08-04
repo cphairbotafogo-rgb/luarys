@@ -182,11 +182,25 @@ export function TabCertificadoA1({ perfil }: Props) {
               </div>
               <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: C.textMuted, lineHeight: 2 }}>
                 <li>Você envia abaixo o certificado digital A1 do seu CNPJ (arquivo .pfx ou .p12) e a senha.</li>
-                <li>A equipe Luarys encaminha o A1 para a NFs do Brasil e ativa seu canal de emissão.</li>
-                <li>Assim que o canal estiver ativo você pode emitir NFS-e e NFC-e diretamente aqui.</li>
+                <li>O arquivo segue direto para a Brasil NFe, que ativa seu canal de emissão — sem intervenção manual.</li>
+                <li>Com o canal ativo, você emite NFS-e e NFC-e aqui mesmo.</li>
               </ol>
-              <p style={{ margin: '12px 0 0', fontSize: 11, color: C.textLight, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
-                🔒 Seu certificado é transmitido com criptografia (HTTPS) e armazenado com segurança. Ele é usado exclusivamente para emissão de notas fiscais em seu nome.
+              {/* O texto anterior dizia "armazenado com segurança", o que
+                  contradizia a politica do Luarys e o que a rota faz: com o
+                  canal ja criado, o .pfx e a senha trafegam so em memoria e nao
+                  sao gravados; a senha e apagada quando o modulo e ativado.
+                  Prometer guarda segura de algo que nao guardamos e pior que
+                  nao dizer nada — o cliente decide o que enviar com base nisso. */}
+              <p style={{ margin: '12px 0 0', fontSize: 11, color: C.textLight, borderTop: `1px solid ${C.border}`, paddingTop: 10, lineHeight: 1.7 }}>
+                🔒 <strong>O Luarys não guarda seu certificado.</strong> O arquivo e a senha trafegam
+                criptografados (HTTPS) e são repassados à Brasil NFe, que passa a assinar as notas em seu nome.
+                A senha é descartada assim que o canal é ativado — nem nós conseguimos recuperá-la depois.
+              </p>
+              <p style={{ margin: '10px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.7 }}>
+                <strong>Seu certificado não é .pfx nem .p12?</strong> No Windows, abra o menu Iniciar e
+                busque por <em>Gerenciar certificados de usuário</em> (certmgr.msc) → Pessoal → Certificados →
+                clique com o botão direito no seu → Todas as tarefas → Exportar → <em>Sim, exportar a chave
+                privada</em> → formato <em>.PFX</em> → defina uma senha. É esse arquivo que você envia aqui.
               </p>
             </div>
           ) : (
