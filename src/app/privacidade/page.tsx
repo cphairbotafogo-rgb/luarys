@@ -103,11 +103,11 @@ export default async function PoliticaPrivacidade() {
         <li><strong>Supabase Inc.</strong> (EUA) — banco de dados, autenticação e armazenamento de arquivos. Dados transferidos com base em Cláusulas Contratuais Padrão (SCCs).</li>
         <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos e geração de PIX/link de pagamento.</li>
         <li><strong>InfinitePay / CloudWalk Inc.</strong> (Brasil) — processamento de pagamentos via maquininha.</li>
-        <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de NFS-e e NFC-e junto à SEFAZ e prefeituras.</li>
+        <li><strong>Brasil NFe Ltda.</strong> (Brasil, CNPJ 39.658.743/0001-99) — emissão de NFS-e e NFC-e junto à SEFAZ e prefeituras.</li>
         <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação web. Dados de requisição (IP, headers) passam pelos servidores da Vercel. SCCs aplicáveis.</li>
-        <li><strong>Meta Platforms</strong> (EUA/Irlanda) — envio de mensagens e confirmações pelo WhatsApp Business Platform. Recebe o telefone do cliente e os dados do agendamento (data, horário, serviço e profissional).</li>
-        <li><strong>Resend</strong> (EUA) — envio de e-mails transacionais de confirmação de agendamento. Recebe nome, e-mail e os dados do agendamento.</li>
-        <li><strong>Asaas</strong> (Brasil) — cobrança da assinatura do salão e dos créditos de WhatsApp. Recebe apenas dados do estabelecimento (razão social/nome fantasia, CNPJ, e-mail e telefone de contato) — nunca dados dos clientes do salão.</li>
+        <li><strong>Meta Platforms, Inc.</strong> (EUA) — envio de mensagens e confirmações pelo WhatsApp Business Platform. Recebe o telefone do cliente e os dados do agendamento (data, horário, serviço e profissional).</li>
+        <li><strong>Plus Five Five, Inc. (Resend)</strong> (EUA) — envio de e-mails transacionais de confirmação de agendamento. Recebe nome, e-mail e os dados do agendamento.</li>
+        <li><strong>Asaas Gestão Financeira Instituição de Pagamento S.A.</strong> (Brasil, CNPJ 19.540.550/0001-21) — cobrança da assinatura do salão e dos créditos de WhatsApp. Recebe apenas dados do estabelecimento (razão social/nome fantasia, CNPJ, e-mail e telefone de contato) — nunca dados dos clientes do salão.</li>
       </ul>
       <p style={SL.p}>Podemos compartilhar dados com autoridades públicas quando exigido por lei ou ordem judicial.</p>
       <p style={SL.p}>Novos subprocessadores poderão ser adicionados mediante atualização desta Política com aviso prévio de 30 dias, exceto em casos de urgência técnica ou legal devidamente justificados.</p>
@@ -115,7 +115,7 @@ export default async function PoliticaPrivacidade() {
       {/* 5 */}
       <h2 style={SL.h2}>5. Transferências internacionais</h2>
       <p style={SL.p}>
-        Alguns de nossos subprocessadores estão sediados no exterior (Supabase, Vercel, Meta Platforms e Resend — EUA/Irlanda). Essas transferências são realizadas com salvaguardas adequadas — Cláusulas Contratuais Padrão aprovadas pela autoridade supervisora — em conformidade com o art. 33 da LGPD.
+        Alguns de nossos subprocessadores estão sediados no exterior (Supabase, Vercel, Meta Platforms e Plus Five Five/Resend — EUA). Essas transferências são realizadas com salvaguardas adequadas — Cláusulas Contratuais Padrão aprovadas pela autoridade supervisora — em conformidade com o art. 33 da LGPD.
       </p>
 
       {/* 6 */}

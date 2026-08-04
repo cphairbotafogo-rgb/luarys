@@ -122,16 +122,16 @@ export default async function ContratoTratamentoDados() {
         <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação. Transferência amparada em Cláusulas Contratuais Padrão.</li>
         <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos.</li>
         <li><strong>CloudWalk Inc. / InfinitePay</strong> (Brasil) — processamento de pagamentos via maquininha.</li>
-        <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de documentos fiscais eletrônicos (NFS-e e NFC-e) junto a prefeituras e SEFAZ.</li>
-        <li><strong>Meta Platforms</strong> (EUA/Irlanda) — envio de mensagens ao cliente final pelo WhatsApp Business Platform. Transferência amparada em Cláusulas Contratuais Padrão.</li>
-        <li><strong>Resend</strong> (EUA) — envio de e-mails transacionais ao cliente final. Transferência amparada em Cláusulas Contratuais Padrão.</li>
+        <li><strong>Brasil NFe Ltda.</strong> (Brasil, CNPJ 39.658.743/0001-99) — emissão de documentos fiscais eletrônicos (NFS-e e NFC-e) junto a prefeituras e SEFAZ.</li>
+        <li><strong>Meta Platforms, Inc.</strong> (EUA) — envio de mensagens ao cliente final pelo WhatsApp Business Platform. Transferência amparada em Cláusulas Contratuais Padrão.</li>
+        <li><strong>Plus Five Five, Inc. (Resend)</strong> (EUA) — envio de e-mails transacionais ao cliente final. Transferência amparada em Cláusulas Contratuais Padrão.</li>
       </ul>
       <p style={SL.p}>Qualquer alteração nesta lista será comunicada ao Controlador com antecedência mínima de 30 dias, permitindo que o Controlador se oponha fundamentadamente.</p>
 
       {/* 8 */}
       <h2 style={SL.h2}>8. Transferências internacionais</h2>
       <p style={SL.p}>
-        Os suboperadores Supabase, Vercel, Meta Platforms e Resend estão sediados no exterior (EUA/Irlanda). As transferências internacionais são realizadas com base em Cláusulas Contratuais Padrão (SCCs) e, nos casos aplicáveis, nas garantias previstas no art. 33 da LGPD.
+        Os suboperadores Supabase, Vercel, Meta Platforms e Plus Five Five (Resend) estão sediados nos Estados Unidos. As transferências internacionais são realizadas com base em Cláusulas Contratuais Padrão (SCCs) e, nos casos aplicáveis, nas garantias previstas no art. 33 da LGPD.
       </p>
 
       {/* 9 */}
