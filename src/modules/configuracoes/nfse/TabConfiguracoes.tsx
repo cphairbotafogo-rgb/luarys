@@ -155,6 +155,14 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
               <select style={inputAdmin} value={cfg.regime_especial_tributacao} onChange={e => up('regime_especial_tributacao', e.target.value)}>
                 {REGIMES_ESPECIAIS.map(r => <option key={r} value={r}>{r || '— Nenhum —'}</option>)}
               </select>
+              {/* Sem esta explicacao o campo parece duplicar o "Regime
+                  Tributario" logo abaixo. Nao duplica: um e o regime da
+                  empresa, o outro e como a PREFEITURA enquadra o prestador. */}
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.5 }}>
+                Como a prefeitura enquadra o salão — não é o mesmo que o Regime Tributário abaixo.
+                Em <strong>— Nenhum —</strong>, o sistema usa o regime da empresa
+                (Simples Nacional → Microempresa ou EPP).
+              </p>
             </div>
             <div>
               <label style={lbl}>CMC</label>

@@ -54,11 +54,31 @@ export function buildPayloadNFSe(opts: {
   const regime = salao.regime_tributario || salao.config_fiscal?.regime_tributario || '';
   const simples = ['Simples Nacional', 'MEI'].includes(regime);
 
-  // Regime especial de tributação, na codificação do provedor. Sem isto a
-  // prefeitura não sabe que o prestador é optante do Simples, e o enquadramento
-  // do serviço não fecha — o campo nunca era enviado.
-  //   5 = MEI Simples Nacional | 6 = ME/EPP Simples Nacional | 0 = sem regime especial
-  const regimeEspecial = regime === 'MEI' ? 5 : regime === 'Simples Nacional' ? 6 : 0;
+  // Regime especial de tributação, na codificação do provedor:
+  //   0 sem regime especial | 1 microempresa municipal | 2 estimativa
+  //   3 sociedade de profissionais | 4 cooperativa | 5 MEI | 6 ME/EPP
+  //
+  // A tela Configurar NFS-e tem um seletor próprio para isto. Ele manda: são
+  // conceitos distintos — "Simples Nacional" é o regime da empresa, enquanto o
+  // regime especial é como o MUNICÍPIO enquadra o prestador, e um salão pode
+  // ser Simples e estar enquadrado como sociedade de profissionais. Derivar do
+  // regime tributário, como fazíamos, ignorava a escolha do usuário.
+  //
+  // Só quando o seletor está em "— Nenhum —" caímos na derivação, para não
+  // deixar o campo vazio em quem nunca configurou.
+  const REGIME_ESPECIAL_POR_NOME: Record<string, number> = {
+    'Sem Regime Especial':        0,
+    'Microempresa Municipal':     1,
+    'Estimativa':                 2,
+    'Sociedade de Profissionais': 3,
+    'Cooperativa':                4,
+    'MEI':                        5,
+    'Microempresa ou EPP':        6,
+  };
+  const escolhido = String(salao.config_fiscal?.regime_especial_tributacao ?? '').trim();
+  const regimeEspecial = escolhido in REGIME_ESPECIAL_POR_NOME
+    ? REGIME_ESPECIAL_POR_NOME[escolhido]
+    : (regime === 'MEI' ? 5 : regime === 'Simples Nacional' ? 6 : 0);
 
   // Horário de Brasília (UTC-3) — evita registrar data do dia seguinte na SEFAZ
   // quando a nota é emitida depois das 21h local (servidor em UTC)
