@@ -209,6 +209,14 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
       .eq('salao_id', perfil.salao_id)
       .not('profissional_nome', 'is', null)
       .gt('valor_cota_profissional', 0)
+      // Esta tela e de repasse a PARCEIRO (contrato civil, Lei 13.352/2016).
+      // A nota grava valor_cota_profissional para qualquer profissional, entao
+      // sem este filtro um funcionario CLT aparecia aqui misturado aos
+      // parceiros — regimes com base de calculo, guia e prazo diferentes.
+      // Comissao de CLT e verba salarial e vai para a folha, nao para repasse.
+      // Mantem tipo_parceiro nulo: sao notas antigas, anteriores ao campo, que
+      // a tela ja classifica pelo CNPJ.
+      .not('tipo_parceiro', 'in', '("clt","pj","socio")')
       .gte('data_movimentacao', inicio)
       .lte('data_movimentacao', fimStr);
 

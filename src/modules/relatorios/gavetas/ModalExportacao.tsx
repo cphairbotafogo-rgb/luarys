@@ -33,6 +33,24 @@ interface Props {
   profissionalSelecionadoObj: any;
 }
 
+/**
+ * Rótulo do vínculo para o extrato impresso.
+ *
+ * A distinção importa na folha: comissão de CLT é verba salarial e reflete em
+ * DSR, 13º, férias e FGTS; cota-parte de parceiro civil não gera nenhum desses
+ * reflexos. São regimes com base de cálculo, guia e prazo diferentes.
+ */
+function rotuloVinculo(tipoParceiro: string | null | undefined): string | null {
+  switch (String(tipoParceiro ?? '')) {
+    case 'clt':            return 'CLT — comissão é verba salarial (reflete em DSR, 13º, férias e FGTS)';
+    case 'parceiro_cnpj':  return 'Profissional-parceiro com CNPJ (Lei 13.352/2016) — cota-parte, sem reflexos trabalhistas';
+    case 'parceiro_cpf':   return 'Profissional-parceiro sem CNPJ — cota-parte via RPA, com retenção de INSS e IRRF';
+    case 'pj':             return 'Prestador PJ — pagamento contra nota fiscal';
+    case 'socio':          return 'Sócio / cotista';
+    default:               return null;
+  }
+}
+
 export function ModalExportacao({
   modalImpressao, onFechar, onDisparar,
   capacidadeDisponivel, profissionalDisponivel, profissionalNome,
@@ -144,6 +162,16 @@ export function ModalExportacao({
             <p style={{ margin: "5px 0 0", fontSize: 12, color: "#666" }}>
               Período: {formatarData(dataInicio)} a {formatarData(dataFim)}
             </p>
+            {/* Vínculo no cabeçalho do extrato: a contabilidade precisa saber se
+                o valor é verba salarial (CLT — reflete em DSR, 13º, férias e
+                FGTS) ou cota-parte de parceiro civil (não reflete em nada
+                disso). Sem essa marca, os dois números chegam idênticos ao
+                contador e o tratamento na folha pode sair errado. */}
+            {tipoImpressao === 'profissional' && rotuloVinculo(profissionalSelecionadoObj?.tipo_parceiro) && (
+              <p style={{ margin: "4px 0 0", fontSize: 12, fontWeight: 700 }}>
+                Vínculo: {rotuloVinculo(profissionalSelecionadoObj?.tipo_parceiro)}
+              </p>
+            )}
           </div>
 
           {tipoImpressao !== 'capacidade' && tipoImpressao !== 'profissional' && (

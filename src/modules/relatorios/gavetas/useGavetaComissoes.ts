@@ -63,7 +63,13 @@ export function useGavetaComissoes(perfil: any) {
     async function carregarProfs() {
       if (!perfil?.salao_id) return;
       const { data, error } = await supabase
-        .from('profissionais').select('id, nome, ativo, perfil_avancado')
+        .from('profissionais')
+        // tipo_parceiro identifica o vinculo (CLT x parceiro civil). A
+        // contabilidade precisa do dado separado: comissao de CLT e verba
+        // salarial, com reflexo em DSR, 13o, ferias e FGTS; cota-parte de
+        // parceiro nao gera nenhum desses. Vindo misturado, o contador nao
+        // tem como distinguir.
+        .select('id, nome, ativo, perfil_avancado, tipo_parceiro')
         .eq('salao_id', perfil.salao_id).order('nome');
       if (error && process.env.NODE_ENV === 'development') console.error('Erro ao carregar profissionais:', error);
       if (data) setProfissionais([...data].sort((a, b) => (a.ativo === b.ativo ? 0 : a.ativo ? -1 : 1)));
