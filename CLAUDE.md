@@ -280,6 +280,25 @@ aplicar os padrões abaixo por conta própria — não esperar o Ari mandar prin
 - **NFS-e:** rotas funcionais via Focus NFe/Brasil NFe (`emitir`, `consultar`, `cancelar`, `upload-a1`, `webhook-brasilnfe`). **Urgente, não mais "futuro"**: NFS-e Nacional já é lei desde 01/01/2026 (LC 214/2025) e a Nota Carioca (RJ, onde fica o piloto real) já não aceita emissão nova — só Emissor Nacional. Pendente: confirmar se o fluxo atual já emite corretamente no padrão nacional para RJ (Focus NFe já tem API própria pra isso), decisão final de provedor único, e try/catch por nota no lote.
 - **NFC-e:** rota de emissão funcional (Focus NFe) com numeração atômica e persistência em `nfce_emissoes`. Pendente: telas lerem de `nfce_emissoes` e reconciliação de notas `processando` via consultar.
 - **WhatsApp:** envio (Planos A/B), carteira, compra de créditos via Asaas (avulso + recorrente) e webhook Meta fail-closed — funcionais. Pendente: segredos no ambiente de produção e registro do webhook na Meta (URL com www).
+- **Resumo diário por e-mail** (`/api/cron/resumo-diario`, cron `0 4 * * *` = 01h de Brasília): fechamento de ontem + agenda de hoje + CSV anexo, inspirado no e-mail equivalente da Trinks. Lógica de montagem em `src/lib/resumoDiario.ts`. **Depende de `RESEND_API_KEY` em produção** — sem ela nada é enviado (o helper devolve `{ok:false}` e a rota só loga).
+
+### Comunicação com o cliente final — estado real (ago/2026)
+Hoje **nenhum** dos dois canais de confirmação de agendamento chega ao cliente em
+produção: `RESEND_API_KEY` não está configurada na Vercel (e-mail) e
+`WHATSAPP_API_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` também não (WhatsApp).
+`notificarAgendamento.ts` tenta WhatsApp e cai para e-mail — as duas pontas
+falham em silêncio, cada uma com `console.warn`. Ao configurar qualquer um dos
+dois, testar o fluxo ponta a ponta antes de considerar resolvido.
+
+### Ideias mapeadas do concorrente (Trinks) — ainda não implementadas
+- **Telefone do cliente no resumo diário.** A Trinks manda; decidimos não mandar
+  (dado do titular trafegando por e-mail e ficando arquivado na caixa postal).
+  Se for implementar, fazer como opção por salão, desligada por padrão — o
+  controlador daqueles dados é o salão, não o Luarys.
+- **Bloco de caixa físico no resumo** (abertura de caixa, sangria, troco, saldo
+  em dinheiro). Exige criar o conceito de **sessão de caixa**, que não existe no
+  schema hoje (não há tabela nem colunas para isso) — é funcionalidade inteira,
+  não um campo a mais no e-mail.
 
 ## Drift de schema (resolvido — jul/2026)
 As RPCs que só existiam no banco vivo (`debitar_credito_whatsapp`, `restaurar_credito_whatsapp`, `admin_ativar_modulo_fiscal`, `obter_status_fiscal`, `obter_saldo_whatsapp`, `obter_consumo_whatsapp_mes`, `baixar_estoque_vitrine`, `resgatar_premio_fidelidade`, `buscar_agendamentos_para_lembrete`) foram versionadas em `supabase/migrations/20260727_versionar_rpcs_legado_e_permissoes.sql` e `20260728e_resgatar_premio_lock_concorrencia.sql`. No caminho, dois achados de segurança reais foram corrigidos: `buscar_agendamentos_para_lembrete` estava executável por `anon` (vazava dados de cliente de todos os salões) e `resgatar_premio_fidelidade` confiava no `salao_id` do body (fraude cross-tenant) — ambos fechados, com trava `pg_advisory_xact_lock` contra resgate em dobro por concorrência. `nfe_config_empresa`/`nfe_emissoes_log` (só existiam em `src/lib/migrations/`, pasta legada) versionadas em `20260728f_nfe_config_empresa_versionar.sql`.
