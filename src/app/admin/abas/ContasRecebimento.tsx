@@ -18,7 +18,9 @@ import { FiXCircle, FiAlertTriangle } from "react-icons/fi";
 export function ContasRecebimento() {
   const toast = useToast();
   const [contas, setContas] = useState<any[]>([]);
-  const [novaConta, setNovaConta] = useState<{ nome: string; gateway: 'mercadopago' | 'infinitepay' | 'cielo' | 'asaas' }>({ nome: '', gateway: 'mercadopago' });
+  // 'cielo' fora da união de NOVA conta (gateway desativado). O tipo das contas
+  // já existentes segue aceitando cielo na listagem/edição.
+  const [novaConta, setNovaConta] = useState<{ nome: string; gateway: 'mercadopago' | 'infinitepay' | 'asaas' }>({ nome: '', gateway: 'mercadopago' });
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
   // Com contas cadastradas mas nenhuma ativa, o checkout cai silenciosamente
   // no fallback de variáveis de ambiente (gateway legado) — já causou um bug
@@ -299,12 +301,15 @@ export function ContasRecebimento() {
             <label style={{ fontSize: 11, fontWeight: 700, color: C.textLight, textTransform: "uppercase" }}>Gateway</label>
             <select
               value={novaConta.gateway}
-              onChange={(e) => setNovaConta(prev => ({ ...prev, gateway: e.target.value as 'mercadopago' | 'infinitepay' | 'cielo' | 'asaas' }))}
+              onChange={(e) => setNovaConta(prev => ({ ...prev, gateway: e.target.value as 'mercadopago' | 'infinitepay' | 'asaas' }))}
               style={{ display: "block", marginTop: 4, padding: "8px 10px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12 }}
             >
+              {/* Cielo desativada: não é mais oferecida como gateway novo. Contas
+                  Cielo que já existam continuam listadas e editáveis acima, e o
+                  webhook /api/webhooks/cielo segue ativo — tirar isso agora
+                  descartaria a confirmação de um pagamento em curso. */}
               <option value="mercadopago">Mercado Pago</option>
               <option value="infinitepay">InfinitePay</option>
-              <option value="cielo">Cielo</option>
               <option value="asaas">Asaas</option>
             </select>
           </div>
