@@ -43,14 +43,21 @@ export function buildPayloadNFSe(opts: {
   // gDed — dedução da cota do profissional parceiro com CNPJ (Lei 13.352/2016 +
   // Resolução CGSN 140/2018). Só aplicável quando tipo_parceiro = 'parceiro_cnpj'
   // e há valor de cota positivo. A base do ISS cai para a cota do salão.
+  // Valor monetário na NFS-e tem 2 casas. A cota do profissional vem de um
+  // cálculo de percentual e chega aqui com fração de centavo (ex: 1.972488) —
+  // ia direto pro XML assim. Arredonda antes de qualquer conta para que a base
+  // de cálculo derive do mesmo número que vai declarado como dedução, senão as
+  // duas divergiriam em centavos.
+  const centavos = (v: number | null | undefined) => Math.round((Number(v) || 0) * 100) / 100;
+
   const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj';
   const valorDeducoes = ehParceiroComCnpj && Number(nota.valor_cota_profissional) > 0
-    ? Number(nota.valor_cota_profissional)
+    ? centavos(nota.valor_cota_profissional)
     : 0;
   // Algumas prefeituras rejeitam base_calculo = 0 (ex: São Paulo código E10).
   // Limita a dedução para que a base mínima seja R$ 0,01 quando há valor de serviço.
   const baseCalculo = nota.valor > 0
-    ? Math.max(0.01, nota.valor - valorDeducoes)
+    ? Math.max(0.01, centavos(nota.valor - valorDeducoes))
     : 0;
 
   const payload: PayloadNFSe = {
@@ -72,7 +79,7 @@ export function buildPayloadNFSe(opts: {
       // do XML: aceita o valor ja correto, converte NBS/"06.01" legados e cai no
       // padrao quando vazio. Nunca deixa passar codigo que a prefeitura recusaria.
       item_lista_servico: resolverLc116(nota.item_lista_servico),
-      valor_servico: nota.valor,
+      valor_servico: centavos(nota.valor),
       valor_deducoes: valorDeducoes > 0 ? valorDeducoes : undefined,
     }],
   };
