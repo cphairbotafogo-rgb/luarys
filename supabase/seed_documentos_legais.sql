@@ -153,10 +153,13 @@ VALUES (
   <li><strong>InfinitePay / CloudWalk Inc.</strong> (Brasil) — pagamentos via maquininha.</li>
   <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de NFS-e e NFC-e.</li>
   <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação web.</li>
+  <li><strong>Meta Platforms</strong> (EUA/Irlanda) — envio de mensagens e confirmações pelo WhatsApp Business Platform. Recebe o telefone do cliente e os dados do agendamento (data, horário, serviço e profissional).</li>
+  <li><strong>Resend</strong> (EUA) — envio de e-mails transacionais de confirmação de agendamento. Recebe nome, e-mail e os dados do agendamento.</li>
+  <li><strong>Asaas</strong> (Brasil) — cobrança da assinatura do salão e dos créditos de WhatsApp. Recebe apenas dados do estabelecimento (razão social/nome fantasia, CNPJ, e-mail e telefone de contato) — nunca dados dos clientes do salão.</li>
 </ul>
 
 <h2>5. Transferências internacionais</h2>
-<p>Supabase e Vercel estão nos EUA. Transferências realizadas com base em Cláusulas Contratuais Padrão (SCCs), conforme art. 33 da LGPD.</p>
+<p>Supabase, Vercel, Meta Platforms e Resend estão sediados no exterior (EUA/Irlanda). Transferências realizadas com base em Cláusulas Contratuais Padrão (SCCs), conforme art. 33 da LGPD.</p>
 
 <h2>6. Retenção de dados</h2>
 <ul>
@@ -256,10 +259,12 @@ VALUES (
   <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos.</li>
   <li><strong>CloudWalk Inc. / InfinitePay</strong> (Brasil) — pagamentos via maquininha.</li>
   <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de documentos fiscais.</li>
+  <li><strong>Meta Platforms</strong> (EUA/Irlanda) — envio de mensagens ao cliente final pelo WhatsApp Business Platform. Transferência amparada em Cláusulas Contratuais Padrão.</li>
+  <li><strong>Resend</strong> (EUA) — envio de e-mails transacionais ao cliente final. Transferência amparada em Cláusulas Contratuais Padrão.</li>
 </ul>
 
 <h2>8. Transferências internacionais</h2>
-<p>Supabase e Vercel estão nos EUA. Transferências realizadas com base em Cláusulas Contratuais Padrão, conforme art. 33 da LGPD.</p>
+<p>Supabase, Vercel, Meta Platforms e Resend estão sediados no exterior (EUA/Irlanda). Transferências realizadas com base em Cláusulas Contratuais Padrão, conforme art. 33 da LGPD.</p>
 
 <h2>9. Retenção e exclusão de dados</h2>
 <ul>
