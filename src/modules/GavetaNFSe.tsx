@@ -8,6 +8,7 @@ import { FiShield, FiList, FiSettings, FiCheckSquare, FiSend, FiRefreshCw, FiLoa
 import { useGuardModulo } from "@/lib/useGuardModulo";
 import { BloqueioModulo } from "@/components/BloqueioModulo";
 import { ConfiguracaoNFSe } from "@/modules/configuracoes/nfse";
+import { lc116Invalido } from "@/lib/nfse/lc116";
 
 export function GavetaNFSe({ perfil }: any) {
   const toast = useToast();
@@ -27,6 +28,8 @@ export function GavetaNFSe({ perfil }: any) {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
+  // '' = todas | 'sem' = sem código LC 116 | 'invalido' = código fora do formato
+  const [filtroCodigo, setFiltroCodigo] = useState<'' | 'sem' | 'invalido'>('');
   const [busca, setBusca] = useState('');
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export function GavetaNFSe({ perfil }: any) {
 
   // Filtro client-side (status + texto + período)
   const normalizar = (s: string) => (s || '').toLowerCase();
-  const notasFiltradas = notasPendentes.filter(n => {
+  const notasFiltradasBase = notasPendentes.filter(n => {
     if (filtroStatus && n.status !== filtroStatus) return false;
     if (busca) {
       const b = normalizar(busca);
@@ -119,9 +122,25 @@ export function GavetaNFSe({ perfil }: any) {
     return true;
   });
 
+  // O campo item_lista_servico tem de levar o código da LC 116 ("06.01"): dois
+  // dígitos, ponto, dois dígitos. O fechamento de conta vinha gravando ali o NBS
+  // do serviço ("126021000", 9 dígitos), que é outra taxonomia — a prefeitura
+  // recusa no schema ("cTribNac ... Pattern constraint failed"). Por isso não
+  // basta checar se o campo está vazio: preenchido com o código errado é PIOR
+  // que vazio, porque vazio cai no padrão 06.01 e passa.
+  const codigoInvalido = (n: typeof notasPendentes[number]) => lc116Invalido(n.item_lista_servico);
+
+  const notasFiltradas = filtroCodigo === 'sem'
+    ? notasFiltradasBase.filter(n => !n.item_lista_servico)
+    : filtroCodigo === 'invalido'
+      ? notasFiltradasBase.filter(codigoInvalido)
+      : notasFiltradasBase;
+
   const valorPeriodo = notasFiltradas.reduce((s, n) => s + Number(n.valor || 0), 0);
   const valorSelecionado = notasSelecionadas.reduce((s, id) => s + Number(notasPendentes.find(n => n.id === id)?.valor || 0), 0);
-  const semCodigoFiscal = notasFiltradas.filter(n => !n.item_lista_servico).length;
+  // Contagens sempre sobre a base, senão filtrar pelo aviso zeraria o próprio aviso.
+  const semCodigoFiscal = notasFiltradasBase.filter(n => !n.item_lista_servico).length;
+  const comCodigoInvalido = notasFiltradasBase.filter(codigoInvalido).length;
 
   const toggleNota = (id: string) => {
     setNotasSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -134,6 +153,26 @@ export function GavetaNFSe({ perfil }: any) {
 
   const dispararLoteSelecionado = async () => {
     if (notasSelecionadas.length === 0) { toast.aviso('Selecione ao menos uma nota.'); return; }
+
+    // Trava antes de enviar: código fora do formato da LC 116 é recusa certa na
+    // prefeitura. Antes o lote seguia, a nota voltava como "Erro" e o usuário só
+    // descobria depois — e, num lote grande, uma nota ruim sujava o resultado
+    // inteiro. Bloqueia o lote todo e mostra quais corrigir.
+    const invalidas = notasSelecionadas
+      .map(id => notasPendentes.find(n => n.id === id))
+      .filter((n): n is NonNullable<typeof n> => !!n && codigoInvalido(n));
+
+    if (invalidas.length > 0) {
+      const nomes = invalidas.slice(0, 3).map(n => n.cliente_nome).join(', ');
+      const resto = invalidas.length > 3 ? ` e mais ${invalidas.length - 3}` : '';
+      toast.erro(
+        `${invalidas.length} nota(s) com código fiscal inválido (${nomes}${resto}). ` +
+        'Nada foi enviado. Corrija o código em Serviços → Edição Rápida Fiscal.'
+      );
+      setFiltroCodigo('invalido');
+      return;
+    }
+
     setProcessandoLote(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -246,14 +285,34 @@ const inputStyle = { ...inputAdmin };
             ))}
           </div>
 
-          {/* ── Aviso de código fiscal ausente ── */}
+          {/* ── Avisos de código fiscal — clicáveis, filtram a lista abaixo ──
+              O aviso de código INVÁLIDO vem primeiro por ser o problema grave:
+              essas notas são recusadas pela prefeitura. O de código ausente é
+              apenas informativo (cai no padrão 06.01 e é aceito). */}
+          {comCodigoInvalido > 0 && (
+            <button
+              onClick={() => setFiltroCodigo(filtroCodigo === 'invalido' ? '' : 'invalido')}
+              title="Clique para ver apenas estas notas"
+              style={{ width: "100%", textAlign: "left", cursor: "pointer", background: filtroCodigo === 'invalido' ? "#FCA5A5" : "#FEE2E2", border: `1px solid ${filtroCodigo === 'invalido' ? "#B91C1C" : "#EF4444"}`, borderRadius: RAIO_MD, padding: "12px 16px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              <FiAlertTriangle size={16} color="#B91C1C" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#7F1D1D", fontWeight: 700 }}>
+                {comCodigoInvalido} nota(s) com código fiscal fora do formato da LC 116 — serão <u>recusadas</u> pela prefeitura. O código correto tem o formato 06.01.
+                {' '}<u>{filtroCodigo === 'invalido' ? 'Mostrando só estas — clique para ver todas.' : 'Clique para ver quais são.'}</u>
+              </span>
+            </button>
+          )}
+
           {semCodigoFiscal > 0 && (
-            <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: RAIO_MD, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => setFiltroCodigo(filtroCodigo === 'sem' ? '' : 'sem')}
+              title="Clique para ver apenas estas notas"
+              style={{ width: "100%", textAlign: "left", cursor: "pointer", background: filtroCodigo === 'sem' ? "#FDE68A" : "#FEF3C7", border: `1px solid ${filtroCodigo === 'sem' ? "#B45309" : "#F59E0B"}`, borderRadius: RAIO_MD, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
               <FiAlertTriangle size={16} color="#D97706" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: "#92400E", fontWeight: 600 }}>
                 {semCodigoFiscal} nota(s) sem código fiscal (LC 116) — serão emitidas com o código padrão 06.01. Configure o código por serviço em Serviços → Edição Rápida Fiscal.
+                {' '}<u>{filtroCodigo === 'sem' ? 'Mostrando só estas — clique para ver todas.' : 'Clique para ver quais são.'}</u>
               </span>
-            </div>
+            </button>
           )}
 
           {/* ── Tabela + header de ação ── */}
@@ -335,9 +394,16 @@ const inputStyle = { ...inputAdmin };
                           </div>
                         </td>
                         <td style={{ padding: "14px 0" }}>
-                          {temCodigoFiscal
-                            ? <span title={`Código LC 116: ${nota.item_lista_servico}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#4F9D6E" }}><FiShield size={12} /> {nota.item_lista_servico}</span>
-                            : <span title="Sem código fiscal — usando padrão 06.01" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#D97706" }}><FiAlertTriangle size={12} /> Padrão</span>
+                          {/* Verde só quando o código está no formato da LC 116.
+                              Preenchido mas fora do formato aparece em vermelho:
+                              antes vinha verde e passava a impressão de estar
+                              certo, quando é justamente o que a prefeitura
+                              recusa. */}
+                          {codigoInvalido(nota)
+                            ? <span title={`Código inválido para a LC 116: ${nota.item_lista_servico} — o formato esperado é 06.01`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: "#B91C1C" }}><FiAlertTriangle size={12} /> {nota.item_lista_servico}</span>
+                            : temCodigoFiscal
+                              ? <span title={`Código LC 116: ${nota.item_lista_servico}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#4F9D6E" }}><FiShield size={12} /> {nota.item_lista_servico}</span>
+                              : <span title="Sem código fiscal — usando padrão 06.01" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#D97706" }}><FiAlertTriangle size={12} /> Padrão</span>
                           }
                         </td>
                         <td style={{ padding: "14px 20px", textAlign: "right", fontWeight: 800, color: C.textMain }}>{brl(Number(nota.valor) || 0)}</td>

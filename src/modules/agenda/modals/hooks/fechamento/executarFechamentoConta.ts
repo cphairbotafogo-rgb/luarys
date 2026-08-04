@@ -12,6 +12,7 @@ import { COR_POR_STATUS } from "@/lib/agendaUtils";
 import { toast } from "@/components/Toast";
 import { calcularItensFechamento } from "./calcularItensFechamento";
 import { construirPayloadNfceBalcao } from "@/lib/nfce/payloadBalcao";
+import { resolverLc116 } from "@/lib/nfse/lc116";
 import { carregarAssinaturaCtx } from "./carregarAssinaturaCtx";
 import { taxaMedia } from "@/lib/taxasCartao";
 
@@ -286,7 +287,11 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
     // que é NFC-e (fluxo próprio). Por isso pulamos quando somenteProdutos.
     if (!somenteProdutos) {
       const descServicos = (dadosCaixa.servicos as any[]).map((s: any) => s.nome).join(', ');
+      // O campo da nota é o item da LC 116 ("06.01"), não o NBS ("126021000").
+      // Gravar o NBS aqui fazia a prefeitura recusar a nota inteira no schema.
+      // resolverLc116 aceita os dois formatos e nunca devolve código inválido.
       const nbsPrincipal = (dadosCaixa.servicos as any[]).find((s: any) => s.nbs)?.nbs || null;
+      const itemListaServico = resolverLc116(nbsPrincipal);
 
       // Dados fiscais do profissional principal (campo gDed na NFS-e).
       // Quando há múltiplos profissionais, prefere o parceiro_cnpj (dedução real na SEFAZ).
@@ -312,7 +317,7 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         cliente_cpf: dadosCaixa.clienteCpf || null,
         descricao_servico: descServicos,
         valor: dadosCaixa.total,
-        item_lista_servico: nbsPrincipal,
+        item_lista_servico: itemListaServico,
         valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
         valor_cota_profissional: valorTotalComissoes,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,
