@@ -44,7 +44,11 @@ export function GavetaNFSe({ perfil }: any) {
       .from('notas_fiscais')
       .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, mensagem_erro, data_emissao, item_lista_servico')
       .eq('salao_id', perfil.salao_id)
-      .in('status', ['Não Emitido', 'Pendente', 'Erro'])
+      // 'Emitida' entra na lista para a nota nao sumir depois de transmitida —
+      // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
+      // Os status legados da migracao ('Emitido', 'AUTORIZADA') tambem entram,
+      // senao essas notas ficam invisiveis no sistema.
+      .in('status', ['Não Emitido', 'Pendente', 'Erro', 'Emitida', 'Emitido', 'AUTORIZADA'])
       .order('data_emissao', { ascending: false });
     if (error) toast.erro('Erro ao buscar notas: ' + error.message);
     if (data) setNotasPendentes(data);
@@ -112,7 +116,9 @@ export function GavetaNFSe({ perfil }: any) {
   // Filtro client-side (status + texto + período)
   const normalizar = (s: string) => (s || '').toLowerCase();
   const notasFiltradasBase = notasPendentes.filter(n => {
-    if (filtroStatus && n.status !== filtroStatus) return false;
+    // O filtro 'Emitida' cobre tambem os status legados da migracao, senao a
+    // nota emitida antes do sistema atual nao apareceria em lugar nenhum.
+    if (filtroStatus === 'Emitida' ? !jaEmitida(n.status) : (filtroStatus && n.status !== filtroStatus)) return false;
     if (busca) {
       const b = normalizar(busca);
       if (!normalizar(n.cliente_nome).includes(b) && !normalizar(n.descricao_servico).includes(b)) return false;
@@ -139,8 +145,9 @@ export function GavetaNFSe({ perfil }: any) {
   const valorPeriodo = notasFiltradas.reduce((s, n) => s + Number(n.valor || 0), 0);
   const valorSelecionado = notasSelecionadas.reduce((s, id) => s + Number(notasPendentes.find(n => n.id === id)?.valor || 0), 0);
   // Contagens sempre sobre a base, senão filtrar pelo aviso zeraria o próprio aviso.
-  const semCodigoFiscal = notasFiltradasBase.filter(n => !n.item_lista_servico).length;
-  const comCodigoInvalido = notasFiltradasBase.filter(codigoInvalido).length;
+  // Avisos de codigo so valem para nota que ainda vai ser transmitida.
+  const semCodigoFiscal = notasFiltradasBase.filter(n => !jaEmitida(n.status) && !n.item_lista_servico).length;
+  const comCodigoInvalido = notasFiltradasBase.filter(n => !jaEmitida(n.status) && codigoInvalido(n)).length;
 
   // Nota rejeitada tem de poder ser retransmitida depois de corrigida — antes
   // so 'Não Emitido' era selecionavel, entao uma recusa da prefeitura virava
@@ -149,6 +156,10 @@ export function GavetaNFSe({ perfil }: any) {
   // duplicaria a nota.
   const podeTransmitir = (status: string | null | undefined) =>
     status === 'Não Emitido' || status === 'Erro';
+
+  /** Ja emitida: nao entra na contagem de pendencias nem pode ser retransmitida. */
+  const jaEmitida = (status: string | null | undefined) =>
+    status === 'Emitida' || status === 'Emitido' || status === 'AUTORIZADA';
 
   const toggleNota = (id: string) => {
     setNotasSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -229,7 +240,7 @@ const inputStyle = { ...inputAdmin };
       <div style={{ background: C.bgCard, padding: 8, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, marginBottom: 24, display: "flex", gap: 8 }}>
         <button style={tabButtonStyle(abaAtiva === 'pendentes')} onClick={() => setAbaAtiva('pendentes')}>
           <FiList size={16} /> Pendentes para Emissão
-          {notasPendentes.length > 0 && <span style={{ background: abaAtiva === 'pendentes' ? C.bgCard : C.sidebarBg, color: abaAtiva === 'pendentes' ? C.sidebarBg : C.bgCard, padding: "2px 8px", borderRadius: RAIO_XL, fontSize: 10 }}>{notasPendentes.length}</span>}
+          {notasPendentes.filter(n => !jaEmitida(n.status)).length > 0 && <span style={{ background: abaAtiva === 'pendentes' ? C.bgCard : C.sidebarBg, color: abaAtiva === 'pendentes' ? C.sidebarBg : C.bgCard, padding: "2px 8px", borderRadius: RAIO_XL, fontSize: 10 }}>{notasPendentes.filter(n => !jaEmitida(n.status)).length}</span>}
         </button>
         <button style={tabButtonStyle(abaAtiva === 'config')} onClick={() => setAbaAtiva('config')}>
           <FiSettings size={16} /> Configurações Tributárias
@@ -259,6 +270,7 @@ const inputStyle = { ...inputAdmin };
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Não Emitido' ? '' : 'Não Emitido')} style={statusPillStyle(filtroStatus === 'Não Emitido', C.sidebarBg)}>Não Emitido</button>
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Pendente' ? '' : 'Pendente')} style={statusPillStyle(filtroStatus === 'Pendente', '#D97706')}>Processando</button>
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Erro' ? '' : 'Erro')} style={statusPillStyle(filtroStatus === 'Erro', '#EF4444')}>Rejeitado</button>
+                  <button onClick={() => setFiltroStatus(filtroStatus === 'Emitida' ? '' : 'Emitida')} style={statusPillStyle(filtroStatus === 'Emitida', '#16A34A')}>Emitida</button>
                 </div>
               </div>
               {/* Busca */}
@@ -394,7 +406,7 @@ const inputStyle = { ...inputAdmin };
                         <td style={{ padding: "14px 0", fontSize: 12, color: C.textMain, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.descricao_servico}</td>
                         <td style={{ padding: "14px 0" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : C.textMuted, display: "inline-block" }}>
+                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : jaEmitida(nota.status) ? "#DCFCE7" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : jaEmitida(nota.status) ? "#166534" : C.textMuted, display: "inline-block" }}>
                               {nota.status}
                             </span>
                             {nota.storage_path_pdf && <button onClick={e => { e.stopPropagation(); abrirPdf(nota.id); }} title="Abrir PDF da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</button>}
