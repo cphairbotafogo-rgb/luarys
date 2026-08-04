@@ -63,9 +63,43 @@ async function rateLimitExcedidoKv(chave: string, limite: number, janelaSeg: num
  * Verifica se a chave (ex: IP, user id) excedeu o limite no período.
  * @returns true se deve bloquear, false se deve permitir
  */
+// Alerta único por instância. Sem isto, a queda para o modo memória em produção
+// é COMPLETAMENTE silenciosa: as rotas continuam respondendo normalmente e o
+// limite parece ativo, mas cada invocação serverless tem o próprio Map — na
+// prática, sem rate limit. Foi assim que passou despercebido até a auditoria.
+let avisoMemoriaEmitido = false;
+
 export async function rateLimitExcedido(chave: string, limite: number, janelaSeg: number): Promise<boolean> {
   if (KV_URL && KV_TOKEN) return rateLimitExcedidoKv(chave, limite, janelaSeg);
+
+  if (!avisoMemoriaEmitido && process.env.NODE_ENV === 'production') {
+    avisoMemoriaEmitido = true;
+    console.error(
+      '[rateLimiter] SEM BACKEND COMPARTILHADO EM PRODUÇÃO — usando Map em memória, ' +
+      'que não é compartilhado entre invocações serverless. Na prática não há rate limit. ' +
+      'Configure KV_REST_API_URL + KV_REST_API_TOKEN (ou UPSTASH_REDIS_REST_URL + ' +
+      'UPSTASH_REDIS_REST_TOKEN) — Vercel → Storage → integração Redis/Upstash. ' +
+      'Atenção: a integração precisa expor a API REST; um REDIS_URL (TCP) sozinho ' +
+      'não é detectado aqui e cairia neste mesmo modo.',
+    );
+  }
+
   return rateLimitExcedidoMemoria(chave, limite, janelaSeg);
+}
+
+/**
+ * Diagnóstico do rate limiter, para checar a configuração sem depender de ler log.
+ * Usado por /api/admin/rodar-cron e por qualquer tela de status que precise saber
+ * se a proteção está de fato ativa.
+ */
+export function statusRateLimiter(): { compartilhado: boolean; origem: string } {
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return { compartilhado: true, origem: 'KV_REST_API_* (Vercel/Upstash)' };
+  }
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return { compartilhado: true, origem: 'UPSTASH_REDIS_REST_* (Upstash direto)' };
+  }
+  return { compartilhado: false, origem: 'memória (sem proteção real em serverless)' };
 }
 
 /** Extrai o IP real da requisição (considera proxies como Vercel/Cloudflare). */
