@@ -19,11 +19,24 @@ export async function POST(req: NextRequest) {
 
   // Busca dados do salão — inclui regime_tributario direto (Dados da Empresa)
   // e config_fiscal (token, alíquota, provedor configurados no painel fiscal)
-  const { data: salao } = await supabaseAdmin
+  const { data: salao, error: erroSalao } = await supabaseAdmin
     .from('saloes')
     .select('cnpj, inscricao_municipal, codigo_ibge, regime_tributario, email_fiscal, cnae, config_fiscal, acesso_total, limite_notas_mes')
     .eq('id', perfil.salao_id)
     .single();
+
+  // O erro da consulta era descartado: qualquer falha aqui (coluna inexistente,
+  // salão não encontrado, RLS) deixava `salao` nulo e caía no if de CNPJ abaixo,
+  // acusando "CNPJ não cadastrado" mesmo com o CNPJ preenchido na tela. Isso
+  // mandava o usuário arrumar um cadastro que já estava certo. Agora o motivo
+  // real aparece.
+  if (erroSalao || !salao) {
+    console.error('[nfse/emitir] falha ao carregar salão', perfil.salao_id, erroSalao);
+    return NextResponse.json(
+      { erro: 'Não foi possível ler os dados da empresa: ' + (erroSalao?.message ?? 'salão não encontrado') },
+      { status: 500 },
+    );
+  }
 
   const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
