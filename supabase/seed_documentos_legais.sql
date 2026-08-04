@@ -151,7 +151,7 @@ VALUES (
   <li><strong>Supabase Inc.</strong> (EUA) — banco de dados, autenticação e armazenamento.</li>
   <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos.</li>
   <li><strong>InfinitePay / CloudWalk Inc.</strong> (Brasil) — pagamentos via maquininha.</li>
-  <li><strong>Tecnospeed S.A. (Focus NFe)</strong> (Brasil) — emissão de NFS-e e NFC-e.</li>
+  <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de NFS-e e NFC-e.</li>
   <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação web.</li>
 </ul>
 
@@ -255,7 +255,7 @@ VALUES (
   <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação.</li>
   <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos.</li>
   <li><strong>CloudWalk Inc. / InfinitePay</strong> (Brasil) — pagamentos via maquininha.</li>
-  <li><strong>Tecnospeed S.A. / Focus NFe</strong> (Brasil) — emissão de documentos fiscais.</li>
+  <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de documentos fiscais.</li>
 </ul>
 
 <h2>8. Transferências internacionais</h2>

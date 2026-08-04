@@ -103,7 +103,7 @@ export default async function PoliticaPrivacidade() {
         <li><strong>Supabase Inc.</strong> (EUA) — banco de dados, autenticação e armazenamento de arquivos. Dados transferidos com base em Cláusulas Contratuais Padrão (SCCs).</li>
         <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos e geração de PIX/link de pagamento.</li>
         <li><strong>InfinitePay / CloudWalk Inc.</strong> (Brasil) — processamento de pagamentos via maquininha.</li>
-        <li><strong>Tecnospeed S.A. (Focus NFe)</strong> (Brasil) — emissão de NFS-e e NFC-e junto à SEFAZ e prefeituras.</li>
+        <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de NFS-e e NFC-e junto à SEFAZ e prefeituras.</li>
         <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação web. Dados de requisição (IP, headers) passam pelos servidores da Vercel. SCCs aplicáveis.</li>
       </ul>
       <p style={SL.p}>Podemos compartilhar dados com autoridades públicas quando exigido por lei ou ordem judicial.</p>

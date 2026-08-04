@@ -122,7 +122,7 @@ export default async function ContratoTratamentoDados() {
         <li><strong>Vercel Inc.</strong> (EUA) — hospedagem da aplicação. Transferência amparada em Cláusulas Contratuais Padrão.</li>
         <li><strong>Mercado Pago S.A.</strong> (Brasil) — processamento de pagamentos.</li>
         <li><strong>CloudWalk Inc. / InfinitePay</strong> (Brasil) — processamento de pagamentos via maquininha.</li>
-        <li><strong>Tecnospeed S.A. / Focus NFe</strong> (Brasil) — emissão de documentos fiscais eletrônicos.</li>
+        <li><strong>Brasil NFe Ltda.</strong> (Brasil) — emissão de documentos fiscais eletrônicos (NFS-e e NFC-e) junto a prefeituras e SEFAZ.</li>
       </ul>
       <p style={SL.p}>Qualquer alteração nesta lista será comunicada ao Controlador com antecedência mínima de 30 dias, permitindo que o Controlador se oponha fundamentadamente.</p>
 
