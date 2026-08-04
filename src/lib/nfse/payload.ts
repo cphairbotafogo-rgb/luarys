@@ -1,5 +1,6 @@
 import { resolverLc116 } from './lc116';
 import { validarCnpj, formatarCnpj } from '../cnpj';
+import { regimePermiteSalaoParceiro } from '../salaoParceiro';
 import type { PayloadNFSe } from './tipos';
 
 /**
@@ -71,8 +72,20 @@ export function buildPayloadNFSe(opts: {
   // salão (desde 2026 o cruzamento NFS-e Nacional x PGDAS é imediato e a
   // divergência descaracteriza a parceria). Na dúvida, deduzir de menos é o
   // lado seguro: o salão paga mais ISS, mas não declara o que não comprova.
+  // Art. 1º-A, § 11: o salão-parceiro não pode ser MEI. Sendo, não existe
+  // parceria válida — logo não há cota-parte a deduzir. Deduzir aqui declararia
+  // ao município um repasse amparado numa parceria que a lei não admite.
+  const salaoPodeTerParceria = regimePermiteSalaoParceiro(regime);
+
   const cnpjParceiroValido = validarCnpj(nota.cnpj_profissional);
-  const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj' && cnpjParceiroValido;
+  const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj' && cnpjParceiroValido && salaoPodeTerParceria;
+
+  if (nota.tipo_parceiro === 'parceiro_cnpj' && !salaoPodeTerParceria) {
+    console.warn(
+      '[nfse] Cota de parceiro não deduzida: salão no regime %s, vedado ao salão-parceiro pela Lei 13.352/2016.',
+      regime,
+    );
+  }
   const valorDeducoes = ehParceiroComCnpj && Number(nota.valor_cota_profissional) > 0
     ? centavos(nota.valor_cota_profissional)
     : 0;

@@ -7,6 +7,7 @@ import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiAlertTriangle, FiCheckCircle, FiInfo, FiLoader, FiFileText, FiPrinter } from 'react-icons/fi';
 import { ModalRpa } from './ModalRpa';
 import { limparCnpj, formatarCnpj } from '@/lib/cnpj';
+import { calcularRepassePessoaFisica, INSS_ALIQUOTA, TETO_INSS } from '@/lib/salaoParceiro';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,12 @@ interface LinhaRepasse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const INSS_PERC = 0.11;
+// Retencoes do parceiro pessoa fisica centralizadas em @/lib/salaoParceiro:
+// o INSS respeita o teto do salario-de-contribuicao (antes eram 11% sobre
+// qualquer valor, retendo a mais de quem passa do teto) e o IRRF, que nao era
+// calculado, sai pela tabela progressiva. Falta de retencao e responsabilidade
+// do salao, que e a fonte pagadora.
+const INSS_PERC = INSS_ALIQUOTA;
 
 // ─── Badge tipo de parceiro ───────────────────────────────────────────────────
 
@@ -58,8 +64,10 @@ function CardRepasse({ linha, salaoId, mes, ano }: {
   const ehCpf = linha.tipo_parceiro === 'parceiro_cpf'
     || (linha.tipo_parceiro === null && !ehCnpj);
 
-  const inssRetido   = ehCpf ? linha.total_cota * INSS_PERC : 0;
-  const liquidoPagar = linha.total_cota - inssRetido;
+  const retencoes    = calcularRepassePessoaFisica(linha.total_cota);
+  const inssRetido   = ehCpf ? retencoes.inss : 0;
+  const irrfRetido   = ehCpf ? retencoes.irrf : 0;
+  const liquidoPagar = linha.total_cota - inssRetido - irrfRetido;
 
   return (
     <>
@@ -141,7 +149,10 @@ function CardRepasse({ linha, salaoId, mes, ano }: {
           <FiAlertTriangle size={14} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.6 }}>
             <strong>Parceiro sem CNPJ — emitir RPA.</strong>{' '}
-            Reter {brl(inssRetido)} de INSS (11% do bruto) e recolher via GPS código 2100.
+            Reter {brl(inssRetido)} de INSS (11%, limitado ao teto de {brl(TETO_INSS)}) e recolher via GPS código 2100.
+            {irrfRetido > 0
+              ? <> Reter também {brl(irrfRetido)} de IRRF (tabela progressiva sobre {brl(retencoes.baseIrrf)}, já descontado o INSS).</>
+              : <> Sem IRRF a reter: a base ({brl(retencoes.baseIrrf)}) está na faixa isenta.</>}
             O valor total da cota ({brl(linha.total_cota)}) entra na receita bruta do salão no Simples Nacional.
             Considere solicitar ao profissional que abra MEI para ativar a dedução.
           </div>
@@ -263,7 +274,8 @@ export function GavetaRepasse({ perfil }: { perfil: any }) {
               <div style={{ fontSize: 12, color: '#92400E' }}>
                 Cotas CPF (RPA): <strong>{brl(totais.cpf)}</strong>
                 <span style={{ marginLeft: 6, color: '#B45309' }}>
-                  · INSS a reter: <strong>{brl(totais.cpf * INSS_PERC)}</strong>
+                  · INSS a reter: <strong>{brl(calcularRepassePessoaFisica(totais.cpf).inss)}</strong>
+                  · IRRF: <strong>{brl(calcularRepassePessoaFisica(totais.cpf).irrf)}</strong>
                 </span>
               </div>
             )}

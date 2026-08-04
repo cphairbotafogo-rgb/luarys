@@ -3,11 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
+import { calcularRepassePessoaFisica, INSS_ALIQUOTA, TETO_INSS } from '@/lib/salaoParceiro';
 import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { FiPrinter, FiX } from 'react-icons/fi';
 import { formatarCnpj as fmtCnpj } from '@/lib/cnpj';
 
-const INSS_PERC = 0.11;
+// Retencoes vem de @/lib/salaoParceiro: o INSS respeita o teto do
+// salario-de-contribuicao e o IRRF, ausente ate aqui, sai pela tabela
+// progressiva. O RPA e o documento que o profissional recebe — se ele nao
+// mostra a retencao, ela nao aconteceu na pratica.
+const INSS_PERC = INSS_ALIQUOTA;
 const MESES_EXT = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
@@ -64,8 +69,10 @@ export function ModalRpa({ profissionalNome, valorBruto, mes, ano, salaoId, onFe
     carregar();
   }, [salaoId, profissionalNome]);
 
-  const inssRetido   = Math.round(valorBruto * INSS_PERC * 100) / 100;
-  const liquidoPagar = Math.round((valorBruto - inssRetido) * 100) / 100;
+  const retencoes    = calcularRepassePessoaFisica(valorBruto);
+  const inssRetido   = retencoes.inss;
+  const irrfRetido   = retencoes.irrf;
+  const liquidoPagar = retencoes.liquido;
   const periodoExt   = `${MESES_EXT[mes - 1]} de ${ano}`;
   const dataHoje     = new Date().toLocaleDateString('pt-BR');
 
@@ -176,12 +183,22 @@ export function ModalRpa({ profissionalNome, valorBruto, mes, ano, salaoId, onFe
               </tr>
               <tr>
                 <td style={{ padding: '6px 8px', border: '1px solid #ddd', color: '#B45309' }}>
-                  (−) INSS Retido — 11% — GPS Código 2100
+                  (−) INSS Retido — 11% (teto {brl(TETO_INSS)}) — GPS Código 2100
                 </td>
                 <td style={{ padding: '6px 8px', border: '1px solid #ddd', textAlign: 'right', color: '#B45309', fontWeight: 600 }}>
                   ({brl(inssRetido)})
                 </td>
               </tr>
+              {irrfRetido > 0 && (
+                <tr>
+                  <td style={{ padding: '6px 8px', border: '1px solid #ddd', color: '#B45309' }}>
+                    (−) IRRF Retido — tabela progressiva sobre {brl(retencoes.baseIrrf)} — DARF 0588
+                  </td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #ddd', textAlign: 'right', color: '#B45309', fontWeight: 600 }}>
+                    ({brl(irrfRetido)})
+                  </td>
+                </tr>
+              )}
               <tr style={{ background: '#F0FDF4' }}>
                 <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 700, fontSize: 14 }}>
                   Valor Líquido a Receber

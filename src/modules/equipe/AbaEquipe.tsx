@@ -24,6 +24,7 @@ import { ModalAdiantamento } from "./modal/ModalAdiantamento";
 import { ModalFuncoes } from "./modal/ModalFuncoes";
 import { ModalLimitePlano } from "./modal/ModalLimitePlano";
 import { limparCnpj, validarCnpj, cnpjCompleto } from '@/lib/cnpj';
+import { contratoEhParceria, funcaoPermitidaParceria, regimePermiteSalaoParceiro, FUNCOES_PERMITIDAS_PARCERIA } from '@/lib/salaoParceiro';
 
 // Deriva o regime fiscal do profissional a partir do tipo de contrato e CNPJ.
 // Usada em salvarProfissional — coluna tipo_parceiro é consultável no banco.
@@ -52,6 +53,7 @@ export function AbaEquipe({ perfil }: any) {
   const [novaArea, setNovaArea] = useState("");
 
   const [listaFuncoes, setListaFuncoes] = useState<any[]>([]);
+  const [regimeSalao, setRegimeSalao] = useState<string>('');
   const [modalFuncoesAberto, setModalFuncoesAberto] = useState(false);
   const [novaFuncaoTexto, setNovaFuncaoTexto] = useState("");
   const [subindoFoto, setSubindoFoto] = useState(false);
@@ -107,13 +109,14 @@ export function AbaEquipe({ perfil }: any) {
     const [resProfissionais, resServicos, resSalao] = await Promise.all([
       supabase.from('profissionais').select('*').eq('salao_id', perfil.salao_id).order('nome'),
       supabase.from('servicos').select('id, nome_servico, categoria, setor, comissao_padrao').eq('salao_id', perfil.salao_id).order('categoria').order('nome_servico'),
-      supabase.from('saloes').select('limite_profissionais, acesso_total, pin_gerente').eq('id', perfil.salao_id).maybeSingle()
+      supabase.from('saloes').select('limite_profissionais, acesso_total, pin_gerente, regime_tributario').eq('id', perfil.salao_id).maybeSingle()
     ]);
     if (resProfissionais.data) setProfissionaisReais(resProfissionais.data);
     if (resServicos.data) setServicosDb(resServicos.data);
     if (resSalao.data) {
       setInfoPlano({ limite: resSalao.data.limite_profissionais ?? null, acessoTotal: !!resSalao.data.acesso_total });
       setPinGerente(resSalao.data.pin_gerente || null);
+      setRegimeSalao(resSalao.data.regime_tributario || '');
     }
     setCarregando(false);
   }
@@ -264,6 +267,33 @@ export function AbaEquipe({ perfil }: any) {
     if (!form.nome || !form.cpf) { toast.aviso("Nome e CPF são obrigatórios."); setAbaModal("pessoais"); return; }
     if (!editandoId && (!form.email || !form.senhaAcesso)) { toast.aviso("E-mail e senha são obrigatórios para novos cadastros."); setAbaModal("pessoais"); return; }
     if (form.senhaAcesso && form.senhaAcesso !== form.confirmSenha) { toast.aviso("As senhas não coincidem. Verifique o campo de confirmação."); setAbaModal("pessoais"); return; }
+
+    // ── Lei 13.352/2016 — requisitos que, se violados, descaracterizam a
+    // parceria e fazem presumir vínculo empregatício (art. 1º-C).
+    if (contratoEhParceria(form.contrato?.tipo)) {
+      // Art. 1º-A, § 11: o salão-parceiro não pode ser MEI. Sendo, o arranjo é
+      // inválido desde a origem e a dedução da cota-parte na nota não se sustenta.
+      if (!regimePermiteSalaoParceiro(regimeSalao)) {
+        toast.aviso(
+          `O salão está cadastrado como ${regimeSalao}, e a Lei 13.352/2016 não permite salão-parceiro nesse regime. ` +
+          'Ajuste o regime em Configurações → Dados da Empresa ou mude o tipo de contrato.'
+        );
+        setAbaModal("contrato");
+        return;
+      }
+      // Art. 1º-A, caput: rol taxativo de funções. Função fora da lista =
+      // vínculo empregatício reconhecido (art. 1º-C, II).
+      if (!funcaoPermitidaParceria(form.contrato?.funcao)) {
+        const permitidas = FUNCOES_PERMITIDAS_PARCERIA.join(', ');
+        toast.aviso(
+          `"${form.contrato?.funcao || 'Função não informada'}" não pode ser contratada como parceria. ` +
+          `A Lei 13.352/2016 permite apenas: ${permitidas}. ` +
+          'Para outras funções, use um tipo de contrato diferente (CLT, PJ).'
+        );
+        setAbaModal("contrato");
+        return;
+      }
+    }
 
     // CNPJ do parceiro entra na NFS-e como dedução da cota dele (gDed). Um CNPJ
     // invalido faz a prefeitura recusar a deducao — e deducao indevida e problema

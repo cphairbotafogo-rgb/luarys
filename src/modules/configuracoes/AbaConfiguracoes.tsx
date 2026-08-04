@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { regimePermiteSalaoParceiro } from "@/lib/salaoParceiro";
 import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, overlayModal, containerModal, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
@@ -134,6 +135,30 @@ export function AbaConfiguracoes({ perfil }: any) {
       if (erroAuth) { toast.erro("Senha incorreta — configurações não salvas."); setVerificandoSenha(false); setSalvando(false); return; }
 
       if (["empresa", "horarios", "financeiro"].includes(gaveta)) {
+        // Art. 1o-A, par. 11 da Lei 13.352/2016: o salao-parceiro nao pode ser
+        // MEI. Se ja existem parceiros cadastrados, mudar o regime para MEI
+        // invalida a parceria de todos de uma vez — e a deducao da cota-parte
+        // que as notas ja vinham fazendo deixa de se sustentar. Bloqueia antes
+        // de gravar, em vez de deixar o problema aparecer so na emissao.
+        if (!regimePermiteSalaoParceiro(formSalao.regime_tributario)) {
+          const { count } = await supabase
+            .from('profissionais')
+            .select('id', { count: 'exact', head: true })
+            .eq('salao_id', perfil.salao_id)
+            .in('tipo_parceiro', ['parceiro_cnpj', 'parceiro_cpf']);
+
+          if ((count ?? 0) > 0) {
+            toast.erro(
+              `Nao e possivel usar o regime ${formSalao.regime_tributario}: o salao tem ${count} profissional(is) ` +
+              'em contrato de parceria, e a Lei 13.352/2016 nao permite salao-parceiro MEI. ' +
+              'Altere o tipo de contrato desses profissionais primeiro, em Minha Equipe -> Contrato.'
+            );
+            setSalvando(false);
+            setVerificandoSenha(false);
+            return;
+          }
+        }
+
         const payloadSalao = { 
           ...formSalao, 
           inscricao_municipal: formSalao.inscricao_municipal,
