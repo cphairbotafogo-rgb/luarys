@@ -323,6 +323,9 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         descricao_servico: descServicos,
         valor: dadosCaixa.total,
         item_lista_servico: itemListaServico,
+        // ISS do servico prestado. Sem isto a emissao usava a aliquota geral
+        // do salao e ignorava o percentual cadastrado por servico.
+        aliquota_iss: servicoFiscal?.aliquota_iss ?? null,
         valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
         valor_cota_profissional: valorTotalComissoes,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,

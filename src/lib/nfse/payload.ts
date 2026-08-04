@@ -20,6 +20,8 @@ export function buildPayloadNFSe(opts: {
     descricao_servico: string;
     valor: number;
     item_lista_servico?: string;
+    /** ISS do serviço prestado (servicos.aliquota_iss). Ver comentário abaixo. */
+    aliquota_iss?: number | null;
     // campos de cota-parte (Fatia 5 — discriminação gDed na NFS-e)
     cnpj_profissional?: string | null;
     tipo_parceiro?: string | null;
@@ -28,7 +30,18 @@ export function buildPayloadNFSe(opts: {
   };
 }): PayloadNFSe {
   const { salao, nota } = opts;
-  const aliquota = parseFloat(salao.config_fiscal?.aliquota_padrao || '2.00') / 100;
+
+  // A alíquota de ISS é do SERVIÇO, não do salão: cada item da lista tem a sua
+  // na legislação municipal. O cadastro de serviços já pede esse percentual
+  // (Serviços → Tributação de Serviço), mas ele era ignorado aqui e todas as
+  // notas saíam com a alíquota geral do salão — declarando ISS diferente do
+  // configurado. Só cai no valor do salão quando o serviço não tem alíquota
+  // própria; zero é valor legítimo (serviço isento), por isso o teste é por
+  // null/undefined e não por falsy.
+  const aliquotaServico = nota.aliquota_iss;
+  const aliquota = (aliquotaServico !== null && aliquotaServico !== undefined && Number.isFinite(Number(aliquotaServico)))
+    ? Number(aliquotaServico) / 100
+    : parseFloat(salao.config_fiscal?.aliquota_padrao || '2.00') / 100;
   // Regime tributário: usa o campo direto do salão (Dados da Empresa) primeiro,
   // e cai para config_fiscal se não estiver preenchido (compatibilidade com configuração do admin)
   const regime = salao.regime_tributario || salao.config_fiscal?.regime_tributario || '';

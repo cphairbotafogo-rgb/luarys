@@ -23,7 +23,7 @@ import { ModalColaborador } from "./modal/ModalColaborador";
 import { ModalAdiantamento } from "./modal/ModalAdiantamento";
 import { ModalFuncoes } from "./modal/ModalFuncoes";
 import { ModalLimitePlano } from "./modal/ModalLimitePlano";
-import { limparCnpj } from '@/lib/cnpj';
+import { limparCnpj, validarCnpj, cnpjCompleto } from '@/lib/cnpj';
 
 // Deriva o regime fiscal do profissional a partir do tipo de contrato e CNPJ.
 // Usada em salvarProfissional — coluna tipo_parceiro é consultável no banco.
@@ -264,6 +264,21 @@ export function AbaEquipe({ perfil }: any) {
     if (!form.nome || !form.cpf) { toast.aviso("Nome e CPF são obrigatórios."); setAbaModal("pessoais"); return; }
     if (!editandoId && (!form.email || !form.senhaAcesso)) { toast.aviso("E-mail e senha são obrigatórios para novos cadastros."); setAbaModal("pessoais"); return; }
     if (form.senhaAcesso && form.senhaAcesso !== form.confirmSenha) { toast.aviso("As senhas não coincidem. Verifique o campo de confirmação."); setAbaModal("pessoais"); return; }
+
+    // CNPJ do parceiro entra na NFS-e como dedução da cota dele (gDed). Um CNPJ
+    // invalido faz a prefeitura recusar a deducao — e deducao indevida e problema
+    // fiscal do salao, nao so erro de sistema. `validarCnpj` ja existia no projeto
+    // e trata CNPJ alfanumerico (IN RFB 2.229/2024), mas nao estava ligado em
+    // lugar nenhum: por isso havia parceiro cadastrado com documento invalido.
+    const cnpjParceiro = form.contrato?.cnpj || '';
+    if (cnpjParceiro.trim() && !validarCnpj(cnpjParceiro)) {
+      const motivo = cnpjCompleto(cnpjParceiro)
+        ? 'o dígito verificador não confere'
+        : `tem ${limparCnpj(cnpjParceiro).length} caracteres em vez de 14`;
+      toast.aviso(`CNPJ inválido: ${motivo}. Corrija antes de salvar — ele vai na nota fiscal como dedução.`);
+      setAbaModal("contrato");
+      return;
+    }
 
     const dados = {
       nome: form.nome, especialidades: form.especialidades, servicos_comissoes: form.comissoes, comissao_produtos: form.comissao_produtos,
