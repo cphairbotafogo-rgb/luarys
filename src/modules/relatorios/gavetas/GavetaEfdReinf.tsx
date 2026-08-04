@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { C, brl } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_XS } from '@/lib/estiloGlobal';
 import { FiDownload, FiInfo, FiAlertTriangle, FiLoader, FiCheck } from 'react-icons/fi';
+import { limparCnpj } from '@/lib/cnpj';
 
 // ─── Constantes fiscais ────────────────────────────────────────────────────────
 
@@ -61,7 +62,9 @@ function exportarCsvEfdReinf(linhas: LinhaEfd[], cnpjSalao: string, competencia:
   ].join(',');
   const corpo = linhas.map(l => [
     'R-4010',
-    csvEscapar((cnpjSalao || '').replace(/\D/g, '')),
+    // CNPJ alfanumérico: limparCnpj mantém letras. Arquivo entregue ao Fisco —
+    // apagar as letras geraria declaração no CNPJ de outra empresa.
+    csvEscapar(limparCnpj(cnpjSalao)),
     csvEscapar(competencia),
     csvEscapar((l.cpf || '').replace(/\D/g, '')),
     csvEscapar(l.profissional_nome),
@@ -87,7 +90,8 @@ function exportarJsonEsocial(linhas: LinhaEfd[], cnpjSalao: string, competencia:
     eSocial: {
       evento: 'S-2300',
       descricao: 'TSVE — Trabalhador Sem Vínculo de Emprego (Contribuinte Individual)',
-      cnpj_empregador: (cnpjSalao || '').replace(/\D/g, ''),
+      // CNPJ alfanumérico — ver comentário no CSV acima (mesma regra).
+      cnpj_empregador: limparCnpj(cnpjSalao),
       competencia: `${aaaa}-${mm}`,
       categoria: CATEGORIA_ESOCIAL,
       trabalhadores: linhas.map(l => ({

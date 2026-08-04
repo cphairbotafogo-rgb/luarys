@@ -8,6 +8,9 @@ import {
   FiX, FiEdit3, FiAlertTriangle, FiCheck, FiCheckCircle,
   FiPrinter, FiLock, FiTrash2
 } from 'react-icons/fi';
+import { estornarOS } from '@/modules/caixa/acoes/estornarOS';
+import { normalizarFinanceiro } from '@/modules/caixa/tipos';
+import { verificarPinGerente } from '@/lib/verificarPinGerente';
 
 type Modo = 'ver' | 'editar' | 'estornar' | 'excluir' | 'pagar';
 
@@ -83,11 +86,13 @@ export function ModalDetalhesTransacao({ transacao, onClose, aoAtualizar, perfil
   }
 
   async function confirmarExclusao() {
-    const { data: sl, error: erroSl } = await supabase.from('saloes').select('pin_gerente').eq('id', perfil?.salao_id).maybeSingle();
-    if (erroSl || !sl) { toast.erro('Não foi possível verificar permissão. Tente novamente.'); return; }
-    if (sl.pin_gerente && pinExclusao !== sl.pin_gerente) {
-      toast.erro('PIN incorreto.'); return;
-    }
+    // Fail-closed via verificarPinGerente (valida no servidor e recusa quando o
+    // salão não tem PIN configurado). Antes a checagem local era
+    // `if (sl.pin_gerente && pinExclusao !== sl.pin_gerente)` — sem PIN cadastrado
+    // o teste inteiro era pulado e QUALQUER usuário apagava lançamento financeiro
+    // (DELETE definitivo). A ação mais destrutiva do módulo era a única sem trava.
+    const { valido, erro: erroPin } = await verificarPinGerente(perfil?.salao_id, pinExclusao);
+    if (!valido) { toast.erro(erroPin || 'PIN incorreto. Apenas gerentes podem excluir lançamentos.'); return; }
     setSalvando(true);
     try {
       const { error } = await supabase.from(tabela).delete().eq('id', transacao.id);
@@ -99,57 +104,87 @@ export function ModalDetalhesTransacao({ transacao, onClose, aoAtualizar, perfil
     } finally { setSalvando(false); }
   }
 
+  /** Manda cancelar no provedor a NFS-e que estava emitida antes do estorno.
+   *  Recebe o id lido ANTES da reversão — estornarOS() já marca a nota como
+   *  'Cancelada' localmente, então depois não dá mais para identificá-la pelo status. */
+  async function cancelarNfseNoProvedor(notaId: string): Promise<void> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      await fetch(`/api/nfse/cancelar/${notaId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        // Brasil NFe exige justificativa com no mínimo 15 caracteres — o motivo
+        // digitado pelo gerente pode ser bem curto ("erro", "x"), então sempre
+        // prefixamos com um texto fixo que já garante o mínimo.
+        body: JSON.stringify({ justificativa: `Estorno da venda no Luarys — motivo: ${motivoEstorno}`.slice(0, 1000) }),
+      });
+      toast.aviso('NFS-e vinculada cancelada automaticamente.');
+    } catch {
+      // falha silenciosa — não bloqueia o estorno
+    }
+  }
+
   async function confirmarEstorno() {
     if (!motivoEstorno.trim()) { toast.aviso('Informe o motivo do estorno.'); return; }
-    const { data: sl, error: erroSl } = await supabase.from('saloes').select('pin_gerente').eq('id', perfil?.salao_id).maybeSingle();
-    if (erroSl || !sl) { toast.erro('Não foi possível verificar permissão. Tente novamente.'); return; }
-    if (!sl.pin_gerente) {
-      toast.erro('PIN de gerente não configurado. Acesse Configurações para definir um PIN.');
-      return;
-    }
-    if (pinEstorno !== sl.pin_gerente) {
-      toast.erro('PIN incorreto. Apenas gerentes podem estornar.'); return;
-    }
+
     setSalvando(true);
     try {
+      // ── Entrada no financeiro → reversão COMPLETA ───────────────────────────
+      // Antes, este modal só marcava financeiro.status='Estornado'. Comissão
+      // continuava pagável, estoque não voltava, total_gasto do cliente ficava
+      // inflado e a linha espelho em caixa_transacoes seguia 'Concluído' — a venda
+      // estornada continuava aparecendo na Frente de Caixa (o dual-write divergente
+      // que o CLAUDE.md manda nunca reintroduzir).
+      // A Frente de Caixa já tinha a reversão correta em estornarOS(); agora as duas
+      // telas usam exatamente o mesmo caminho, em vez de duas regras diferentes.
+      if (tabela === 'financeiro' && isEntrada) {
+        // Lê a nota ANTES de reverter (só leitura, sem efeito colateral).
+        const { data: notaVinculada } = await supabase
+          .from('notas_fiscais')
+          .select('id, status')
+          .eq('financeiro_id', transacao.id)
+          .eq('salao_id', perfil?.salao_id)
+          .maybeSingle();
+        const notaParaCancelar = notaVinculada?.status === 'Emitida' ? notaVinculada.id : null;
+
+        // O PIN é validado UMA única vez, dentro de estornarOS(). Validar também
+        // aqui gastaria duas das 5 tentativas por 15 min do rate limit de
+        // /api/auth/verificar-pin, travando o gerente depois de 2 estornos.
+        const resultado = await estornarOS({
+          salaoId: perfil?.salao_id,
+          transacao: normalizarFinanceiro(transacao),
+          pin: pinEstorno,
+          motivo: motivoEstorno,
+          autorizador: perfil?.nome || 'Sistema',
+        });
+
+        if (!resultado.ok) { toast.erro(resultado.erro || 'Erro ao estornar.'); return; }
+
+        // Só depois da reversão confirmada é que a nota é cancelada no provedor —
+        // assim nenhum documento fiscal é cancelado se o estorno falhar no meio.
+        if (notaParaCancelar) await cancelarNfseNoProvedor(notaParaCancelar);
+
+        toast.sucesso('Estorno realizado: comissões, métricas do cliente e caixa revertidos.');
+        aoAtualizar(); onClose();
+        return;
+      }
+
+      // Demais casos validam o PIN aqui (não passam por estornarOS).
+      const { valido, erro: erroPin } = await verificarPinGerente(perfil?.salao_id, pinEstorno);
+      if (!valido) { toast.erro(erroPin || 'PIN incorreto. Apenas gerentes podem estornar.'); return; }
+
+      // ── Despesa ou saída → só marca como estornado ──────────────────────────
+      // Não há comissão, estoque nem métrica de cliente envolvidos nesses casos,
+      // então a reversão completa não se aplica (e chamá-la aqui poderia debitar
+      // o total_gasto de um cliente por engano ao casar pelo nome).
       const { error } = await supabase.from(tabela).update({
         status: 'Estornado',
         descricao: `[ESTORNADO] ${transacao.descricao}`,
         comentario: `Motivo: ${motivoEstorno} | Em: ${new Date().toLocaleString('pt-BR')}`,
       }).eq('id', transacao.id);
       if (error) throw error;
-
-      // Cancelar NFS-e vinculada ao lançamento, se houver e estiver emitida
-      if (tabela === 'financeiro' && isEntrada) {
-        try {
-          const { data: notaVinculada } = await supabase
-            .from('notas_fiscais')
-            .select('id, status')
-            .eq('financeiro_id', transacao.id)
-            .eq('salao_id', perfil?.salao_id)
-            .maybeSingle();
-
-          if (notaVinculada?.status === 'Emitida') {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              await fetch(`/api/nfse/cancelar/${notaVinculada.id}`, {
-                method: 'DELETE',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-                // Brasil NFe exige justificativa com no mínimo 15 caracteres — o
-                // motivo digitado pelo gerente pode ser bem curto ("erro", "x"),
-                // então sempre prefixamos com um texto fixo que já garante o mínimo.
-                body: JSON.stringify({ justificativa: `Estorno da venda no Luarys — motivo: ${motivoEstorno}`.slice(0, 1000) }),
-              });
-              toast.aviso('NFS-e vinculada cancelada automaticamente.');
-            }
-          }
-        } catch {
-          // falha silenciosa — não bloqueia o estorno
-        }
-      }
 
       toast.sucesso('Estorno realizado com sucesso.');
       aoAtualizar(); onClose();

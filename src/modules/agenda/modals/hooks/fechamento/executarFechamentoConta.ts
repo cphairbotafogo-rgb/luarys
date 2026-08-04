@@ -399,11 +399,20 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
       // Soma o MESMO valor gravado no financeiro (valorAPagar) — é o que o estorno
       // subtrai depois. Antes somava dadosCaixa.total (bruto), causando drift no
       // total_gasto quando havia sinal, pontos ou serviço coberto por assinatura.
-      const { error: errCli } = await supabase.from('clientes').update({
-        total_gasto: (cliente.total_gasto || 0) + valorAPagar,
-        total_visitas: (cliente.total_visitas || 0) + 1,
-        data_ultima_visita: dataHojeStr,
-      }).eq('id', cliente.id);
+      //
+      // Via RPC atômica (migration 20260804_correcoes_auditoria): o
+      // read-modify-write anterior lia o total (às vezes de `clientesDb`, em
+      // memória) e regravava o resultado — duas vendas simultâneas do mesmo cliente
+      // liam o mesmo valor inicial e a segunda sobrescrevia a primeira, sumindo com
+      // faturamento no histórico do cliente. Continua best-effort: erro aqui só
+      // registra log, nunca derruba a venda.
+      const { error: errCli } = await supabase.rpc('ajustar_metricas_cliente', {
+        p_cliente_id:    cliente.id,
+        p_salao_id:      perfil.salao_id,
+        p_delta_gasto:   valorAPagar,
+        p_delta_visitas: 1,
+        p_data_visita:   dataHojeStr,
+      });
       if (errCli && process.env.NODE_ENV === 'development') console.warn('Fechamento: falha ao atualizar métricas do cliente (não bloqueia a venda):', errCli.message);
 
       // Creditar pontos de fidelidade — falha silenciosa para nunca bloquear o fechamento
@@ -413,8 +422,12 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
           .select('ativo, pontos_por_real')
           .eq('salao_id', perfil.salao_id)
           .maybeSingle();
-        if (fidConf?.ativo && Number(fidConf.pontos_por_real) > 0 && dadosCaixa.total > 0) {
-          const pontos = Math.floor(dadosCaixa.total * Number(fidConf.pontos_por_real));
+        // Pontua sobre o valor REALMENTE PAGO (valorAPagar), não sobre o bruto.
+        // Com o bruto, o cliente ganhava pontos sobre os próprios pontos que acabara
+        // de gastar (pontosFidelidade é abatido em valorFechamento) — um laço que
+        // inflava o saldo a cada visita. Mesma correção já aplicada ao total_gasto.
+        if (fidConf?.ativo && Number(fidConf.pontos_por_real) > 0 && valorAPagar > 0) {
+          const pontos = Math.floor(valorAPagar * Number(fidConf.pontos_por_real));
           if (pontos > 0) {
             await supabase.from('fidelidade_transacoes').insert({
               salao_id: perfil.salao_id,

@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { autenticarRota } from '@/lib/apiAuth';
 import { formatarReferenciaWhatsappCreditos } from '@/lib/whatsappCreditos';
 import { rateLimitExcedido, obterIp } from '@/lib/rateLimiter';
+import { limparCnpj } from '@/lib/cnpj';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -142,7 +143,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!asaasCustomerId) {
-      const cnpjLimpo = (salao.cnpj || '').replace(/\D/g, '');
+      // CNPJ alfanumérico (IN RFB 2.229/2024): limparCnpj mantém [A-Z0-9].
+      // .replace(/\D/g,'') apagaria as letras e cobraria no CNPJ de outra empresa.
+      const cnpjLimpo = limparCnpj(salao.cnpj);
       if (!cnpjLimpo) {
         return NextResponse.json({ erro: 'Este salão não tem CNPJ cadastrado — obrigatório para gerar cobrança no Asaas.' }, { status: 400 });
       }

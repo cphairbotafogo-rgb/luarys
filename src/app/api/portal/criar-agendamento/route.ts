@@ -93,10 +93,23 @@ export async function POST(request: NextRequest) {
     const salao = resSalao.data;
     const servico = resServico.data;
 
+    // O profissional precisa ser deste salão e estar ativo (rota usa service_role,
+    // sem RLS — sem isso aceitava profissional inativo ou de outro salão).
+    const { data: prof } = await supabaseAdmin
+      .from('profissionais')
+      .select('id')
+      .eq('id', profissional_id)
+      .eq('salao_id', salao_id)
+      .eq('ativo', true)
+      .maybeSingle();
+
+    if (!prof) return NextResponse.json({ erro: 'Profissional não disponível.' }, { status: 403 });
+
     // ── Verifica conflito de horário: bloqueio ou outro cliente já neste slot ──
     const { data: conflito } = await supabaseAdmin
       .from('agendamentos')
       .select('id')
+      .eq('salao_id', salao_id)
       .eq('profissional_id', profissional_id)
       .eq('data', data)
       .eq('inicio', inicio)
@@ -130,14 +143,16 @@ export async function POST(request: NextRequest) {
         servico_id,
         data,
         inicio,
-        duracao_minutos: servico.duracao_minutos,
+        // Mesma correção de /api/portal/agendar-guest: a coluna em `agendamentos`
+        // é `duracao_min` (`duracao_minutos` é de `servicos`). Também removidos
+        // `servico` (só existe `servico_id`) e `origem` (coluna de `salao_modulos`) —
+        // qualquer um dos três derrubava o INSERT inteiro com 42703.
+        duracao_min: servico.duracao_minutos || 30,
         status: statusInicial,
         valor_final: precoServico,
         valor_sinal: valorSinal > 0 ? valorSinal : null,
         sinal_pago: false,
-        origem: 'portal',
         cliente_nome: cliente.nome_completo,
-        servico: servico.nome_servico,
       })
       .select('id')
       .single();
@@ -191,9 +206,18 @@ export async function POST(request: NextRequest) {
     const gateway = salao.gateway_pagamento;
     const token = salao.token_pagamento;
 
-    // Modo simulador
+    // Modo simulador — marca o sinal como PAGO sem cobrança real.
+    // Exige SINAL_SIMULADOR_HABILITADO=true no ambiente: antes bastava o salão ter
+    // a string "teste" em token_pagamento (um dado no banco, sem nenhuma trava) para
+    // que todo sinal fosse dado como recebido sem dinheiro nenhum entrar. Mesma
+    // proteção do WHATSAPP_CREDITO_TESTE_HABILITADO — nunca habilitar em produção.
     if (token.toLowerCase() === 'teste') {
-      // Marca automaticamente como pago (ambiente de testes)
+      if (process.env.SINAL_SIMULADOR_HABILITADO !== 'true') {
+        console.warn('[portal/criar-agendamento] token_pagamento="teste" com simulador desabilitado — salao_id:', salao_id);
+        return NextResponse.json({
+          erro: 'Gateway de pagamento não configurado corretamente. Contate o salão.',
+        }, { status: 503 });
+      }
       await supabaseAdmin
         .from('agendamentos')
         .update({ sinal_pago: true, status: 'Agendado' })

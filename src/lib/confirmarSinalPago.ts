@@ -8,7 +8,20 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: boolean; erro?: string }> {
+/**
+ * Confirma o sinal de um agendamento.
+ *
+ * @param valorPagoConfirmado Valor que o gateway confirmou ter recebido. Quando
+ *   informado, é conferido contra `agendamentos.valor_sinal` e o sinal só é aceito
+ *   se cobrir o esperado (tolerância de 1 centavo para arredondamento). Os webhooks
+ *   de sinal não validam assinatura HMAC (os gateways usados aqui não expõem um
+ *   secret por salão), então a defesa real é esta dupla: o pagamento é relido na
+ *   API do gateway com o token do próprio salão E o valor precisa bater.
+ */
+export async function confirmarSinalPago(
+  agendamentoId: string,
+  valorPagoConfirmado?: number,
+): Promise<{ ok: boolean; erro?: string }> {
   // "agendamentos" não tem coluna "servico" (só "servico_id") — pedir essa
   // coluna fazia a query INTEIRA falhar (erro "column agendamentos.servico
   // does not exist") e, como o erro caía direto no "não encontrado" abaixo
@@ -34,6 +47,16 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
   // Idempotência — ignora se já foi processado
   if (ag.sinal_pago) {
     return { ok: true };
+  }
+
+  // Confere o valor recebido contra o sinal esperado. Sem isso, um pagamento de
+  // valor menor confirmado pelo gateway liberaria a reserva integralmente.
+  const sinalEsperado = Number(ag.valor_sinal) || 0;
+  if (valorPagoConfirmado != null && sinalEsperado > 0 && valorPagoConfirmado + 0.01 < sinalEsperado) {
+    console.error(
+      `[confirmarSinalPago] Valor pago (${valorPagoConfirmado}) menor que o sinal esperado (${sinalEsperado}) — agendamento ${agendamentoId}. Não confirmado.`,
+    );
+    return { ok: false, erro: 'Valor pago menor que o sinal exigido.' };
   }
 
   // Atualiza agendamento — só prossegue se o DB confirmar a gravação
@@ -65,7 +88,11 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       ? `Sinal pago via portal do cliente — ${formaPag} em ${parcelas}x.`
       : `Sinal pago via portal do cliente — ${formaPag}.`;
 
-    supabaseAdmin.from('financeiro').insert({
+    // AWAIT obrigatório: esta função roda dentro de rota serverless (webhook do
+    // gateway). Sem await, a resposta HTTP era devolvida antes da escrita terminar
+    // e a Vercel podia encerrar a invocação no meio — o sinal ficava confirmado no
+    // agendamento mas o dinheiro NUNCA aparecia no financeiro, sem erro nenhum.
+    const { error: erroFinanceiro } = await supabaseAdmin.from('financeiro').insert({
       salao_id: ag.salao_id,
       cliente_nome: ag.cliente_nome,
       descricao: `Sinal de Reserva — ${nomeServico}`,
@@ -78,9 +105,10 @@ export async function confirmarSinalPago(agendamentoId: string): Promise<{ ok: b
       data_movimentacao: dataMovimento,
       agendamento_ids: [ag.id],
       comentario,
-    }).then(({ error }) => {
-      if (error) console.error('[confirmarSinalPago] Falha ao lançar sinal no financeiro:', error.message);
     });
+    if (erroFinanceiro) {
+      console.error('[confirmarSinalPago] Falha ao lançar sinal no financeiro:', erroFinanceiro.message);
+    }
   }
 
   // Notificações — falhas não derrubam o fluxo de confirmação do pagamento

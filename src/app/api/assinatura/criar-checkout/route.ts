@@ -18,6 +18,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarRota } from '@/lib/apiAuth';
 import { ehPlanoBase } from '@/lib/assinaturas';
+import { limparCnpj } from '@/lib/cnpj';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -318,7 +319,12 @@ export async function POST(request: NextRequest) {
         // de boleto/split fiscal exige documento) — o painel manual do Asaas pede
         // isso na tela; aqui pegamos automaticamente do cadastro do salão (coletado
         // no /cadastro), então ninguém precisa digitar nada na hora da compra.
-        const cnpjLimpo = (salao.cnpj || '').replace(/\D/g, '');
+        // limparCnpj mantém [A-Z0-9]: desde 01/07/2026 existem CNPJs ALFANUMÉRICOS
+        // (IN RFB 2.229/2024). O antigo .replace(/\D/g,'') apagava as letras e
+        // cadastrava no Asaas o CNPJ de OUTRA empresa — cobrança no documento errado.
+        // Se o Asaas recusar um CNPJ com letra, o erro dele é propagado abaixo;
+        // nunca "consertamos" removendo caractere.
+        const cnpjLimpo = limparCnpj(salao.cnpj);
         if (!cnpjLimpo) {
           return NextResponse.json({ erro: 'Este salão não tem CNPJ cadastrado — obrigatório para gerar assinatura recorrente no Asaas.' }, { status: 400 });
         }

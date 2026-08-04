@@ -54,25 +54,37 @@ async function reverterMetricasCliente(salaoId: string, clienteNome: string, val
   if (!clienteNome || valor <= 0) return;
   const { data: cli } = await supabase
     .from('clientes')
-    .select('id, total_gasto, total_visitas')
+    .select('id')
     .eq('salao_id', salaoId)
     .ilike('nome_completo', clienteNome)
     .maybeSingle();
   if (!cli) return;
 
-  await supabase.from('clientes').update({
-    total_gasto:   Math.max(0, (cli.total_gasto   || 0) - valor),
-    total_visitas: Math.max(0, (cli.total_visitas || 1) - 1),
-  }).eq('id', cli.id);
+  // Via RPC atômica (migration 20260804_correcoes_auditoria) com deltas negativos.
+  // Antes era read-modify-write: lia o total e regravava o resultado calculado em
+  // JS, então um estorno concorrente com uma venda do mesmo cliente perdia uma das
+  // duas gravações. A RPC também já protege contra valor negativo.
+  const { error: errMetricas } = await supabase.rpc('ajustar_metricas_cliente', {
+    p_cliente_id:    cli.id,
+    p_salao_id:      salaoId,
+    p_delta_gasto:   -Math.abs(valor),
+    p_delta_visitas: -1,
+    p_data_visita:   null,
+  });
+  if (errMetricas) console.error('[estornarOS] Falha ao reverter métricas do cliente:', errMetricas.message);
 
-  // Registra estorno de pontos de fidelidade (falha silenciosa — nunca bloqueia o estorno)
-  supabase.from('fidelidade_transacoes').insert({
+  // Registra o evento de estorno na fidelidade. `pontos: 0` é proposital: esta
+  // linha é só a marca de auditoria — os pontos ganhos na venda NÃO são retirados
+  // do saldo (o saldo é a soma de `pontos`). Reverter de verdade exige localizar a
+  // transação 'ganho' da OS original; está anotado como pendência da auditoria.
+  const { error: errFid } = await supabase.from('fidelidade_transacoes').insert({
     salao_id: salaoId,
     cliente_id: cli.id,
     tipo: 'estorno',
     pontos: 0,
     descricao: `Estorno de atendimento — ${clienteNome}`,
-  }).then(() => {}, () => {}); // fire-and-forget; 2º arg trata rejeição (thenable do Supabase não tem .catch)
+  });
+  if (errFid) console.error('[estornarOS] Falha ao registrar estorno de fidelidade:', errFid.message);
 }
 
 export async function estornarOS({ salaoId, transacao, pin, motivo, autorizador }: Params): Promise<Resultado> {

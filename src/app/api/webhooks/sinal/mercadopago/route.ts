@@ -12,7 +12,6 @@
  *   4. Chama confirmarSinalPago() para atualizar agendamento + notificar
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { confirmarSinalPago, extrairAgendamentoIdDoSinal } from '@/lib/confirmarSinalPago';
 
@@ -22,30 +21,18 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-function validarAssinatura(request: NextRequest, secret: string): boolean {
-  const xSignature = request.headers.get('x-signature');
-  const xRequestId = request.headers.get('x-request-id');
-  const dataId = new URL(request.url).searchParams.get('data.id') ||
-    xSignature?.match(/id=([^,]+)/)?.[1];
-
-  if (!xSignature) return false;
-  const ts = xSignature.match(/ts=(\d+)/)?.[1];
-  const hash = xSignature.match(/v1=([a-f0-9]+)/)?.[1];
-  if (!ts || !hash) return false;
-
-  const partes: string[] = [];
-  if (dataId) partes.push(`id:${dataId}`);
-  if (xRequestId) partes.push(`request-id:${xRequestId}`);
-  partes.push(`ts:${ts}`);
-  const mensagem = partes.join(';') + ';';
-
-  const hmac = createHmac('sha256', secret).update(mensagem).digest('hex');
-  try {
-    return timingSafeEqual(Buffer.from(hmac), Buffer.from(hash));
-  } catch {
-    return false;
-  }
-}
+// NOTA DE SEGURANÇA — por que não há validação HMAC aqui:
+// existia uma função `validarAssinatura()` neste arquivo que NUNCA era chamada
+// (código morto), o que dava a falsa impressão de que o webhook era verificado.
+// Foi removida. O sinal é cobrado na conta Mercado Pago DO SALÃO, e o Luarys não
+// guarda o webhook secret de cada salão — não há como validar HMAC hoje.
+// A defesa efetiva, portanto, é dupla e acontece abaixo:
+//   1. o pagamento é RELIDO na API do Mercado Pago usando o token do próprio salão
+//      (um id forjado, ou de outra conta, simplesmente não é encontrado);
+//   2. o valor confirmado é conferido contra `agendamentos.valor_sinal` dentro de
+//      confirmarSinalPago() — pagamento menor não libera a reserva.
+// Se um dia for guardado um webhook secret por salão, reativar a checagem HMAC
+// aqui e passar a rejeitar (fail-closed) quando ela falhar.
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,7 +95,7 @@ export async function POST(request: NextRequest) {
       const agId = extrairAgendamentoIdDoSinal(pagamento.external_reference);
       if (!agId) return NextResponse.json({ recebido: true });
 
-      const resultado = await confirmarSinalPago(agId);
+      const resultado = await confirmarSinalPago(agId, Number(pagamento.transaction_amount) || 0);
       return NextResponse.json({ recebido: true, ...resultado });
     }
 
@@ -120,7 +107,7 @@ export async function POST(request: NextRequest) {
     const agendamentoId = extrairAgendamentoIdDoSinal(pagamento.external_reference);
     if (!agendamentoId) return NextResponse.json({ recebido: true });
 
-    const resultado = await confirmarSinalPago(agendamentoId);
+    const resultado = await confirmarSinalPago(agendamentoId, Number(pagamento.transaction_amount) || 0);
     return NextResponse.json({ recebido: true, ...resultado });
 
   } catch (err: any) {

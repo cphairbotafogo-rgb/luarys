@@ -237,18 +237,28 @@ export function useGavetaComissoes(perfil: any) {
     if (!await confirmarAcaoGlobal({ titulo: `Quitar comissões de ${nome}?`, descricao: `${ids.length} pendência(s) serão marcadas como pagas e lançadas no financeiro.`, perigoso: false })) return;
     setProcessandoPagamento(true);
     try {
-      // busca valor total antes de marcar como pago
+      // Só considera as que ainda estão Pendentes. Sem esse filtro, uma comissão
+      // já quitada que voltasse na seleção geraria uma SEGUNDA despesa pelo mesmo
+      // serviço (pagamento em dobro ao profissional).
       const { data: rows } = await supabase
-        .from('comissoes').select('valor_comissao').eq('salao_id', perfil.salao_id).in('id', ids);
+        .from('comissoes').select('id, valor_comissao')
+        .eq('salao_id', perfil.salao_id).eq('status', 'Pendente').in('id', ids);
+      const idsPendentes = (rows || []).map((r: any) => r.id);
+      if (idsPendentes.length === 0) {
+        toast.aviso(`Nenhuma comissão pendente de ${nome} — nada a quitar.`);
+        gerarRelatorioComissoes();
+        return;
+      }
       const totalComissao = (rows || []).reduce((acc: number, r: any) => acc + Number(r.valor_comissao || 0), 0);
 
-      const { error } = await supabase.from('comissoes').update({ status: 'Pago' }).eq('salao_id', perfil.salao_id).in('id', ids);
+      const { error } = await supabase.from('comissoes').update({ status: 'Pago' })
+        .eq('salao_id', perfil.salao_id).eq('status', 'Pendente').in('id', idsPendentes);
       if (error) throw error;
 
       if (totalComissao > 0) {
-        const ok = await lancarDespesaComissao(nome, totalComissao, ids.length, formaPagamentoAcerto);
+        const ok = await lancarDespesaComissao(nome, totalComissao, idsPendentes.length, formaPagamentoAcerto);
         if (!ok) {
-          await supabase.from('comissoes').update({ status: 'Pendente' }).eq('salao_id', perfil.salao_id).in('id', ids);
+          await supabase.from('comissoes').update({ status: 'Pendente' }).eq('salao_id', perfil.salao_id).in('id', idsPendentes);
           toast.erro(`Despesa falhou. Comissões de ${nome} revertidas para Pendente.`);
           gerarRelatorioComissoes();
           return;
@@ -268,11 +278,21 @@ export function useGavetaComissoes(perfil: any) {
     if (!await confirmarAcaoGlobal({ titulo: `Confirmar acerto de ${comissoesSelecionadas.length} comissões?`, descricao: 'As comissões selecionadas serão marcadas como pagas e lançadas no financeiro.', perigoso: false })) return;
     setProcessandoPagamento(true);
     try {
-      // busca valor total e profissionais antes de marcar
+      // Mesmo cuidado de pagarTodoProfissional: só as Pendentes entram no acerto,
+      // senão uma comissão já paga que estivesse selecionada geraria despesa dupla.
       const { data: rows } = await supabase
-        .from('comissoes').select('id, valor_comissao, profissionais(nome)').eq('salao_id', perfil.salao_id).in('id', comissoesSelecionadas);
+        .from('comissoes').select('id, valor_comissao, profissionais(nome)')
+        .eq('salao_id', perfil.salao_id).eq('status', 'Pendente').in('id', comissoesSelecionadas);
 
-      const { error } = await supabase.from('comissoes').update({ status: 'Pago' }).eq('salao_id', perfil.salao_id).in('id', comissoesSelecionadas);
+      const idsPendentes = (rows || []).map((r: any) => r.id);
+      if (idsPendentes.length === 0) {
+        toast.aviso('Nenhuma das comissões selecionadas está pendente — nada a quitar.');
+        gerarRelatorioComissoes();
+        return;
+      }
+
+      const { error } = await supabase.from('comissoes').update({ status: 'Pago' })
+        .eq('salao_id', perfil.salao_id).eq('status', 'Pendente').in('id', idsPendentes);
       if (error) throw error;
 
       const porProf = new Map<string, { total: number; qtd: number; ids: string[] }>();
@@ -288,7 +308,9 @@ export function useGavetaComissoes(perfil: any) {
         }
       }
 
-      toast.sucesso(`✅ Acerto concluído! ${comissoesSelecionadas.length} comissões foram marcadas como PAGAS.`);
+      // Conta o que foi de fato quitado (idsPendentes), não o total selecionado —
+      // itens já pagos são ignorados e não devem entrar no número exibido.
+      toast.sucesso(`✅ Acerto concluído! ${idsPendentes.length} comissões foram marcadas como PAGAS.`);
       setComissoesSelecionadas([]);
       gerarRelatorioComissoes();
     } catch (error: any) {
