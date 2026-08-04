@@ -1,4 +1,5 @@
 import { resolverLc116 } from './lc116';
+import { validarCnpj, formatarCnpj } from '../cnpj';
 import type { PayloadNFSe } from './tipos';
 
 /**
@@ -62,16 +63,54 @@ export function buildPayloadNFSe(opts: {
   // de cálculo derive do mesmo número que vai declarado como dedução, senão as
   // duas divergiriam em centavos.
   const centavos = (v: number | null | undefined) => Math.round((Number(v) || 0) * 100) / 100;
+  /** R$ com 2 casas para o texto da discriminacao (pt-BR, sem simbolo duplicado). */
+  const moeda = (v: number) => 'R$ ' + v.toFixed(2).replace('.', ',');
 
-  const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj';
+  // A dedução exige CNPJ válido do parceiro. Sem ele a prefeitura não consegue
+  // substanciar o repasse, e dedução que não se sustenta é problema fiscal do
+  // salão (desde 2026 o cruzamento NFS-e Nacional x PGDAS é imediato e a
+  // divergência descaracteriza a parceria). Na dúvida, deduzir de menos é o
+  // lado seguro: o salão paga mais ISS, mas não declara o que não comprova.
+  const cnpjParceiroValido = validarCnpj(nota.cnpj_profissional);
+  const ehParceiroComCnpj = nota.tipo_parceiro === 'parceiro_cnpj' && cnpjParceiroValido;
   const valorDeducoes = ehParceiroComCnpj && Number(nota.valor_cota_profissional) > 0
     ? centavos(nota.valor_cota_profissional)
     : 0;
+
+  if (nota.tipo_parceiro === 'parceiro_cnpj' && !cnpjParceiroValido && Number(nota.valor_cota_profissional) > 0) {
+    console.warn(
+      '[nfse] Cota de parceiro não deduzida: CNPJ inválido (%s). Corrija em Minha Equipe → Contrato.',
+      nota.cnpj_profissional,
+    );
+  }
   // Algumas prefeituras rejeitam base_calculo = 0 (ex: São Paulo código E10).
   // Limita a dedução para que a base mínima seja R$ 0,01 quando há valor de serviço.
   const baseCalculo = nota.valor > 0
     ? Math.max(0.01, centavos(nota.valor - valorDeducoes))
     : 0;
+
+  // Discriminação da cota-parte (Lei 13.352/2016).
+  //
+  // O salão-parceiro emite UMA nota ao cliente, pelo total, discriminando o
+  // repasse ao profissional-parceiro. A NFS-e não tem campo estruturado para
+  // isso — a orientação para optante do Simples é preencher a "Discriminação
+  // dos serviços" com o CNPJ do parceiro, o valor repassado e o código do
+  // serviço que ele prestou. Sem esse texto a dedução do gDed fica sem a
+  // contrapartida que a prefeitura procura.
+  //
+  // Só entra quando a dedução realmente se aplica: se o CNPJ é inválido não
+  // deduzimos (acima), e então declarar o repasse aqui seria incoerente com o
+  // valor tributado.
+  const descricaoBase = nota.descricao_servico || 'Serviços de beleza';
+  const descricao = valorDeducoes > 0
+    ? [
+        descricaoBase,
+        `Profissional-parceiro: ${formatarCnpj(nota.cnpj_profissional)}`,
+        `Cota-parte repassada: ${moeda(valorDeducoes)} - cod. ${resolverLc116(nota.item_lista_servico)}`,
+        `Cota-parte do salao: ${moeda(centavos(nota.valor) - valorDeducoes)}`,
+        'Operacao sob a Lei 13.352/2016 (salao-parceiro).',
+      ].join('\n')
+    : descricaoBase;
 
   const payload: PayloadNFSe = {
     data_emissao: dataEmissao,
@@ -86,7 +125,7 @@ export function buildPayloadNFSe(opts: {
     servicos: [{
       aliquota,
       base_calculo: baseCalculo,
-      descricao: nota.descricao_servico || 'Serviços de beleza',
+      descricao,
       iss_retido: false,
       // resolverLc116 garante cTribNac de 6 digitos aqui, ultima barreira antes
       // do XML: aceita o valor ja correto, converte NBS/"06.01" legados e cai no
