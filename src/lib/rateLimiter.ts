@@ -38,16 +38,36 @@ function rateLimitExcedidoMemoria(chave: string, limite: number, janelaSeg: numb
 }
 
 async function rateLimitExcedidoKv(chave: string, limite: number, janelaSeg: number): Promise<boolean> {
-  const chaveSegura = encodeURIComponent(`ratelimit:${chave}`);
-  const headers = { Authorization: `Bearer ${KV_TOKEN}` };
+  const chaveRedis = `ratelimit:${chave}`;
   try {
-    const respIncr = await fetch(`${KV_URL}/incr/${chaveSegura}`, { headers });
-    const { result: contador } = await respIncr.json();
+    // Pipeline: as duas instruções vão numa ÚNICA requisição, na ordem.
+    //
+    // Antes eram dois fetch separados (INCR e, se contador===1, EXPIRE). Se o
+    // primeiro desse certo e o segundo falhasse — rede, timeout, 5xx — a chave
+    // ficava SEM TTL, ou seja, para sempre. Como o plano free do Redis tem
+    // storage limitado, cada falha dessas era um vazamento permanente.
+    //
+    // SET ... EX ttl NX cria a chave já com validade e só se ela ainda não
+    // existir; o INCR seguinte apenas soma. Assim a janela é fixa (não desliza a
+    // cada requisição, o que faria um usuário lento nunca ter o contador zerado)
+    // e nenhuma chave sobrevive sem expiração. SET com EX/NX funciona em
+    // qualquer versão relevante do Redis — não depende do EXPIRE ... NX, que só
+    // existe do Redis 7 em diante.
+    const resp = await fetch(`${KV_URL}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        ['SET', chaveRedis, '0', 'EX', String(janelaSeg), 'NX'],
+        ['INCR', chaveRedis],
+      ]),
+    });
 
-    // Primeira ocorrência nesta janela — define quando ela expira.
-    if (contador === 1) {
-      await fetch(`${KV_URL}/expire/${chaveSegura}/${janelaSeg}`, { headers });
-    }
+    if (!resp.ok) throw new Error(`Redis HTTP ${resp.status}`);
+
+    // A resposta do pipeline é um array na ordem dos comandos; o contador é o 2º.
+    const resultados = await resp.json();
+    const contador = Number(resultados?.[1]?.result);
+    if (!Number.isFinite(contador)) throw new Error('Resposta inesperada do Redis no pipeline');
 
     return contador > limite;
   } catch (erro) {
