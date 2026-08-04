@@ -119,6 +119,11 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
           IncentivadorCultural: payload.incentivador_cultural ?? false,
           IssRetido: servico.iss_retido,
           CodTributacaoMunicipio: servico.codigo_tributario_municipio,
+          // Sem o regime especial a prefeitura nao sabe que o prestador e
+          // optante do Simples, e o enquadramento do servico nao fecha.
+          RegimeEspecialTributacao: payload.regime_especial_tributacao,
+          CodigoCnae: servico.codigo_cnae,
+          CodNBS: servico.codigo_nbs,
           Valores: {
             ValorServico: servico.valor_servico,
             Aliquota: servico.aliquota * 100, // SDK espera percentual (%), payload interno guarda fração

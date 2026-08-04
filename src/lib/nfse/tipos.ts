@@ -29,12 +29,22 @@ export interface ServicoNFSe {
   valor_servico: number;
   valor_deducoes?: number;
   codigo_tributario_municipio?: string;
+  /** CNAE do prestador, sem pontuacao (ex: 9602501). */
+  codigo_cnae?: string;
+  /** NBS do servico (Lei da Transparencia 12.741/12), ex: 126021000. */
+  codigo_nbs?: string;
 }
 
 export interface PayloadNFSe {
   data_emissao: string;
   natureza_operacao?: 1 | 2 | 3 | 4 | 5 | 6;
   optante_simples_nacional?: boolean;
+  /**
+   * 0 sem regime especial | 1 microempresa municipal | 2 estimativa
+   * 3 sociedade de profissionais | 4 cooperativa | 5 MEI Simples Nacional
+   * 6 ME/EPP Simples Nacional
+   */
+  regime_especial_tributacao?: number;
   incentivador_cultural?: boolean;
   prestador: PrestadorNFSe;
   tomador?: TomadorNFSe;

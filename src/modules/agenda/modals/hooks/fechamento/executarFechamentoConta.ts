@@ -329,6 +329,8 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         // Codigo da prefeitura, complementar ao nacional. Sem ele a nota vai
         // so com o cTribNac e o municipio nao reconhece o enquadramento.
         codigo_tributacao_municipio: servicoFiscal?.codigo_municipio ?? null,
+        // NBS do servico (Lei da Transparencia). O provedor tem campo proprio.
+        nbs: servicoFiscal?.nbs ?? null,
         valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
         valor_cota_profissional: valorTotalComissoes,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,

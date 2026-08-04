@@ -13,6 +13,7 @@ export function buildPayloadNFSe(opts: {
     cnpj: string;
     inscricao_municipal?: string;
     codigo_ibge?: string;
+    cnae?: string;
     regime_tributario?: string;  // campo direto de saloes (Dados da Empresa)
     config_fiscal?: any;
   };
@@ -26,6 +27,8 @@ export function buildPayloadNFSe(opts: {
     aliquota_iss?: number | null;
     /** Código de tributação da prefeitura (cTribMun), complementar ao cTribNac. */
     codigo_tributacao_municipio?: string | null;
+    /** NBS do serviço (Lei da Transparência 12.741/12). */
+    nbs?: string | null;
     // campos de cota-parte (Fatia 5 — discriminação gDed na NFS-e)
     cnpj_profissional?: string | null;
     tipo_parceiro?: string | null;
@@ -50,6 +53,12 @@ export function buildPayloadNFSe(opts: {
   // e cai para config_fiscal se não estiver preenchido (compatibilidade com configuração do admin)
   const regime = salao.regime_tributario || salao.config_fiscal?.regime_tributario || '';
   const simples = ['Simples Nacional', 'MEI'].includes(regime);
+
+  // Regime especial de tributação, na codificação do provedor. Sem isto a
+  // prefeitura não sabe que o prestador é optante do Simples, e o enquadramento
+  // do serviço não fecha — o campo nunca era enviado.
+  //   5 = MEI Simples Nacional | 6 = ME/EPP Simples Nacional | 0 = sem regime especial
+  const regimeEspecial = regime === 'MEI' ? 5 : regime === 'Simples Nacional' ? 6 : 0;
 
   // Horário de Brasília (UTC-3) — evita registrar data do dia seguinte na SEFAZ
   // quando a nota é emitida depois das 21h local (servidor em UTC)
@@ -131,6 +140,7 @@ export function buildPayloadNFSe(opts: {
     data_emissao: dataEmissao,
     natureza_operacao: 1,
     optante_simples_nacional: simples,
+    regime_especial_tributacao: regimeEspecial,
     incentivador_cultural: false,
     prestador: {
       cnpj: (salao.cnpj || '').replace(/[.\-\/\s]/g, '').toUpperCase(),
@@ -151,6 +161,10 @@ export function buildPayloadNFSe(opts: {
       // em toda nota, deixando a prefeitura sem o codigo dela para reconhecer o
       // servico (rejeicao E0312).
       codigo_tributario_municipio: String(nota.codigo_tributacao_municipio ?? '').trim() || undefined,
+      // CNAE do prestador e NBS do serviço: o provedor aceita os dois e a
+      // prefeitura usa ambos no enquadramento. Estavam cadastrados e não iam.
+      codigo_cnae: String(salao.cnae ?? '').replace(/\D/g, '') || undefined,
+      codigo_nbs: String(nota.nbs ?? '').replace(/\D/g, '') || undefined,
       valor_servico: centavos(nota.valor),
       valor_deducoes: valorDeducoes > 0 ? valorDeducoes : undefined,
     }],
