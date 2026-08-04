@@ -17,7 +17,7 @@ export function ModalNotaFiscalSalao({ salao, onClose, onSaved }: {
   const [modo, setModo]             = useState<string>(cf.modo_emissao ?? 'manual');
   const [regime, setRegime]         = useState<string>(cf.regime_tributario ?? 'Simples Nacional');
   const [aliquota, setAliquota]     = useState<string>(String(cf.aliquota_padrao ?? '2.00'));
-  const [codigoServ, setCodigoServ] = useState<string>(cf.item_lista_servico ?? '06.01');
+  const [codigoServ, setCodigoServ] = useState<string>(cf.item_lista_servico ?? '060101');
   const [liberado, setLiberado]     = useState<boolean>(!!salao.modulo_fiscal_liberado);
   const [verToken, setVerToken]     = useState(false);
   const [salvando, setSalvando]     = useState(false);

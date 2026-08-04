@@ -8,11 +8,19 @@ import { FiScissors, FiX, FiPackage, FiShield, FiPercent, FiSettings } from "rea
 import { IconeAjuda } from "@/components/IconeAjuda";
 import { ModalGerenciarSetores } from "./ModalGerenciarSetores";
 
+// `nac` = cTribNac, o Codigo de Tributacao Nacional da NFS-e: 6 digitos, sem
+// ponto (item + subitem da LC 116 + desdobro nacional). E o que vai no XML.
+// Nao confundir com `mun` (codigo da prefeitura) nem com `nbs` (Nomenclatura
+// Brasileira de Servicos, usada no enquadramento IBS/CBS) — sao tres tabelas
+// diferentes. Mandar NBS ou "06.01" neste campo faz a nota ser recusada.
+// Codigos conferidos na lista nacional em 04/08/2026:
+//   060101 Barbearia, cabeleireiros, manicuros, pedicuros e congeneres
+//   060201 Esteticistas, tratamento de pele, depilacao e congeneres
 const TABELA_TRIBUTACAO_SALAO = [
-  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '06.01' },
-  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', mun: '06.01' },
-  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126023000', mun: '06.02' },
-  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', mun: '06.02' }
+  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '06.01', nac: '060101' },
+  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', mun: '06.01', nac: '060101' },
+  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126023000', mun: '06.02', nac: '060201' },
+  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', mun: '06.02', nac: '060201' }
 ];
 
 const formVazio = { 
@@ -20,7 +28,7 @@ const formVazio = {
   tipo_preco: 'Fixo', preco_padrao: '', duracao: '60',
   exibir_online: true, custo_operacional: '', 
   tipo_despesa: 'Fixo', valor_despesa: '',
-  codigo_municipio: '', nbs: '', aliquota_iss: '0.00',
+  codigo_municipio: '', nbs: '', codigo_tributacao_nacional: '', aliquota_iss: '0.00',
   comissao_padrao: '', eh_cortesia: false, dias_retorno_medio: ''
 };
 
@@ -51,7 +59,7 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
             tipo_preco: servico.tipo_preco || 'Fixo', duracao: String(servico.duracao_minutos || '60'), preco_padrao: String(servico.preco_padrao || '0'),
             exibir_online: servico.exibir_online !== false, custo_operacional: String(servico.custo_operacional || ''),
             tipo_despesa: servico.tipo_despesa || 'Fixo', valor_despesa: String(servico.valor_despesa || ''),
-            codigo_municipio: servico.codigo_municipio || '', nbs: servico.nbs || '', aliquota_iss: servico.aliquota_iss?.toString() || '0.00',
+            codigo_municipio: servico.codigo_municipio || '', nbs: servico.nbs || '', codigo_tributacao_nacional: servico.codigo_tributacao_nacional || '', aliquota_iss: servico.aliquota_iss?.toString() || '0.00',
             comissao_padrao: servico.comissao_padrao !== null && servico.comissao_padrao !== undefined ? String(servico.comissao_padrao) : '',
             eh_cortesia: !!servico.eh_cortesia,
             dias_retorno_medio: servico.dias_retorno_medio !== null && servico.dias_retorno_medio !== undefined ? String(servico.dias_retorno_medio) : ''
@@ -98,7 +106,7 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
         tipo_preco: form.tipo_preco, exibir_online: form.exibir_online, duracao_minutos: parseInt(String(form.duracao || 60)) || 60,
         preco_padrao: parseFloat(String(form.preco_padrao || 0).replace(',', '.')) || 0, custo_operacional: parseFloat(String(form.custo_operacional || 0).replace(',', '.')) || 0,
         tipo_despesa: form.tipo_despesa, valor_despesa: parseFloat(String(form.valor_despesa || 0).replace(',', '.')) || 0,
-        codigo_municipio: form.codigo_municipio || null, nbs: form.nbs || null, aliquota_iss: parseFloat(String(form.aliquota_iss || 0).replace(',', '.')) || 0,
+        codigo_municipio: form.codigo_municipio || null, nbs: form.nbs || null, codigo_tributacao_nacional: form.codigo_tributacao_nacional || null, aliquota_iss: parseFloat(String(form.aliquota_iss || 0).replace(',', '.')) || 0,
         comissao_padrao: form.comissao_padrao === '' ? null : (parseFloat(String(form.comissao_padrao).replace(',', '.')) || 0),
         eh_cortesia: !!form.eh_cortesia,
         dias_retorno_medio: form.dias_retorno_medio === '' ? null : (parseInt(String(form.dias_retorno_medio)) || null)
@@ -337,14 +345,14 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
                 style={{ ...inputStyle, cursor: "pointer", border: `1px solid ${C.sidebarBg}`, color: C.sidebarBg, fontWeight: 700 }}
                 onChange={(e) => {
                   const selecionado = TABELA_TRIBUTACAO_SALAO.find(t => t.nbs === e.target.value);
-                  if (selecionado) setForm({...form, nbs: selecionado.nbs, codigo_municipio: selecionado.mun});
+                  if (selecionado) setForm({...form, nbs: selecionado.nbs, codigo_municipio: selecionado.mun, codigo_tributacao_nacional: selecionado.nac});
                 }}
               >
                 <option value="">-- Selecione o tipo de serviço para auto-preencher --</option>
                 {TABELA_TRIBUTACAO_SALAO.map(t => <option key={t.id} value={t.nbs}>{t.label}</option>)}
               </select>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr", gap: 16 }}>
               <div>
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>
                   Código Federal (NBS) *
@@ -355,6 +363,17 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
               <div>
                 <label style={labelStyle}>Código Municipal</label>
                 <input style={inputStyle} value={form.codigo_municipio} onChange={e=>setForm({...form, codigo_municipio: e.target.value})} placeholder="Ex: 06.01" />
+              </div>
+              <div>
+                <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  Cód. Tributação Nacional *
+                  <IconeAjuda texto={"cTribNac — é o código que vai no XML da NFS-e Nacional.\nSão 6 dígitos, sem ponto (ex: 060101).\nNão confunda com o NBS nem com o código da prefeitura: são três tabelas diferentes.\nUse a seleção inteligente acima para preencher automaticamente."} posicao="cima" />
+                </label>
+                <input
+                  style={{ ...inputStyle, borderColor: form.codigo_tributacao_nacional && !/^\d{6}$/.test(form.codigo_tributacao_nacional) ? '#EF4444' : (inputStyle as any).borderColor }}
+                  value={form.codigo_tributacao_nacional}
+                  onChange={e=>setForm({...form, codigo_tributacao_nacional: e.target.value.replace(/\D/g, '')})}
+                  placeholder="Ex: 060101" maxLength={6} />
               </div>
               <div>
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>

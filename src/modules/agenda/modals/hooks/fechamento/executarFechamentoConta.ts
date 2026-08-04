@@ -287,11 +287,16 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
     // que é NFC-e (fluxo próprio). Por isso pulamos quando somenteProdutos.
     if (!somenteProdutos) {
       const descServicos = (dadosCaixa.servicos as any[]).map((s: any) => s.nome).join(', ');
-      // O campo da nota é o item da LC 116 ("06.01"), não o NBS ("126021000").
-      // Gravar o NBS aqui fazia a prefeitura recusar a nota inteira no schema.
-      // resolverLc116 aceita os dois formatos e nunca devolve código inválido.
-      const nbsPrincipal = (dadosCaixa.servicos as any[]).find((s: any) => s.nbs)?.nbs || null;
-      const itemListaServico = resolverLc116(nbsPrincipal);
+      // O campo da nota e o cTribNac (6 digitos, ex "060101"), nao o NBS nem o
+      // item da LC 116 com ponto — os dois ja foram recusados pela prefeitura.
+      // Prioridade: o cTribNac cadastrado no proprio servico (Servicos ->
+      // Tributacao de Servico). So se ele estiver vazio caimos na conversao a
+      // partir do NBS, para nao travar salao que ainda nao revisou o cadastro.
+      const servicoFiscal = (dadosCaixa.servicos as any[]).find((s: any) => s.codigo_tributacao_nacional)
+        || (dadosCaixa.servicos as any[]).find((s: any) => s.nbs);
+      const itemListaServico = resolverLc116(
+        servicoFiscal?.codigo_tributacao_nacional || servicoFiscal?.nbs || null,
+      );
 
       // Dados fiscais do profissional principal (campo gDed na NFS-e).
       // Quando há múltiplos profissionais, prefere o parceiro_cnpj (dedução real na SEFAZ).

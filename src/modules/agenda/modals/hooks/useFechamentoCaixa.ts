@@ -87,6 +87,7 @@ export function useFechamentoCaixa({
         nome: ag.servico,
         item_id: ag.servico_id || servicoRef?.id || null,
         nbs: servicoRef?.nbs || '',
+        codigo_tributacao_nacional: servicoRef?.codigo_tributacao_nacional || '',
         profissional: profissionaisDb.find((p: any) => p.id === ag.id_prof)?.nome || "Equipe",
         preco: precoItem,
         desconto: 0,

@@ -17,7 +17,7 @@ export function AbaNFSeConfig() {
   const [ibge, setIbge]               = useState('');
   const [regime, setRegime]           = useState('Simples Nacional');
   const [aliquota, setAliquota]       = useState('2.00');
-  const [codServ, setCodServ]         = useState('01.07');
+  const [codServ, setCodServ]         = useState('060101');
   const [tokenBrasil, setTokenBrasil] = useState('');
   const [ambiente, setAmbiente]       = useState('sandbox');
   const [modo, setModo]               = useState('manual');
@@ -43,7 +43,7 @@ export function AbaNFSeConfig() {
         setIbge(data.codigo_ibge ?? '');
         setRegime(data.regime_tributario ?? 'Simples Nacional');
         setAliquota(String(data.aliquota_padrao ?? '2.00'));
-        setCodServ(data.item_lista_servico ?? '01.07');
+        setCodServ(data.item_lista_servico ?? '060101');
         setTokenBrasil(data.token_brasilnfe ?? '');
         setAmbiente(data.ambiente ?? 'sandbox');
         setModo(data.modo_emissao ?? 'manual');
@@ -64,7 +64,7 @@ export function AbaNFSeConfig() {
         codigo_ibge: ibge.trim() || null,
         regime_tributario: regime,
         aliquota_padrao: parseFloat(aliquota) || 2.00,
-        item_lista_servico: codServ.trim() || '01.07',
+        item_lista_servico: codServ.trim() || '060101',
         token_brasilnfe: tokenBrasil.trim() || null,
         ambiente,
         modo_emissao: modo,

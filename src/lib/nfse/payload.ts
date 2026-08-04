@@ -1,3 +1,4 @@
+import { resolverLc116 } from './lc116';
 import type { PayloadNFSe } from './tipos';
 
 /**
@@ -67,7 +68,10 @@ export function buildPayloadNFSe(opts: {
       base_calculo: baseCalculo,
       descricao: nota.descricao_servico || 'Serviços de beleza',
       iss_retido: false,
-      item_lista_servico: nota.item_lista_servico || '06.01',
+      // resolverLc116 garante cTribNac de 6 digitos aqui, ultima barreira antes
+      // do XML: aceita o valor ja correto, converte NBS/"06.01" legados e cai no
+      // padrao quando vazio. Nunca deixa passar codigo que a prefeitura recusaria.
+      item_lista_servico: resolverLc116(nota.item_lista_servico),
       valor_servico: nota.valor,
       valor_deducoes: valorDeducoes > 0 ? valorDeducoes : undefined,
     }],

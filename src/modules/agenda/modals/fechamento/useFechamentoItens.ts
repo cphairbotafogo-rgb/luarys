@@ -157,6 +157,7 @@ export function useFechamentoItens({
             unidade: opcao.unidade_medida || 'UN'
           } : {
             nbs: opcao.nbs || '126021000',
+            codigo_tributacao_nacional: opcao.codigo_tributacao_nacional || '',
             codigo_municipio: opcao.codigo_municipio || '06.01',
             aliquota_iss: parseFloat(opcao.aliquota_iss) || 0,
             cfop: '5933',
