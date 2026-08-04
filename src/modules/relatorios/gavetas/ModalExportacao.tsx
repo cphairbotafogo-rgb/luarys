@@ -43,6 +43,45 @@ export function ModalExportacao({
 }: Props) {
   const formatarData = (iso: string) => iso.split('-').reverse().join('/');
 
+  /** Data da linha em dd/mm/aaaa. Aceita 'YYYY-MM-DD' (data_evento) e ISO com
+   *  hora (created_at). Para o formato só-data, monta manualmente: passar
+   *  'YYYY-MM-DD' para o Date é lido como UTC e, no fuso do Brasil, exibiria o
+   *  dia anterior. */
+  const formatarDataLinha = (valor: string | null | undefined): string => {
+    if (!valor) return '—';
+    const soData = String(valor).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(soData)) return soData.split('-').reverse().join('/');
+    const d = new Date(valor);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR');
+  };
+
+  /** Percentual efetivo da comissão sobre o valor do serviço.
+   *  Exibir isto é o que permite ao profissional conferir a própria conta linha
+   *  a linha — sem o percentual, duas linhas de mesmo valor com comissões
+   *  diferentes (por causa da taxa da operadora descontada) viram discussão no
+   *  acerto. */
+  const percentual = (comissao: number, valor: number): string => {
+    if (!valor || valor <= 0) return '—';
+    return `${((comissao / valor) * 100).toFixed(1).replace('.', ',')}%`;
+  };
+
+  const totaisAgrupado = comissoesAgrupadas.reduce(
+    (acc, i) => ({
+      quantidade: acc.quantidade + (Number(i.quantidade) || 0),
+      valor:      acc.valor + (Number(i.valorTotal) || 0),
+      comissao:   acc.comissao + (Number(i.comissaoTotal) || 0),
+    }),
+    { quantidade: 0, valor: 0, comissao: 0 },
+  );
+
+  const totaisDetalhado = comissoesValidas.reduce(
+    (acc: { valor: number; comissao: number }, i: any) => ({
+      valor:    acc.valor + (Number(i.valor_servico) || 0),
+      comissao: acc.comissao + (Number(i.valor_comissao) || 0),
+    }),
+    { valor: 0, comissao: 0 },
+  );
+
   return (
     <>
       {/* Modal de seleção de formato */}
@@ -121,6 +160,7 @@ export function ModalExportacao({
                   <th style={thStylePrint}>Serviço</th>
                   <th style={{ ...thStylePrint, textAlign: "center" }}>Quantidade</th>
                   <th style={{ ...thStylePrint, textAlign: "right" }}>Valor em Serviços (R$)</th>
+                  <th style={{ ...thStylePrint, textAlign: "center" }}>%</th>
                   <th style={{ ...thStylePrint, textAlign: "right" }}>Comissão Profissional (R$)</th>
                 </tr>
               </thead>
@@ -130,10 +170,23 @@ export function ModalExportacao({
                     <td style={tdStylePrint}><strong>{item.servico}</strong></td>
                     <td style={{ ...tdStylePrint, textAlign: "center" }}>{item.quantidade}</td>
                     <td style={{ ...tdStylePrint, textAlign: "right" }}>{brl(item.valorTotal)}</td>
+                    {/* % efetivo do grupo: comissão ÷ valor. Calculado sobre os
+                        totais, e não pela média dos percentuais, senão um item de
+                        R$ 20 pesaria igual a um de R$ 800 no resultado. */}
+                    <td style={{ ...tdStylePrint, textAlign: "center" }}>{percentual(item.comissaoTotal, item.valorTotal)}</td>
                     <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(item.comissaoTotal)}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr style={{ borderTop: "2px solid #000" }}>
+                  <td style={{ ...tdStylePrint, fontWeight: "bold" }}>Total</td>
+                  <td style={{ ...tdStylePrint, textAlign: "center", fontWeight: "bold" }}>{totaisAgrupado.quantidade}</td>
+                  <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(totaisAgrupado.valor)}</td>
+                  <td style={{ ...tdStylePrint, textAlign: "center", fontWeight: "bold" }}>{percentual(totaisAgrupado.comissao, totaisAgrupado.valor)}</td>
+                  <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(totaisAgrupado.comissao)}</td>
+                </tr>
+              </tfoot>
             </table>
           )}
 
@@ -146,20 +199,38 @@ export function ModalExportacao({
                   <th style={thStylePrint}>Cliente</th>
                   <th style={thStylePrint}>Serviço</th>
                   <th style={{ ...thStylePrint, textAlign: "right" }}>Valor (R$)</th>
+                  <th style={thStylePrint}>Pagamento</th>
+                  <th style={{ ...thStylePrint, textAlign: "center" }}>%</th>
                   <th style={{ ...thStylePrint, textAlign: "right" }}>Comissão (R$)</th>
                 </tr>
               </thead>
               <tbody>
                 {comissoesValidas.map((item: any, idx: number) => (
                   <tr key={idx}>
-                    <td style={tdStylePrint}>{new Date(item.created_at).toLocaleDateString('pt-BR')}</td>
+                    {/* Data do ATENDIMENTO (data_evento), não a do fechamento —
+                        é a competência do serviço. created_at só é usado como
+                        reserva para linhas antigas sem data_evento. */}
+                    <td style={tdStylePrint}>{formatarDataLinha(item.data_evento || item.created_at)}</td>
                     <td style={tdStylePrint}>{item.agendamentos?.cliente_nome || '-'}</td>
                     <td style={tdStylePrint}>{item.tipo === 'produto' ? 'Venda de Produtos' : (item.agendamentos?.servicos?.nome_servico || 'Serviço Avulso')}</td>
                     <td style={{ ...tdStylePrint, textAlign: "right" }}>{brl(Number(item.valor_servico))}</td>
+                    <td style={tdStylePrint}>{item.forma_pagamento_desc || '—'}</td>
+                    <td style={{ ...tdStylePrint, textAlign: "center" }}>{percentual(Number(item.valor_comissao), Number(item.valor_servico))}</td>
                     <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(Number(item.valor_comissao))}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr style={{ borderTop: "2px solid #000" }}>
+                  <td colSpan={3} style={{ ...tdStylePrint, fontWeight: "bold" }}>
+                    Total — {comissoesValidas.length} atendimento(s)
+                  </td>
+                  <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(totaisDetalhado.valor)}</td>
+                  <td style={tdStylePrint} />
+                  <td style={{ ...tdStylePrint, textAlign: "center", fontWeight: "bold" }}>{percentual(totaisDetalhado.comissao, totaisDetalhado.valor)}</td>
+                  <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(totaisDetalhado.comissao)}</td>
+                </tr>
+              </tfoot>
             </table>
           )}
 
@@ -230,22 +301,31 @@ export function ModalExportacao({
                     <th style={thStylePrint}>Cliente</th>
                     <th style={thStylePrint}>Serviço / Produto</th>
                     <th style={{ ...thStylePrint, textAlign: "right" }}>Valor (R$)</th>
+                    <th style={thStylePrint}>Pagamento</th>
+                    <th style={{ ...thStylePrint, textAlign: "center" }}>%</th>
                     <th style={{ ...thStylePrint, textAlign: "right" }}>Comissão (R$)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {comissoesValidas.length === 0 && <tr><td style={tdStylePrint} colSpan={5}>Nenhum registro no período.</td></tr>}
+                  {comissoesValidas.length === 0 && <tr><td style={tdStylePrint} colSpan={7}>Nenhum registro no período.</td></tr>}
                   {comissoesValidas.map((item: any, idx: number) => (
                     <tr key={idx}>
-                      <td style={tdStylePrint}>{new Date(item.created_at).toLocaleDateString('pt-BR')}</td>
+                      <td style={tdStylePrint}>{formatarDataLinha(item.data_evento || item.created_at)}</td>
                       <td style={tdStylePrint}>{item.agendamentos?.cliente_nome || '-'}</td>
                       <td style={tdStylePrint}>{item.tipo === 'produto' ? 'Venda de Produtos' : (item.agendamentos?.servicos?.nome_servico || 'Serviço Avulso')}</td>
                       <td style={{ ...tdStylePrint, textAlign: "right" }}>{brl(Number(item.valor_servico))}</td>
+                      <td style={tdStylePrint}>{item.forma_pagamento_desc || '—'}</td>
+                      <td style={{ ...tdStylePrint, textAlign: "center" }}>{percentual(Number(item.valor_comissao), Number(item.valor_servico))}</td>
                       <td style={{ ...tdStylePrint, textAlign: "right", fontWeight: "bold" }}>{brl(Number(item.valor_comissao))}</td>
                     </tr>
                   ))}
                   <tr>
-                    <td colSpan={4} style={{ padding: "8px", fontSize: 12, fontWeight: "bold", borderTop: "2px solid #000", textAlign: "right" }}>Subtotal de Comissão</td>
+                    <td colSpan={3} style={{ padding: "8px", fontSize: 12, fontWeight: "bold", borderTop: "2px solid #000" }}>
+                      {comissoesValidas.length} atendimento(s)
+                    </td>
+                    <td style={{ padding: "8px", fontSize: 12, fontWeight: "bold", borderTop: "2px solid #000", textAlign: "right" }}>{brl(totaisDetalhado.valor)}</td>
+                    <td style={{ borderTop: "2px solid #000" }} />
+                    <td style={{ padding: "8px", fontSize: 12, fontWeight: "bold", borderTop: "2px solid #000", textAlign: "center" }}>{percentual(comissaoTotal, totaisDetalhado.valor)}</td>
                     <td style={{ padding: "8px", fontSize: 12, fontWeight: "bold", borderTop: "2px solid #000", textAlign: "right" }}>{brl(comissaoTotal)}</td>
                   </tr>
                 </tbody>

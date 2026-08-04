@@ -1,9 +1,16 @@
 /**
  * src/lib/email.ts
  *
- * Envio de e-mail transacional via Resend. Configurar RESEND_API_KEY (e
- * opcionalmente EMAIL_REMETENTE, ex: "Luarys <notificacoes@luarys.com.br>" —
- * precisa ser um domínio verificado no Resend) nas variáveis de ambiente.
+ * Envio de e-mail transacional via Resend.
+ *
+ * Variáveis de ambiente:
+ *   RESEND_API_KEY   — obrigatória. ⚠️ NÃO está configurada em produção hoje;
+ *                      sem ela nada é enviado (esta função devolve {ok:false}).
+ *   EMAIL_REMETENTE  — remetente oficial do Luarys:
+ *                      "Luarys <contato@luarys.com.br>"
+ *                      O domínio precisa estar verificado no Resend; enquanto
+ *                      não estiver, o fallback onboarding@resend.dev só entrega
+ *                      para o e-mail da própria conta Resend (bom para teste).
  */
 export interface AnexoEmail {
   /** Nome do arquivo como o destinatário vai vê-lo (ex: 'agendamentos.csv'). */

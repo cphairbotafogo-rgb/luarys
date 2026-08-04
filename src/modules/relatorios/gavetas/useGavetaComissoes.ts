@@ -10,6 +10,12 @@ import { FormExtra, TipoImpressao } from "./tipos";
 
 const FORM_EXTRA_INICIAL: FormExtra = { profissional_id: '', tipo: 'recebivel', descricao: '', valor: '' };
 
+/** Chaves de financeiro.pagamentos → rótulo legível no extrato do profissional. */
+const ROTULO_FORMA_PGTO: Record<string, string> = {
+  pix: 'PIX', credito: 'Crédito', debito: 'Débito',
+  dinheiro: 'Dinheiro', cheque: 'Cheque', prePago: 'Pré-pago',
+};
+
 export function useGavetaComissoes(perfil: any) {
   const toast = useToast();
   const [carregando, setCarregando] = useState(false);
@@ -157,7 +163,42 @@ export function useGavetaComissoes(perfil: any) {
         });
       }
 
-      let data = comissoesBase.map((c: any) => ({ ...c, agendamentos: agendamentosMap[c.agendamento_id] || null }));
+      // Forma de pagamento por agendamento. Entra no extrato porque, quando o
+      // salão desconta a taxa da operadora da comissão
+      // (saloes.config_comissao_taxa_op_modo), duas linhas de mesmo valor rendem
+      // comissões diferentes — e sem ver a forma de pagamento o profissional não
+      // tem como entender a diferença. Mesmo mapeamento já usado no recálculo.
+      const pagamentoPorAgendamento: Record<string, string> = {};
+      if (idsAgendamentos.length > 0) {
+        const { data: finData } = await supabase
+          .from('financeiro')
+          .select('agendamento_ids, forma_pagamento, bandeira_cartao, pagamentos')
+          .eq('salao_id', perfil.salao_id)
+          .overlaps('agendamento_ids', idsAgendamentos);
+
+        (finData || []).forEach((f: any) => {
+          // Se a venda tem o split real gravado (financeiro.pagamentos), lista
+          // todas as formas usadas — pagamento misto é comum e o total por forma
+          // é o que o profissional confere. Senão, cai na forma dominante.
+          const formas = f.pagamentos && typeof f.pagamentos === 'object'
+            ? Object.entries(f.pagamentos)
+                .filter(([, v]) => (Number(v) || 0) > 0)
+                .map(([k]) => ROTULO_FORMA_PGTO[k] || k)
+            : [];
+          const descricao = formas.length > 0
+            ? formas.join(' + ')
+            : [f.forma_pagamento, f.bandeira_cartao].filter(Boolean).join(' · ');
+          (f.agendamento_ids || []).forEach((agId: string) => {
+            if (descricao) pagamentoPorAgendamento[agId] = descricao;
+          });
+        });
+      }
+
+      let data = comissoesBase.map((c: any) => ({
+        ...c,
+        agendamentos: agendamentosMap[c.agendamento_id] || null,
+        forma_pagamento_desc: pagamentoPorAgendamento[c.agendamento_id] || '',
+      }));
 
       if (statusPagamentoFiltro !== 'TODOS') {
         data = data.filter(item => {

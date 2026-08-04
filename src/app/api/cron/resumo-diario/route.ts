@@ -1,11 +1,23 @@
 /**
  * GET /api/cron/resumo-diario
  *
- * Enviado de madrugada pelo Vercel Cron: cada salão recebe por e-mail como foi o
- * fechamento de ontem e a agenda de hoje, com a agenda também em CSV anexo (o
- * contador/recepção abre sem precisar de login).
+ * Cada salão recebe por e-mail como foi o fechamento de ontem e a agenda de hoje,
+ * com a agenda também em CSV anexo (o contador/recepção abre sem precisar de login).
  *
- * Cron em vercel.json: "0 4 * * *" (UTC) = 01:00 no horário de Brasília.
+ * ⚠️ PRONTO, MAS NÃO AGENDADO (decisão do Ari, 04/08/2026).
+ * A rota existe e funciona, mas NÃO há entrada em vercel.json — nada é disparado
+ * sozinho. O envio automático é projeto futuro; ativar só quando for a hora.
+ *
+ * Para ATIVAR, os três passos:
+ *   1. vercel.json → acrescentar { "path": "/api/cron/resumo-diario",
+ *      "schedule": "0 4 * * *" }  (UTC = 01:00 de Brasília, faixa em que a
+ *      Trinks envia o equivalente dela)
+ *   2. Vercel → env vars: RESEND_API_KEY e EMAIL_REMETENTE
+ *      (oficial: "Luarys <contato@luarys.com.br>" — domínio precisa estar
+ *      verificado no Resend, senão o Resend só entrega para a própria conta)
+ *   3. Testar antes com um disparo manual:
+ *      curl -H "Authorization: Bearer $CRON_SECRET" \
+ *           https://www.luarys.com.br/api/cron/resumo-diario
  *
  * Escopo definido com o Ari (04/08/2026):
  *   - Sem telefone do cliente no corpo (ver src/lib/resumoDiario.ts).
