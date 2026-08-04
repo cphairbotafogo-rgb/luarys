@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { contemPgrst } from "@/lib/pgrst";
 import { C } from "@/lib/constants";
 import { inputAdmin, RAIO_SM, RAIO_MD, RAIO_XL, RAIO_2XL, overlayModal, SOMBRA_MODAL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
@@ -29,7 +30,7 @@ export function AbaListaEspera({ perfil }: any) {
         .from('clientes')
         .select('id, nome_completo, telefone_whatsapp')
         .eq('salao_id', perfil.salao_id)
-        .or(`nome_completo.ilike.%${termo}%,telefone_whatsapp.ilike.%${termo}%`)
+        .or(`nome_completo.ilike.${contemPgrst(termo)},telefone_whatsapp.ilike.${contemPgrst(termo)}`)
         .limit(6);
       setClientesBusca(data || []);
       setMostrarBusca((data?.length || 0) > 0);

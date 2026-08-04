@@ -17,6 +17,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { filtroPgrst } from '@/lib/pgrst';
 import { useToast } from '@/components/Toast';
 
 const FORM_VAZIO = {
@@ -251,7 +252,8 @@ export function useFichaCliente(clienteId: string | null, perfil: any, onSalvo?:
         // (CPF/CNPJ, e-mail ou telefone), pra não gerar registro repetido.
         const doc = dadosGlobais.tipo_cliente === 'PJ' ? dadosGlobais.cnpj : dadosGlobais.cpf;
         let qDup = supabase.from('clientes').select('id, nome_completo').eq('salao_id', perfil.salao_id);
-        if (doc) qDup = qDup.or(`cpf.eq.${doc},cnpj.eq.${doc}`);
+        // doc vem do formulário — escapado antes de entrar no filtro PostgREST.
+        if (doc) qDup = qDup.or(`cpf.eq.${filtroPgrst(doc)},cnpj.eq.${filtroPgrst(doc)}`);
         else if (dadosGlobais.email) qDup = qDup.eq('email', dadosGlobais.email);
         else if (dadosGlobais.telefone_whatsapp) qDup = qDup.eq('telefone_whatsapp', dadosGlobais.telefone_whatsapp);
         else qDup = null as any;

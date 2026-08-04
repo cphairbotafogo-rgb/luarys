@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { contemPgrst } from '@/lib/pgrst';
 import { C } from '@/lib/constants';
 import { FiMapPin } from 'react-icons/fi';
 import { PortalLogin } from '@/modules/portal/PortalLogin';
@@ -26,7 +27,9 @@ function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: { onSalaoSel
   async function pesquisar(e: React.FormEvent) {
     e.preventDefault(); setJaBuscou(true); setCarregando(true);
     const q = supabase.from('saloes').select('id,nome_fantasia,slug,bairro,cidade,estado,telefone,cobrar_sinal,porcentagem_sinal').order('nome_fantasia', { ascending: true }).limit(20);
-    const { data } = busca.trim() ? await q.or(`slug.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`) : await q;
+    // Valor escapado: busca pública, o termo vai direto para um filtro PostgREST.
+    const termo = contemPgrst(busca);
+    const { data } = busca.trim() ? await q.or(`slug.ilike.${termo},nome_fantasia.ilike.${termo}`) : await q;
     setSaloes(data || []); setCarregando(false);
   }
 

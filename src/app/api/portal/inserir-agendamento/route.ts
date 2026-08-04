@@ -5,7 +5,7 @@
  * contornando o RLS (clientes do portal não têm sessão Supabase Auth).
  *
  * Segurança:
- *   - Rate limit por IP (mesmo padrão de agendar-guest/criar-agendamento)
+ *   - Rate limit por IP (mesmo padrão de agendar-guest)
  *   - salao_id, cliente_id, profissional_id e servico_id devem ser UUIDs válidos
  *   - O serviço deve estar com exibir_online = true para aquele salão
  *   - O profissional deve pertencer àquele salão e estar ativo
@@ -30,7 +30,7 @@ const admin = createClient(
 
 // POST — cria agendamento
 export async function POST(req: NextRequest) {
-  // Mesmo limite usado em agendar-guest/criar-agendamento: 10 tentativas por IP a cada 10 min
+  // Mesmo limite usado em agendar-guest: 10 tentativas por IP a cada 10 min
   const ip = obterIp(req as any);
   if (await rateLimitExcedido(`inserir-agendamento:${ip}`, 10, 600)) {
     return NextResponse.json({ erro: 'Muitas tentativas. Aguarde alguns minutos.' }, { status: 429 });

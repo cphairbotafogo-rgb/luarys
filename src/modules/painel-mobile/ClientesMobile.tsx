@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { contemPgrst } from '@/lib/pgrst';
 import { C } from '@/lib/constants';
 import { FiSearch, FiPhone } from 'react-icons/fi';
 import { RAIO_LG, RAIO_XL } from '@/lib/estiloGlobal';
@@ -24,7 +25,10 @@ export function ClientesMobile({ perfil }: Props) {
     if (!perfil?.salao_id) return;
     setCarregando(true);
     let q = supabase.from('clientes').select('id,nome_completo,telefone_whatsapp,total_visitas,ultima_visita').eq('salao_id', perfil.salao_id).order('nome_completo', { ascending: true }).limit(30);
-    if (busca.trim()) q = q.or(`nome_completo.ilike.%${busca.trim()}%,telefone_whatsapp.ilike.%${busca.trim()}%`);
+    if (busca.trim()) {
+      const termo = contemPgrst(busca);
+      q = q.or(`nome_completo.ilike.${termo},telefone_whatsapp.ilike.${termo}`);
+    }
     const { data } = await q;
     setClientes(data || []);
     setCarregando(false);

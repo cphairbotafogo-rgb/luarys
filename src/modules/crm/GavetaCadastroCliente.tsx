@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { filtroPgrst } from '@/lib/pgrst';
 import { C } from '@/lib/constants';
 import { inputAdmin, labelPadrao, containerModal, overlayModal, RAIO_MD } from '@/lib/estiloGlobal';
 import { FiX, FiCheck } from 'react-icons/fi';
@@ -49,7 +50,9 @@ export function GavetaCadastroCliente({ perfil, onClose, onClienteAdicionado, no
     try {
       // Verificar duplicata por CPF, email ou telefone
       let qDup = supabase.from('clientes').select('id, nome_completo');
-      if (cpfLimpo && form.email)  qDup = qDup.or(`cpf.eq.${cpfLimpo},email.eq.${form.email}`);
+      // form.email é texto livre — vai escapado, senão uma vírgula digitada no
+      // campo injetaria uma condição extra no filtro.
+      if (cpfLimpo && form.email)  qDup = qDup.or(`cpf.eq.${filtroPgrst(cpfLimpo)},email.eq.${filtroPgrst(form.email)}`);
       else if (cpfLimpo)           qDup = qDup.eq('cpf', cpfLimpo);
       else if (form.email)         qDup = qDup.eq('email', form.email);
       else                         qDup = qDup.eq('telefone_whatsapp', telefoneCompleto);

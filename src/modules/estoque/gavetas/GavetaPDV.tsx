@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { contemPgrst } from "@/lib/pgrst";
 import { C, brl } from "@/lib/constants";
 import { inputAdmin, RAIO_SM, RAIO_MD, RAIO_XL, RAIO_2XL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
@@ -44,13 +45,14 @@ export function GavetaPDV({ perfil }: any) {
 
   // Busca de cliente no CRM (debounce). Não busca quando já há um selecionado.
   useEffect(() => {
-    const t = buscaCliente.trim().replace(/[,()]/g, '');
+    // Escapado por contemPgrst abaixo — não precisa remover ,() do que foi digitado.
+    const t = buscaCliente.trim();
     if (t.length < 2 || clienteSel || !perfil?.salao_id) { setClientesResult([]); return; }
     const timer = setTimeout(async () => {
       const { data } = await supabase.from('clientes')
         .select('id, nome_completo, cpf, telefone_whatsapp')
         .eq('salao_id', perfil.salao_id)
-        .or(`nome_completo.ilike.%${t}%,cpf.ilike.%${t}%,telefone_whatsapp.ilike.%${t}%`)
+        .or(`nome_completo.ilike.${contemPgrst(t)},cpf.ilike.${contemPgrst(t)},telefone_whatsapp.ilike.${contemPgrst(t)}`)
         .order('nome_completo').limit(8);
       setClientesResult(data || []);
     }, 300);

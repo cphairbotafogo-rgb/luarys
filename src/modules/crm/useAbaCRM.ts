@@ -6,6 +6,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { contemPgrst } from '@/lib/pgrst';
 import { useToast } from '@/components/Toast';
 
 export { DDIS as LISTA_DDIS } from '@/lib/ddis';
@@ -161,13 +162,15 @@ export function useAbaCRM(perfil: any) {
   // BUSCA NO SERVIDOR — consulta o banco direto ao digitar (>= 2 chars), achando
   // qualquer cliente do salão, independente do total (o load inicial é limitado).
   useEffect(() => {
-    const termo = busca.trim().replace(/[,()%]/g, '');
+    // O termo vai escapado via contemPgrst — não precisa mais remover ,()% do que
+    // a pessoa digitou (o strip antigo quebrava a busca por nomes com parênteses).
+    const termo = busca.trim();
     if (termo.length < 2 || !perfil?.salao_id) { setResultadosBusca(null); return; }
     const timer = setTimeout(async () => {
       const { data: cli } = await supabase.from('clientes')
         .select('id, nome_completo, telefone_whatsapp, email, cpf, foto_url, genero, nascimento, instagram, como_conheceu, telefones, created_at, total_gasto, total_visitas, data_ultima_visita')
         .eq('salao_id', perfil.salao_id)
-        .or(`nome_completo.ilike.%${termo}%,cpf.ilike.%${termo}%,telefone_whatsapp.ilike.%${termo}%`)
+        .or(`nome_completo.ilike.${contemPgrst(termo)},cpf.ilike.${contemPgrst(termo)},telefone_whatsapp.ilike.${contemPgrst(termo)}`)
         .order('nome_completo').limit(80);
       const ids = (cli || []).map((c: any) => c.id);
       const crmMap: Record<string, any> = {};

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { contemPgrst } from '@/lib/pgrst';
 import { C } from '@/lib/constants';
 import { FiMapPin, FiSearch, FiArrowRight } from 'react-icons/fi';
 import { FONTE_CORPO, FONTE_TITULO, fileteDourado } from './estiloPortal';
@@ -43,8 +44,10 @@ export function TelaSelecaoSalao({ onSalaoSelecionado, onIrParaCadastro }: {
       .select('id, nome_fantasia, slug, bairro, cidade, estado, telefone, cobrar_sinal, porcentagem_sinal')
       .order('nome_fantasia', { ascending: true })
       .limit(20);
+    // Valor escapado: busca pública, o termo vai direto para um filtro PostgREST.
+    const termo = contemPgrst(busca);
     const { data, error } = busca.trim()
-      ? await q.or(`slug.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`)
+      ? await q.or(`slug.ilike.${termo},nome_fantasia.ilike.${termo}`)
       : await q;
     if (error) setErro('Erro ao buscar. Tente novamente.');
     setSaloes(data || []);
