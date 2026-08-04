@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       resultado.status === 'processando' ? 'Pendente' :
       'Erro';
 
-    await supabaseAdmin.from('notas_fiscais').update({
+    const { error: erroUpdateNota } = await supabaseAdmin.from('notas_fiscais').update({
       status: novoStatus,
       id_externo: referencia,
       numero_nota: resultado.numero_nota ?? null,
@@ -89,6 +89,13 @@ export async function POST(req: NextRequest) {
       mensagem_erro: resultado.mensagem_erro ?? null,
       data_emissao: resultado.status === 'autorizado' ? new Date().toISOString() : null,
     }).eq('id', nota.id);
+
+    if (erroUpdateNota) {
+      // A emissão em si já aconteceu (ou não) na Brasil NFe — isso só falhou ao
+      // registrar o resultado localmente. Loga alto porque, sem isso, a nota
+      // pode ficar presa em "Não Emitido" mesmo já emitida de verdade lá fora.
+      console.error(`[nfse/emitir] Nota ${nota.id} processada (${resultado.status}) mas falhou ao atualizar o registro local:`, erroUpdateNota.message);
+    }
 
     resultados[nota.id] = { ...resultado, status: novoStatus };
   }

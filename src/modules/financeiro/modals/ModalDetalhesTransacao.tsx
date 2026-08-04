@@ -138,7 +138,10 @@ export function ModalDetalhesTransacao({ transacao, onClose, aoAtualizar, perfil
                   'Content-Type': 'application/json',
                   Authorization: `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ justificativa: `Estorno: ${motivoEstorno}` }),
+                // Brasil NFe exige justificativa com no mínimo 15 caracteres — o
+                // motivo digitado pelo gerente pode ser bem curto ("erro", "x"),
+                // então sempre prefixamos com um texto fixo que já garante o mínimo.
+                body: JSON.stringify({ justificativa: `Estorno da venda no Luarys — motivo: ${motivoEstorno}`.slice(0, 1000) }),
               });
               toast.aviso('NFS-e vinculada cancelada automaticamente.');
             }

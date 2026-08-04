@@ -93,7 +93,10 @@ export function GavetaNFSe({ perfil }: any) {
     for (const nota of pendentes) {
       try {
         const resp = await fetch(`/api/nfse/consultar/${nota.id}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
-        if (resp.ok) { const json = await resp.json(); if (json.status === 'Emitida') emitidas++; if (json.status === 'Erro') erros++; }
+        // A rota devolve o ResultadoEmissao cru do adaptador ('autorizado'/'processando'/'erro'),
+        // não os status em pt-BR da coluna notas_fiscais.status ('Emitida'/'Erro') — bug pré-existente
+        // que fazia esses contadores nunca incrementarem, mesmo com a prefeitura respondendo.
+        if (resp.ok) { const json = await resp.json(); if (json.status === 'autorizado') emitidas++; if (json.status === 'erro') erros++; }
       } catch { /* permanece Pendente */ }
     }
     setVerificandoPendentes(false);
