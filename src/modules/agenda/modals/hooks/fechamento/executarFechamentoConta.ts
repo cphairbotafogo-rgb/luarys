@@ -249,6 +249,17 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
     }
     idLancamentoFinanceiro = (rpcData as any)?.financeiro_id || null;
 
+    // A RPC devolve duplicado=true quando JÁ existia um lançamento não estornado
+    // para os mesmos agendamentos (duas abas/aparelhos fechando a mesma comanda).
+    // Nesse caso ela não gravou nada de novo — só devolveu o id existente. Encerra
+    // aqui para não creditar fidelidade, somar métricas do cliente nem lançar no
+    // caixa uma segunda vez sobre uma venda que já estava fechada.
+    if ((rpcData as any)?.duplicado === true) {
+      toast.aviso('Esta conta já havia sido fechada — nenhum lançamento foi duplicado.');
+      setModalCaixaAberto(false);
+      return idLancamentoFinanceiro;
+    }
+
     // Registra o consumo dos serviços inclusos da assinatura (best-effort, após a
     // gravação atômica — nunca bloqueia o fechamento).
     if (calc.consumos.length > 0) {
@@ -429,13 +440,27 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         if (fidConf?.ativo && Number(fidConf.pontos_por_real) > 0 && valorAPagar > 0) {
           const pontos = Math.floor(valorAPagar * Number(fidConf.pontos_por_real));
           if (pontos > 0) {
-            await supabase.from('fidelidade_transacoes').insert({
+            const linhaPontos = {
               salao_id: perfil.salao_id,
               cliente_id: cliente.id,
               tipo: 'ganho',
               pontos,
               descricao: `Atendimento - OS ${osNumero || new Date().toLocaleDateString('pt-BR')}`,
-            });
+            };
+            // financeiro_id vincula os pontos à venda — é o que permite ao estorno
+            // saber quantos retirar depois (migration 20260804b). Se a migration
+            // ainda não tiver sido aplicada, a coluna não existe e o insert falha
+            // com 42703; nesse caso regrava sem o vínculo, para o cliente não ficar
+            // sem os pontos enquanto o banco não é atualizado.
+            let { error: errPontos } = await supabase
+              .from('fidelidade_transacoes')
+              .insert({ ...linhaPontos, financeiro_id: idLancamentoFinanceiro });
+            if (errPontos?.code === '42703') {
+              ({ error: errPontos } = await supabase.from('fidelidade_transacoes').insert(linhaPontos));
+            }
+            if (errPontos && process.env.NODE_ENV === 'development') {
+              console.warn('Fechamento: falha ao creditar pontos:', errPontos.message);
+            }
           }
         }
       } catch (e: any) {
@@ -446,11 +471,23 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
       const pontosQtd = (dadosCaixa as any).pontosFidelidadeQtd || 0;
       if (pontosQtd > 0) {
         try {
-          await supabase.rpc('resgatar_credito_fidelidade', {
+          const argsResgate = {
             p_salao_id:   perfil.salao_id,
             p_cliente_id: cliente.id,
             p_pontos:     pontosQtd,
+          };
+          // p_financeiro_id vincula o resgate à venda, para o estorno devolver
+          // estes pontos ao cliente (migration 20260804b). Enquanto a migration
+          // não for aplicada, a função só aceita 3 argumentos e a chamada falha —
+          // então repete sem o parâmetro. Sem esse cuidado o cliente receberia o
+          // desconto SEM ter os pontos debitados.
+          const { error: errResgate } = await supabase.rpc('resgatar_credito_fidelidade', {
+            ...argsResgate,
+            p_financeiro_id: idLancamentoFinanceiro,
           });
+          if (errResgate) {
+            await supabase.rpc('resgatar_credito_fidelidade', argsResgate);
+          }
         } catch { /* silencioso — nunca bloqueia o fechamento */ }
       }
     }

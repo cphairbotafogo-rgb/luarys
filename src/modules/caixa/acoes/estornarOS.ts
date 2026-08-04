@@ -24,6 +24,32 @@ async function verificarPin(salaoId: string, pin: string): Promise<string | null
   return null;
 }
 
+/**
+ * Devolve ao estoque o produto revendido e reverte os pontos de fidelidade da
+ * venda (ganhos e resgates). Insumo de ficha técnica NÃO volta — foi consumido
+ * de verdade no atendimento, ainda que a venda seja estornada.
+ * A RPC é idempotente: chamar duas vezes na mesma venda não devolve em dobro.
+ */
+async function reverterMovimentosDaVenda(financeiroId: string | number, salaoId: string) {
+  const { data, error } = await supabase.rpc('reverter_movimentos_venda', {
+    p_financeiro_id: Number(financeiroId),
+    p_salao_id: salaoId,
+  });
+  if (error) {
+    // Não derruba o estorno: o lançamento financeiro já foi marcado como
+    // estornado e o operador precisa ver a operação concluir. Fica no log para
+    // ajuste manual de estoque/pontos.
+    console.error('[estornarOS] Falha ao reverter estoque/fidelidade:', error.message);
+    return;
+  }
+  const r = data as any;
+  if (r?.revertido) {
+    console.info(
+      `[estornarOS] Venda ${financeiroId}: ${r.itens_estoque_devolvidos} item(ns) devolvidos ao estoque, ${r.pontos_revertidos} ponto(s) revertidos.`,
+    );
+  }
+}
+
 async function reverterAgendamentos(agendamentoIds: any[]) {
   const ids = (agendamentoIds || []).filter((id: any) => typeof id === 'string' && UUID_RE.test(id));
   if (ids.length === 0) return;
@@ -73,18 +99,10 @@ async function reverterMetricasCliente(salaoId: string, clienteNome: string, val
   });
   if (errMetricas) console.error('[estornarOS] Falha ao reverter métricas do cliente:', errMetricas.message);
 
-  // Registra o evento de estorno na fidelidade. `pontos: 0` é proposital: esta
-  // linha é só a marca de auditoria — os pontos ganhos na venda NÃO são retirados
-  // do saldo (o saldo é a soma de `pontos`). Reverter de verdade exige localizar a
-  // transação 'ganho' da OS original; está anotado como pendência da auditoria.
-  const { error: errFid } = await supabase.from('fidelidade_transacoes').insert({
-    salao_id: salaoId,
-    cliente_id: cli.id,
-    tipo: 'estorno',
-    pontos: 0,
-    descricao: `Estorno de atendimento — ${clienteNome}`,
-  });
-  if (errFid) console.error('[estornarOS] Falha ao registrar estorno de fidelidade:', errFid.message);
+  // Os pontos de fidelidade em si são revertidos por reverterMovimentosDaVenda()
+  // (RPC reverter_movimentos_venda), que devolve ganho e resgate a partir do
+  // financeiro_id da venda. Não há lançamento de pontos aqui para não gravar duas
+  // linhas de estorno para o mesmo atendimento.
 }
 
 export async function estornarOS({ salaoId, transacao, pin, motivo, autorizador }: Params): Promise<Resultado> {
@@ -107,6 +125,7 @@ export async function estornarOS({ salaoId, transacao, pin, motivo, autorizador 
     if (error) return { ok: false, erro: 'Erro: ' + error.message };
 
     await reverterAgendamentos(finRow?.agendamento_ids || []);
+    await reverterMovimentosDaVenda(realId, salaoId);
     await cancelarNotaVinculada(String(realId), nota);
     await reverterMetricasCliente(
       salaoId,
@@ -149,6 +168,7 @@ export async function estornarOS({ salaoId, transacao, pin, motivo, autorizador 
       await supabase.from('financeiro')
         .update({ status: 'Estornado', comentario: nota }).eq('id', finRow.id);
       await reverterAgendamentos(finRow.agendamento_ids || []);
+      await reverterMovimentosDaVenda(finRow.id, salaoId);
       await cancelarNotaVinculada(String(finRow.id), nota);
       await reverterMetricasCliente(
         salaoId,
