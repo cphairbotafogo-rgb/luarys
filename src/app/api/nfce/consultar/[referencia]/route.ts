@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { consultarNFCe } from '@/lib/nfce/focusnfe';
+import { BrasilNFeAdaptadorNFCe } from '@/lib/nfce/brasilnfe';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -20,9 +20,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
   }
 
   const { data: salao } = await supabaseAdmin.from('saloes').select('config_fiscal').eq('id', perfil!.salao_id).maybeSingle();
-  const tokenFocus: string | undefined = salao?.config_fiscal?.focus_nfe_token || undefined;
+  const tokenNFCe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
-  const resultado = await consultarNFCe(referencia, tokenFocus);
+  const resultado = await BrasilNFeAdaptadorNFCe.consultar(referencia, tokenNFCe);
 
   // Reconcilia o registro local: toda consulta atualiza nfce_emissoes, então
   // uma nota que ficou "processando" (queda de rede na emissão, fila da SEFAZ)
@@ -36,9 +36,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
     .from('nfce_emissoes')
     .update({
       status: statusInterno,
-      chave_acesso: (resultado as any).chave ?? null,
-      link_danfe: (resultado as any).link_danfe ?? null,
-      link_xml: (resultado as any).link_xml ?? null,
+      chave_acesso: resultado.chave ?? null,
+      storage_path_danfe: resultado.storage_path_danfe ?? null,
+      storage_path_xml: resultado.storage_path_xml ?? null,
       mensagem_erro: statusInterno === 'erro' ? (resultado.mensagem_erro ?? null) : null,
     })
     .eq('referencia', referencia)

@@ -12,9 +12,7 @@ export function ModalNotaFiscalSalao({ salao, onClose, onSaved }: {
   const toast = useToast();
   const cf = salao.config_fiscal ?? {};
 
-  const [provedor, setProvedor]     = useState<string>(cf.provedor_nfse ?? 'focusnfe');
-  const [tokenFocus, setTokenFocus] = useState<string>(cf.focus_nfe_token ?? '');
-  const [tokenBrasil, setTokenBrasil] = useState<string>(cf.brasilnfe_token ?? '');
+  const [tokenBrasil, setTokenBrasil] = useState<string>(cf.brasilnfe_company_token ?? '');
   const [ambiente, setAmbiente]     = useState<string>(cf.ambiente_nfse ?? 'sandbox');
   const [modo, setModo]             = useState<string>(cf.modo_emissao ?? 'manual');
   const [regime, setRegime]         = useState<string>(cf.regime_tributario ?? 'Simples Nacional');
@@ -39,9 +37,7 @@ export function ModalNotaFiscalSalao({ salao, onClose, onSaved }: {
     try {
       const configFiscalNova = {
         ...cf,
-        provedor_nfse: provedor,
-        focus_nfe_token: tokenFocus.trim() || null,
-        brasilnfe_token: tokenBrasil.trim() || null,
+        brasilnfe_company_token: tokenBrasil.trim() || null,
         ambiente_nfse: ambiente,
         modo_emissao: modo,
         regime_tributario: regime,
@@ -97,50 +93,24 @@ export function ModalNotaFiscalSalao({ salao, onClose, onSaved }: {
           </div>
 
           <div>
-            <label style={labelSt}>Provedor NFS-e</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button style={radBtnSt(provedor === 'focusnfe')} onClick={() => setProvedor('focusnfe')}>Focus NFe</button>
-              <button style={radBtnSt(provedor === 'brasilnfe')} onClick={() => setProvedor('brasilnfe')}>Brasil NFe</button>
+            <label style={labelSt}>Token de Acesso — Brasil NFe (CompanyToken)</label>
+            <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>
+              Normalmente preenchido automaticamente ao registrar o CNPJ (Admin → NFS-e Luarys → Registrar Salão).
+              Só cole manualmente aqui se precisar substituir.
+            </p>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={verToken ? 'text' : 'password'}
+                style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
+                value={tokenBrasil}
+                onChange={e => setTokenBrasil(e.target.value)}
+                placeholder={tokenBrasil ? '•••••• (configurado)' : 'Cole o CompanyToken aqui...'}
+              />
+              <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
+                {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+              </button>
             </div>
           </div>
-
-          {provedor === 'focusnfe' && (
-            <div>
-              <label style={labelSt}>Token de Acesso — Focus NFe</label>
-              <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>focusnfe.com.br → Painel → API → Token de Acesso</p>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={verToken ? 'text' : 'password'}
-                  style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
-                  value={tokenFocus}
-                  onChange={e => setTokenFocus(e.target.value)}
-                  placeholder={tokenFocus ? '•••••• (configurado)' : 'Cole o token aqui...'}
-                />
-                <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
-                  {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {provedor === 'brasilnfe' && (
-            <div>
-              <label style={labelSt}>Token de Acesso — Brasil NFe</label>
-              <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>brasilnfe.com.br → Painel → Configurações → API</p>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={verToken ? 'text' : 'password'}
-                  style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
-                  value={tokenBrasil}
-                  onChange={e => setTokenBrasil(e.target.value)}
-                  placeholder={tokenBrasil ? '•••••• (configurado)' : 'Cole o token aqui...'}
-                />
-                <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
-                  {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
             <div>

@@ -278,11 +278,11 @@ export function AbaEmpresas() {
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap',
-                          color: s.modulo_fiscal_liberado && s.config_fiscal?.focus_nfe_token ? '#16A34A' : s.modulo_fiscal_liberado ? '#B45309' : C.textMuted,
-                          background: s.modulo_fiscal_liberado && s.config_fiscal?.focus_nfe_token ? '#F0FDF4' : s.modulo_fiscal_liberado ? '#FFFBEB' : '#F8F9FA',
+                          color: s.modulo_fiscal_liberado && s.config_fiscal?.brasilnfe_company_token ? '#16A34A' : s.modulo_fiscal_liberado ? '#B45309' : C.textMuted,
+                          background: s.modulo_fiscal_liberado && s.config_fiscal?.brasilnfe_company_token ? '#F0FDF4' : s.modulo_fiscal_liberado ? '#FFFBEB' : '#F8F9FA',
                         }}>
-                          {s.modulo_fiscal_liberado && (s.config_fiscal?.focus_nfe_token || s.config_fiscal?.brasilnfe_token)
-                            ? `✓ ${s.config_fiscal?.provedor_nfse === 'brasilnfe' ? 'Brasil NFe' : 'Focus NFe'}`
+                          {s.modulo_fiscal_liberado && s.config_fiscal?.brasilnfe_company_token
+                            ? '✓ Brasil NFe'
                             : s.modulo_fiscal_liberado ? 'Sem token' : 'Inativo'}
                         </span>
                         <button

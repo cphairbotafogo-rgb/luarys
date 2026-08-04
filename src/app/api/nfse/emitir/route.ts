@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { resolverAdaptador, resolverToken, buildPayloadNFSe } from '@/lib/nfse';
+import { BrasilNFeAdaptador, buildPayloadNFSe } from '@/lib/nfse';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -25,9 +25,7 @@ export async function POST(req: NextRequest) {
     .eq('id', perfil.salao_id)
     .single();
 
-  const provedor = salao?.config_fiscal?.provedor_nfse ?? 'focusnfe';
-  const adaptador = resolverAdaptador(provedor);
-  const tokenNFSe = resolverToken(salao?.config_fiscal, provedor);
+  const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
   if (!salao?.cnpj) {
     return NextResponse.json({ erro: 'CNPJ não cadastrado. Configure em Dados da Empresa.' }, { status: 422 });
@@ -75,9 +73,8 @@ export async function POST(req: NextRequest) {
   for (const nota of notas) {
     const referencia = nota.id;
     const payload = buildPayloadNFSe({ salao, nota });
-    const resultado = await adaptador.emitir(referencia, payload, tokenNFSe);
+    const resultado = await BrasilNFeAdaptador.emitir(referencia, payload, tokenNFSe);
 
-    // Mapeia status Focus NFe → status interno
     const novoStatus =
       resultado.status === 'autorizado' ? 'Emitida' :
       resultado.status === 'processando' ? 'Pendente' :
@@ -87,8 +84,8 @@ export async function POST(req: NextRequest) {
       status: novoStatus,
       id_externo: referencia,
       numero_nota: resultado.numero_nota ?? null,
-      link_pdf: resultado.link_pdf ?? null,
-      link_xml: resultado.link_xml ?? null,
+      storage_path_pdf: resultado.storage_path_pdf ?? null,
+      storage_path_xml: resultado.storage_path_xml ?? null,
       mensagem_erro: resultado.mensagem_erro ?? null,
       data_emissao: resultado.status === 'autorizado' ? new Date().toISOString() : null,
     }).eq('id', nota.id);

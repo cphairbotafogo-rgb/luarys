@@ -21,7 +21,6 @@ import { PainelCertificado } from "./nfce/PainelCertificado";
 export function SistemaNFCe({ perfil }: any) {
   const [state, dispatch] = useReducer(reducer, ESTADO0);
   const [bancoProdutos, setBancoProdutos] = useState<any[]>([]);
-  const [, setTokenConfigurado] = useState<boolean | null>(null);
   const salaoId = perfil?.salao_id;
   const liberado = useGuardModulo(salaoId, 'nfce');
 
@@ -53,7 +52,6 @@ export function SistemaNFCe({ perfil }: any) {
               codigo_ibge: data.codigo_ibge || ""
             }
           });
-          setTokenConfigurado(!!data.config_fiscal?.focus_nfe_token);
         }
       });
 
@@ -85,7 +83,7 @@ export function SistemaNFCe({ perfil }: any) {
       preco={84.00}
       itens={[
         'Cupom Fiscal Eletrônico (NFC-e) para venda de produtos',
-        'Integração com Focus NFe (homologado em todos os estados)',
+        'Integração com Brasil NFe (homologado em todos os estados)',
         'Ambiente de homologação incluso para testes',
         'Consulta de status em tempo real',
         'Cancelamento online',

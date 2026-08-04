@@ -1,28 +1,27 @@
 /**
  * src/lib/nfse/brasilnfe.ts
  *
- * Adaptador Brasil NFe — modelo MULTI-TENANT.
+ * Adaptador Brasil NFe — único provedor da plataforma (Focus NFe removido).
  *
- * Fluxo (confirmado em 30/07/2026 contra o SDK oficial `brasilnfe` no npm
- * e a documentação real em brasilnfe.com.br/api — as funções abaixo que
- * dependiam de endpoint/URL adivinhados foram corrigidas):
+ * Fluxo:
  *  1. Admin registra o CNPJ do salão via POST /api/admin/brasilnfe/cadastrar
  *     (usa bnfe.empresa.adicionarEmpresa com o UserToken master da Luarys)
  *     → Brasil NFe retorna um Token exclusivo por empresa/CNPJ
  *     → Armazenado em saloes.config_fiscal.brasilnfe_company_token
  *  2. Certificado A1 do salão é enviado com esse Token (não o UserToken) via
  *     bnfe.empresa.alterarCertificado — ver submeterCertificadoA1 abaixo.
+ *  3. Emissão de NFS-e via bnfe.notaFiscal.enviarNotaFiscalServico — ver emitir()
+ *     abaixo. TipoAmbiente (1=produção/2=homologação) é lido de
+ *     plataforma_nfse_config.ambiente, nunca hardcoded como produção.
  *
- * ⚠️ emitir/consultar/cancelar (emissão de NFS-e) AINDA NÃO foram reescritos
- * contra o SDK real — continuam no modelo antigo (endpoint adivinhado) e vão
- * falhar até essa etapa ser feita. A API real devolve XML/PDF em base64 no
- * corpo da resposta (não como link), o que exige decidir onde armazenar esses
- * arquivos (Supabase Storage) antes de implementar — não adivinhar aqui.
+ * XML/PDF vêm em base64 no corpo da resposta (não como link) — são baixados e
+ * guardados no bucket privado `notas-fiscais` (ver persistirArquivoBase64),
+ * porque `notas_fiscais.link_pdf/link_xml` foram desenhadas pra URL pública.
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { Empresa } from 'brasilnfe';
-import type { EmpresaEnvio } from 'brasilnfe';
+import { BrasilNFe, Empresa } from 'brasilnfe';
+import type { EmpresaEnvio, NFSInfo } from 'brasilnfe';
 import type { PayloadNFSe, ResultadoEmissao, AdaptadorNFSe } from './tipos';
 import { limparCnpj } from '@/lib/cnpj';
 
@@ -30,61 +29,66 @@ import { limparCnpj } from '@/lib/cnpj';
 // Única para sandbox e produção — o ambiente é um campo no payload, não a URL.
 const EMPRESA_URL = 'https://api.brasilnfe.com.br/services/Empresa/';
 
-const BASE_URL_PROD  = 'https://api.brasilnfe.com.br/v1';
-const BASE_URL_HOMOL = 'https://homologacao.brasilnfe.com.br/v1'; // ⚠️ domínio não existe — só usado pelas funções antigas abaixo, ainda não corrigidas
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-// URL base usada pelas funções antigas (emitir/consultar/cancelar) — NÃO usar em código novo
-function baseUrl(): string {
-  return process.env.BRASIL_NFE_AMBIENTE === 'producao' ? BASE_URL_PROD : BASE_URL_HOMOL;
+const BUCKET_NOTAS = 'notas-fiscais';
+
+/**
+ * Lê o ambiente configurado pela plataforma (Admin → NFS-e Luarys). Default
+ * seguro é homologação (2) — só vira produção (1) se o admin explicitamente
+ * configurar 'producao' nessa tela. Nunca hardcoded como produção no código.
+ */
+async function resolverTipoAmbiente(): Promise<1 | 2> {
+  const { data } = await supabaseAdmin
+    .from('plataforma_nfse_config')
+    .select('ambiente')
+    .eq('id', 1)
+    .maybeSingle();
+  return data?.ambiente === 'producao' ? 1 : 2;
 }
 
-function companyTokenHeaders(companyToken: string): Record<string, string> {
-  return {
-    Authorization: `Bearer ${companyToken}`,
-    'Content-Type': 'application/json',
-  };
+async function persistirCodLote(referencia: string, codLote: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('notas_fiscais')
+    .update({ cod_lote_brasilnfe: codLote })
+    .eq('id', referencia);
+  if (error) console.error('[brasilnfe] falha ao gravar cod_lote_brasilnfe:', error.message);
 }
 
-async function fetchComRetry(url: string, options: RequestInit, tentativas = 3): Promise<Response> {
-  const delays = [2000, 5000];
-  for (let i = 0; i < tentativas; i++) {
-    try {
-      const resp = await fetch(url, options);
-      if (resp.status < 500) return resp;
-      if (i < tentativas - 1) await new Promise(r => setTimeout(r, delays[i]));
-    } catch (err) {
-      if (i === tentativas - 1) throw err;
-      await new Promise(r => setTimeout(r, delays[i]));
-    }
+/** Sobe o XML/PDF (base64 devolvido pela Brasil NFe) pro bucket privado — devolve o caminho salvo, não uma URL. */
+async function persistirArquivoBase64(referencia: string, tipo: 'pdf' | 'xml', base64?: string): Promise<string | undefined> {
+  if (!base64) return undefined;
+  const caminho = `nfse/${referencia}.${tipo}`;
+  const { error } = await supabaseAdmin.storage.from(BUCKET_NOTAS).upload(caminho, Buffer.from(base64, 'base64'), {
+    contentType: tipo === 'pdf' ? 'application/pdf' : 'application/xml',
+    upsert: true,
+  });
+  if (error) {
+    console.error(`[brasilnfe] falha ao subir ${tipo} da NFS-e ${referencia}:`, error.message);
+    return undefined;
   }
-  throw new Error('Brasil NFe não respondeu após 3 tentativas.');
+  return caminho;
 }
 
-function converterPayload(payload: PayloadNFSe): Record<string, any> {
-  const servico = payload.servicos[0];
+function montarTomador(payload: PayloadNFSe): NFSInfo['Tomador'] | undefined {
+  const t = payload.tomador;
+  if (!t) return undefined;
   return {
-    prestador_cnpj:               payload.prestador.cnpj,
-    prestador_inscricao_municipal: payload.prestador.inscricao_municipal,
-    prestador_codigo_municipio:    payload.prestador.codigo_municipio,
-
-    ...(payload.tomador ? {
-      tomador_razao_social: payload.tomador.razao_social,
-      tomador_cpf:          payload.tomador.cpf,
-      tomador_cnpj:         payload.tomador.cnpj,
-      tomador_email:        payload.tomador.email,
-    } : {}),
-
-    servico_descricao:    servico.descricao,
-    servico_valor:        servico.valor_servico,
-    servico_aliquota_iss: servico.aliquota * 100,
-    servico_item_lista:   servico.item_lista_servico,
-    servico_iss_retido:   servico.iss_retido,
-    servico_base_calculo: servico.base_calculo,
-
-    data_emissao:            payload.data_emissao,
-    natureza_operacao:       payload.natureza_operacao ?? 1,
-    optante_simples_nacional: payload.optante_simples_nacional ?? false,
-    incentivador_cultural:   payload.incentivador_cultural ?? false,
+    CpfCnpj: t.cnpj || t.cpf,
+    NmTomador: t.razao_social,
+    Endereco: t.endereco ? {
+      Logradouro: t.endereco.logradouro,
+      Numero: t.endereco.numero,
+      Complemento: t.endereco.complemento,
+      Bairro: t.endereco.bairro,
+      CodMunicipio: t.endereco.codigo_municipio,
+      Uf: t.endereco.uf,
+      Cep: t.endereco.cep,
+    } : undefined,
+    Contato: t.email ? { Email: t.email } : undefined,
   };
 }
 
@@ -97,74 +101,140 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
     };
   }
 
-  const resp = await fetchComRetry(
-    `${baseUrl()}/nfse?referencia=${referencia}`,
-    {
-      method: 'POST',
-      headers: companyTokenHeaders(companyToken),
-      body: JSON.stringify(converterPayload(payload)),
+  const servico = payload.servicos[0];
+  const tipoAmbiente = await resolverTipoAmbiente();
+  const bnfe = new BrasilNFe(companyToken);
+
+  try {
+    const resp = await bnfe.notaFiscal.enviarNotaFiscalServico({
+      TipoAmbiente: tipoAmbiente,
+      nFSInfo: [{
+        IdentificadorInterno: referencia,
+        DataEmissao: payload.data_emissao,
+        Tomador: montarTomador(payload),
+        Servico: {
+          Descricao: servico.descricao,
+          ItemListaServico: servico.item_lista_servico,
+          NaturezaOperacao: payload.natureza_operacao ?? 1,
+          IncentivadorCultural: payload.incentivador_cultural ?? false,
+          IssRetido: servico.iss_retido,
+          CodTributacaoMunicipio: servico.codigo_tributario_municipio,
+          Valores: {
+            ValorServico: servico.valor_servico,
+            Aliquota: servico.aliquota * 100, // SDK espera percentual (%), payload interno guarda fração
+            ValorDeducoes: servico.valor_deducoes,
+          },
+        },
+      }],
+    });
+
+    if (resp.Error) return { sucesso: false, status: 'erro', mensagem_erro: resp.Error };
+
+    if (resp.CodLote) await persistirCodLote(referencia, resp.CodLote);
+
+    // StatusLote: 1=processado, 2=aguardando processamento na prefeitura
+    if (resp.StatusLote === 2) return { sucesso: true, status: 'processando' };
+
+    const nota = resp.Notas?.[0];
+    if (!nota || nota.Status !== 1) {
+      return { sucesso: false, status: 'erro', mensagem_erro: nota?.Erro || 'Erro desconhecido ao emitir NFS-e.' };
     }
-  );
 
-  const json = await resp.json().catch(() => ({}));
+    const [storage_path_pdf, storage_path_xml] = await Promise.all([
+      persistirArquivoBase64(referencia, 'pdf', nota.Base64Doc),
+      persistirArquivoBase64(referencia, 'xml', nota.Base64Xml),
+    ]);
 
-  if (json.status === 'autorizado' || json.situacao === 'autorizado') {
     return {
       sucesso: true,
       status: 'autorizado',
-      numero_nota: json.numero_nfse ?? json.numero,
-      link_pdf: json.url_pdf ?? json.link_pdf,
-      link_xml: json.url_xml ?? json.link_xml,
+      numero_nota: nota.NumeroNFSe,
+      storage_path_pdf,
+      storage_path_xml,
     };
+  } catch (e: any) {
+    return { sucesso: false, status: 'erro', mensagem_erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
-
-  if (json.status === 'processando' || json.situacao === 'em_processamento') {
-    return { sucesso: true, status: 'processando' };
-  }
-
-  const msgErro = json.mensagem
-    ?? json.erros?.map((e: any) => `[${e.codigo}] ${e.mensagem}`).join('; ')
-    ?? `HTTP ${resp.status}`;
-
-  return { sucesso: false, status: 'erro', mensagem_erro: msgErro };
 }
 
 async function consultar(referencia: string, companyToken?: string): Promise<ResultadoEmissao> {
   if (!companyToken) return { sucesso: false, status: 'erro', mensagem_erro: 'Salão não registrado na Brasil NFe.' };
 
-  const resp = await fetch(`${baseUrl()}/nfse/${referencia}`, {
-    headers: companyTokenHeaders(companyToken),
-  });
+  const { data: nota } = await supabaseAdmin
+    .from('notas_fiscais')
+    .select('cod_lote_brasilnfe')
+    .eq('id', referencia)
+    .maybeSingle();
 
-  const json = await resp.json().catch(() => ({}));
+  if (!nota?.cod_lote_brasilnfe) {
+    return { sucesso: false, status: 'erro', mensagem_erro: 'Nota sem lote registrado — emita novamente antes de consultar.' };
+  }
 
-  if (json.status === 'autorizado' || json.situacao === 'autorizado') {
+  const tipoAmbiente = await resolverTipoAmbiente();
+  const bnfe = new BrasilNFe(companyToken);
+
+  try {
+    const resp = await bnfe.consultas.buscarNotaFiscalServico({ codLote: nota.cod_lote_brasilnfe });
+    if (resp.Error) return { sucesso: false, status: 'erro', mensagem_erro: resp.Error };
+
+    if (resp.StatusLote === 2) return { sucesso: true, status: 'processando' };
+
+    const notaInfo = resp.Notas?.[0];
+    if (!notaInfo || notaInfo.Status !== 1) {
+      return { sucesso: false, status: 'erro', mensagem_erro: notaInfo?.Erro || 'Erro desconhecido ao consultar NFS-e.' };
+    }
+
+    const [storage_path_pdf, storage_path_xml] = await Promise.all([
+      persistirArquivoBase64(referencia, 'pdf', notaInfo.Base64Doc),
+      persistirArquivoBase64(referencia, 'xml', notaInfo.Base64Xml),
+    ]);
+
     return {
       sucesso: true,
       status: 'autorizado',
-      numero_nota: json.numero_nfse ?? json.numero,
-      link_pdf: json.url_pdf ?? json.link_pdf,
-      link_xml: json.url_xml ?? json.link_xml,
+      numero_nota: notaInfo.NumeroNFSe,
+      storage_path_pdf,
+      storage_path_xml,
     };
+  } catch (e: any) {
+    return { sucesso: false, status: 'erro', mensagem_erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
-
-  if (json.status === 'processando' || json.situacao === 'em_processamento') {
-    return { sucesso: true, status: 'processando' };
-  }
-
-  return { sucesso: false, status: 'erro', mensagem_erro: json.mensagem ?? `HTTP ${resp.status}` };
 }
 
 async function cancelar(referencia: string, justificativa: string, companyToken?: string): Promise<{ sucesso: boolean; erro?: string }> {
   if (!companyToken) return { sucesso: false, erro: 'Salão não registrado na Brasil NFe.' };
+  if ((justificativa || '').trim().length < 15) {
+    return { sucesso: false, erro: 'Justificativa precisa ter pelo menos 15 caracteres.' };
+  }
 
-  const resp = await fetch(`${baseUrl()}/nfse/${referencia}/cancelar`, {
-    method: 'POST',
-    headers: companyTokenHeaders(companyToken),
-    body: JSON.stringify({ justificativa }),
-  });
+  const { data: nota } = await supabaseAdmin
+    .from('notas_fiscais')
+    .select('numero_nota')
+    .eq('id', referencia)
+    .maybeSingle();
 
-  return { sucesso: resp.ok, erro: resp.ok ? undefined : `HTTP ${resp.status}` };
+  if (!nota?.numero_nota) {
+    return { sucesso: false, erro: 'Nota sem número — não é possível cancelar antes da emissão ser confirmada.' };
+  }
+
+  const tipoAmbiente = await resolverTipoAmbiente();
+  const bnfe = new BrasilNFe(companyToken);
+
+  try {
+    const resp = await bnfe.eventos.cancelarNotaFiscal({
+      TipoDocumento: 1, // 1 = NFS-e (usa NumeroNFSe, não ChaveNF)
+      NumeroNFSe: nota.numero_nota,
+      CodCancelamentoNFSe: 1, // 1 = Erro na emissão (padrão)
+      TipoAmbiente: tipoAmbiente,
+      Justificativa: justificativa,
+      DataEvento: new Date().toISOString(),
+    });
+
+    if (resp.Error) return { sucesso: false, erro: resp.Error };
+    return { sucesso: true };
+  } catch (e: any) {
+    return { sucesso: false, erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
+  }
 }
 
 export const BrasilNFeAdaptador: AdaptadorNFSe = { emitir, consultar, cancelar };
@@ -254,11 +324,6 @@ function crtDoRegime(regime?: string | null): number {
 }
 
 export async function cadastrarEmpresaLuarys(salaoId: string): Promise<ResultadoCadastroEmpresa> {
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
   const { data: salao, error: salaoErr } = await supabaseAdmin
     .from('saloes')
     .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')

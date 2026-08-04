@@ -41,27 +41,17 @@ export interface PayloadNFSe {
   servicos: ServicoNFSe[];
 }
 
-export interface RespostaFocusNFSe {
-  status: 'autorizado' | 'processando' | 'erro' | 'cancelado';
-  numero?: string;
-  codigo_verificacao?: string;
-  data_emissao?: string;
-  link_pdf_nfse?: string;
-  link_xml_nfse?: string;
-  caminho_xml_nfse?: string;
-  erros?: Array<{ codigo: string; mensagem: string; correcao?: string }>;
-}
-
 export interface ResultadoEmissao {
   sucesso: boolean;
   status: 'autorizado' | 'processando' | 'erro';
   numero_nota?: string;
   link_pdf?: string;
   link_xml?: string;
+  /** Caminho no bucket privado `notas-fiscais` (Brasil NFe devolve XML/PDF em base64, não como link público). */
+  storage_path_pdf?: string;
+  storage_path_xml?: string;
   mensagem_erro?: string;
 }
-
-export type ProvedorNFSe = 'focusnfe' | 'brasilnfe';
 
 export interface AdaptadorNFSe {
   emitir(referencia: string, payload: PayloadNFSe, token?: string): Promise<ResultadoEmissao>;

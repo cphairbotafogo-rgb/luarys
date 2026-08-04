@@ -18,8 +18,6 @@ export function AbaNFSeConfig() {
   const [regime, setRegime]           = useState('Simples Nacional');
   const [aliquota, setAliquota]       = useState('2.00');
   const [codServ, setCodServ]         = useState('01.07');
-  const [provedor, setProvedor]       = useState('focusnfe');
-  const [tokenFocus, setTokenFocus]   = useState('');
   const [tokenBrasil, setTokenBrasil] = useState('');
   const [ambiente, setAmbiente]       = useState('sandbox');
   const [modo, setModo]               = useState('manual');
@@ -46,8 +44,6 @@ export function AbaNFSeConfig() {
         setRegime(data.regime_tributario ?? 'Simples Nacional');
         setAliquota(String(data.aliquota_padrao ?? '2.00'));
         setCodServ(data.item_lista_servico ?? '01.07');
-        setProvedor(data.provedor ?? 'focusnfe');
-        setTokenFocus(data.token_focus ?? '');
         setTokenBrasil(data.token_brasilnfe ?? '');
         setAmbiente(data.ambiente ?? 'sandbox');
         setModo(data.modo_emissao ?? 'manual');
@@ -69,8 +65,6 @@ export function AbaNFSeConfig() {
         regime_tributario: regime,
         aliquota_padrao: parseFloat(aliquota) || 2.00,
         item_lista_servico: codServ.trim() || '01.07',
-        provedor,
-        token_focus: tokenFocus.trim() || null,
         token_brasilnfe: tokenBrasil.trim() || null,
         ambiente,
         modo_emissao: modo,
@@ -121,8 +115,7 @@ export function AbaNFSeConfig() {
     }
   }
 
-  const tokenAtivo = provedor === 'focusnfe' ? tokenFocus : tokenBrasil;
-  const configurado = !!(cnpj && ibge && tokenAtivo);
+  const configurado = !!(cnpj && ibge && tokenBrasil);
 
   return (
     <>
@@ -193,46 +186,21 @@ export function AbaNFSeConfig() {
               </div>
             </div>
 
-            {/* Provedor NFS-e */}
             <div>
-              <label style={labelSt}>Provedor NFS-e</label>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button style={radSt(provedor === 'focusnfe')} onClick={() => setProvedor('focusnfe')}>Focus NFe</button>
-                <button style={radSt(provedor === 'brasilnfe')} onClick={() => setProvedor('brasilnfe')}>Brasil NFe</button>
+              <label style={labelSt}>UserToken Brasil NFe — Conta Master Luarys</label>
+              <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>
+                Token da conta <strong>Luarys</strong> na Brasil NFe (UserToken). Usado para registrar CNPJs de salões
+                e obter um CompanyToken exclusivo por cliente.
+              </p>
+              <div style={{ position: 'relative' }}>
+                <input type={verToken ? 'text' : 'password'} style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
+                  value={tokenBrasil} onChange={e => setTokenBrasil(e.target.value)}
+                  placeholder={tokenBrasil ? '•••••• (configurado)' : 'Cole o UserToken aqui...'} />
+                <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
+                  {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                </button>
               </div>
             </div>
-
-            {provedor === 'focusnfe' && (
-              <div>
-                <label style={labelSt}>Token Focus NFe — Conta Luarys</label>
-                <div style={{ position: 'relative' }}>
-                  <input type={verToken ? 'text' : 'password'} style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
-                    value={tokenFocus} onChange={e => setTokenFocus(e.target.value)}
-                    placeholder={tokenFocus ? '•••••• (configurado)' : 'Cole o token aqui...'} />
-                  <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
-                    {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {provedor === 'brasilnfe' && (
-              <div>
-                <label style={labelSt}>UserToken Brasil NFe — Conta Master Luarys</label>
-                <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>
-                  Token da conta <strong>Luarys</strong> na Brasil NFe (UserToken). Usado para registrar CNPJs de salões
-                  e obter um CompanyToken exclusivo por cliente.
-                </p>
-                <div style={{ position: 'relative' }}>
-                  <input type={verToken ? 'text' : 'password'} style={{ ...inputSt, paddingRight: 40, fontFamily: 'monospace' }}
-                    value={tokenBrasil} onChange={e => setTokenBrasil(e.target.value)}
-                    placeholder={tokenBrasil ? '•••••• (configurado)' : 'Cole o UserToken aqui...'} />
-                  <button type="button" onClick={() => setVerToken(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
-                    {verToken ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Ambiente + Modo */}
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
@@ -263,10 +231,10 @@ export function AbaNFSeConfig() {
       </Card>
 
       {/* Ativação fiscal por salão — A1 + token */}
-      {provedor === 'brasilnfe' && !carregando && <GavetaFiscalSaloes />}
+      {!carregando && <GavetaFiscalSaloes />}
 
       {/* Cadastro de salão na Brasil NFe (multi-tenant) */}
-      {provedor === 'brasilnfe' && !carregando && (
+      {!carregando && (
         <>
           <div style={{ marginTop: 32, marginBottom: 12 }}>
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.sidebarBg, display: 'flex', alignItems: 'center', gap: 8 }}>

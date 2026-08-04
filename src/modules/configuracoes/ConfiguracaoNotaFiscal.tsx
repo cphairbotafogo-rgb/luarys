@@ -4,13 +4,12 @@ import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { inputAdmin, RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
-import { FiCheckCircle, FiAlertCircle, FiSave, FiEye, FiEyeOff, FiClock, FiLock, FiUploadCloud } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertCircle, FiSave, FiClock, FiLock, FiUploadCloud } from 'react-icons/fi';
 
 export function ConfiguracaoNotaFiscal({ perfil }: any) {
   const toast = useToast();
   const [carregando, setCarregando]         = useState(true);
   const [salvando, setSalvando]             = useState(false);
-  const [mostrarToken, setMostrarToken]     = useState(false);
 
   // Dados do salão
   const [cnpj, setCnpj]                             = useState('');
@@ -18,8 +17,6 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
   const [codigoIbge, setCodigoIbge]                 = useState('');
 
   // Config fiscal
-  const [provedor, setProvedor]           = useState<'focusnfe' | 'brasilnfe'>('focusnfe');
-  const [tokenFocus, setTokenFocus]       = useState('');
   const [brasilNFeCadastrado, setBrasilNFeCadastrado] = useState(false);
   const [brasilNFeCadastradoEm, setBrasilNFeCadastradoEm] = useState('');
   const [aliquota, setAliquota]           = useState('2.00');
@@ -43,8 +40,6 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
       setInscricaoMunicipal(data.inscricao_municipal || '');
       setCodigoIbge(data.codigo_ibge || '');
       const cf = data.config_fiscal || {};
-      setProvedor(cf.provedor_nfse || 'focusnfe');
-      setTokenFocus(cf.focus_nfe_token || '');
       setBrasilNFeCadastrado(!!cf.brasilnfe_company_token);
       setBrasilNFeCadastradoEm(cf.brasilnfe_cadastrado_em || '');
       setAliquota(String(cf.aliquota_padrao || '2.00'));
@@ -77,11 +72,9 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
 
     const configFiscalNova: Record<string, any> = {
       ...configFiscalAtual,
-      provedor_nfse:     provedor,
       aliquota_padrao:   aliquota,
       regime_tributario: regime,
     };
-    if (tokenFocus.trim()) configFiscalNova.focus_nfe_token = tokenFocus.trim();
     // brasilnfe_company_token é gerenciado exclusivamente pelo admin via /api/admin/brasilnfe/cadastrar
 
     const { error } = await supabase
@@ -129,24 +122,14 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
 
   if (carregando) return <p style={{ color: C.textLight, padding: 16 }}>Carregando...</p>;
 
-  // Para Brasil NFe: precisa de CNPJ registrado + certificado A1 instalado
-  const pronto = provedor === 'focusnfe'
-    ? !!tokenFocus.trim()
-    : (brasilNFeCadastrado && certInstalado);
+  // Precisa de CNPJ registrado na Brasil NFe + certificado A1 instalado
+  const pronto = brasilNFeCadastrado && certInstalado;
   const configurado = pronto && !!codigoIbge.trim() && !!cnpj.trim();
 
   const labelSt: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.textLight,
     textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 5,
   };
-  const radBtnSt = (ativo: boolean): React.CSSProperties => ({
-    flex: 1, padding: '9px 12px', borderRadius: RAIO_MD,
-    border: `2px solid ${ativo ? C.sidebarBg : C.borderMid}`,
-    background: ativo ? C.sidebarBg : '#fff',
-    color: ativo ? '#fff' : C.textMuted,
-    fontWeight: 700, fontSize: 12, cursor: 'pointer',
-  });
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640 }}>
 
@@ -159,7 +142,7 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: configurado ? '#166534' : '#9A3412', lineHeight: 1.5 }}>
             {configurado
-              ? `Notas emitidas sob CNPJ ${cnpj} via ${provedor === 'focusnfe' ? 'Focus NFe' : 'Brasil NFe'}.`
+              ? `Notas emitidas sob CNPJ ${cnpj} via Brasil NFe.`
               : 'A nota fiscal será emitida com a identificação do SEU estabelecimento (CNPJ, Inscrição Municipal e Código IBGE são obrigatórios).'}
           </p>
         </div>
@@ -211,67 +194,33 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
       <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RAIO_XL, padding: 24 }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Provedor de Transmissão</h3>
         <p style={{ margin: '0 0 18px', fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>
-          {provedor === 'focusnfe'
-            ? <>O provedor transmite a nota para a prefeitura usando <strong>o token da SUA conta</strong> — crie uma conta no site do provedor com seu CNPJ.</>
-            : <>Na Brasil NFe o <strong>Luarys gerencia a integração</strong> em seu nome (modelo multi-tenant). Você só precisa enviar seu Certificado A1.</>
-          }
+          Na Brasil NFe o <strong>Luarys gerencia a integração</strong> em seu nome (modelo multi-tenant). Você só precisa enviar seu Certificado A1.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={labelSt}>Provedor</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button style={radBtnSt(provedor === 'focusnfe')} onClick={() => setProvedor('focusnfe')}>Focus NFe</button>
-              <button style={radBtnSt(provedor === 'brasilnfe')} onClick={() => setProvedor('brasilnfe')}>Brasil NFe</button>
+          <div style={{
+            borderRadius: RAIO_MD,
+            border: `1px solid ${brasilNFeCadastrado ? '#BBF7D0' : '#FED7AA'}`,
+            background: brasilNFeCadastrado ? '#F0FDF4' : '#FFF7ED',
+            padding: '14px 16px',
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+          }}>
+            {brasilNFeCadastrado
+              ? <FiCheckCircle size={18} color="#15803D" style={{ flexShrink: 0, marginTop: 1 }} />
+              : <FiClock size={18} color="#C2410C" style={{ flexShrink: 0, marginTop: 1 }} />
+            }
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: brasilNFeCadastrado ? '#15803D' : '#C2410C' }}>
+                {brasilNFeCadastrado ? 'CNPJ registrado na Brasil NFe' : 'Cadastro pendente'}
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: brasilNFeCadastrado ? '#166534' : '#9A3412', lineHeight: 1.5 }}>
+                {brasilNFeCadastrado
+                  ? `Integração ativa${brasilNFeCadastradoEm ? ` desde ${new Date(brasilNFeCadastradoEm).toLocaleDateString('pt-BR')}` : ''}. O Luarys gerencia a autenticação com a Brasil NFe — nenhum token manual é necessário.`
+                  : 'O Luarys precisa registrar seu CNPJ na Brasil NFe para ativar a emissão. Entre em contato com o suporte para concluir o cadastro.'
+                }
+              </p>
             </div>
           </div>
-
-          {provedor === 'focusnfe' ? (
-            <div>
-              <label style={labelSt}>Token de Acesso — Focus NFe</label>
-              <p style={{ margin: '0 0 8px', fontSize: 11, color: C.textMuted }}>
-                Crie sua conta em <strong>focusnfe.com.br</strong> com o CNPJ do seu estabelecimento → Painel → API → Token de Acesso.
-              </p>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={mostrarToken ? 'text' : 'password'}
-                  placeholder={tokenFocus ? '•••••••• (configurado — cole novamente para alterar)' : 'Cole o token aqui...'}
-                  value={tokenFocus}
-                  onChange={e => setTokenFocus(e.target.value)}
-                  style={{ ...inputAdmin, paddingRight: 44, fontFamily: 'monospace' }}
-                />
-                <button type="button" onClick={() => setMostrarToken(v => !v)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textLight, cursor: 'pointer', display: 'flex' }}>
-                  {mostrarToken ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Brasil NFe: modelo multi-tenant — o token é gerenciado pelo Luarys, não pelo salão */
-            <div style={{
-              borderRadius: RAIO_MD,
-              border: `1px solid ${brasilNFeCadastrado ? '#BBF7D0' : '#FED7AA'}`,
-              background: brasilNFeCadastrado ? '#F0FDF4' : '#FFF7ED',
-              padding: '14px 16px',
-              display: 'flex', alignItems: 'flex-start', gap: 12,
-            }}>
-              {brasilNFeCadastrado
-                ? <FiCheckCircle size={18} color="#15803D" style={{ flexShrink: 0, marginTop: 1 }} />
-                : <FiClock size={18} color="#C2410C" style={{ flexShrink: 0, marginTop: 1 }} />
-              }
-              <div>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: brasilNFeCadastrado ? '#15803D' : '#C2410C' }}>
-                  {brasilNFeCadastrado ? 'CNPJ registrado na Brasil NFe' : 'Cadastro pendente'}
-                </p>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: brasilNFeCadastrado ? '#166534' : '#9A3412', lineHeight: 1.5 }}>
-                  {brasilNFeCadastrado
-                    ? `Integração ativa${brasilNFeCadastradoEm ? ` desde ${new Date(brasilNFeCadastradoEm).toLocaleDateString('pt-BR')}` : ''}. O Luarys gerencia a autenticação com a Brasil NFe — nenhum token manual é necessário.`
-                    : 'O Luarys precisa registrar seu CNPJ na Brasil NFe para ativar a emissão. Entre em contato com o suporte para concluir o cadastro.'
-                  }
-                </p>
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 12 }}>
             <div>
@@ -299,7 +248,7 @@ export function ConfiguracaoNotaFiscal({ perfil }: any) {
       </div>
 
       {/* CERTIFICADO A1 — Brasil NFe (Passo 2, aparece após o CNPJ ser registrado) */}
-      {provedor === 'brasilnfe' && brasilNFeCadastrado && (
+      {brasilNFeCadastrado && (
         <div style={{ background: C.bgCard, border: `1px solid ${certInstalado ? '#BBF7D0' : C.border}`, borderRadius: RAIO_XL, padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <FiLock size={16} color={certInstalado ? '#15803D' : C.sidebarBg} />

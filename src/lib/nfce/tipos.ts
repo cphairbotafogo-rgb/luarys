@@ -68,20 +68,10 @@ export interface PayloadNFCe {
   valor_total: number;
   valor_pis: number;
   valor_cofins: number;
-  csc: string;
-  csc_id: string;
+  /** Vestigial — CSC era exigido pela Focus NFe; a Brasil NFe não usa, gerencia isso por CNPJ do lado dela. */
+  csc?: string;
+  csc_id?: string;
   informacoes_adicionais_contribuinte?: string;
-}
-
-export interface RespostaFocusNFCe {
-  status: 'autorizado' | 'processando' | 'erro' | 'cancelado' | 'denegado';
-  numero?: string;
-  serie?: string;
-  chave_nfe?: string;
-  data_emissao?: string;
-  caminho_danfe?: string;
-  caminho_xml?: string;
-  erros?: Array<{ codigo: string; mensagem: string; correcao?: string }>;
 }
 
 export interface ResultadoNFCe {
@@ -89,7 +79,14 @@ export interface ResultadoNFCe {
   status: 'autorizado' | 'processando' | 'erro';
   numero_nota?: string;
   chave?: string;
-  link_danfe?: string;
-  link_xml?: string;
+  /** Caminho no bucket privado `notas-fiscais` (Brasil NFe devolve XML/DANFE em base64, não como link público). */
+  storage_path_danfe?: string;
+  storage_path_xml?: string;
   mensagem_erro?: string;
+}
+
+export interface AdaptadorNFCe {
+  emitir(referencia: string, payload: PayloadNFCe, token?: string): Promise<ResultadoNFCe>;
+  consultar(referencia: string, token?: string): Promise<ResultadoNFCe>;
+  cancelar(referencia: string, justificativa: string, token?: string): Promise<{ sucesso: boolean; erro?: string }>;
 }

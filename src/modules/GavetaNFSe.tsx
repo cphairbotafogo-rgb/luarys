@@ -39,7 +39,7 @@ export function GavetaNFSe({ perfil }: any) {
     if (!perfil?.salao_id) return;
     const { data, error } = await supabase
       .from('notas_fiscais')
-      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, link_pdf, mensagem_erro, data_emissao, item_lista_servico')
+      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, mensagem_erro, data_emissao, item_lista_servico')
       .eq('salao_id', perfil.salao_id)
       .in('status', ['Não Emitido', 'Pendente', 'Erro'])
       .order('data_emissao', { ascending: false });
@@ -71,6 +71,17 @@ export function GavetaNFSe({ perfil }: any) {
       }).subscribe();
     return () => { supabase.removeChannel(canal); };
   }, [perfil?.salao_id]);
+
+  async function abrirPdf(notaId: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) { toast.erro('Sessão expirada.'); return; }
+    try {
+      const resp = await fetch(`/api/nfse/arquivo/${notaId}?tipo=nfse&arquivo=pdf`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const json = await resp.json();
+      if (!resp.ok) { toast.erro(json.erro || 'Erro ao abrir o PDF.'); return; }
+      window.open(json.url, '_blank');
+    } catch (e: any) { toast.erro('Erro de conexão: ' + e.message); }
+  }
 
   async function verificarStatusPendentes() {
     const pendentes = notasPendentes.filter(n => n.status === 'Pendente');
@@ -149,7 +160,7 @@ const inputStyle = { ...inputAdmin };
   const statusPillStyle = (ativo: boolean, cor: string) => ({ padding: "7px 14px", background: ativo ? cor : C.bg, color: ativo ? "#fff" : C.textMuted, border: `1px solid ${ativo ? cor : C.borderMid}`, borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "0.2s" });
 
   if (liberado === null) return <div style={{ padding: 40, color: C.textLight, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}><FiLoader className="animate-spin" size={16} /> Verificando acesso...</div>;
-  if (!liberado) return <BloqueioModulo salaoId={perfil?.salao_id} moduloChave="nfse" nome="NFS-e — Nota Fiscal de Serviço" descricao="Emita NFS-e automaticamente ao fechar a conta, sem papel e sem retrabalho." preco={49.90} itens={['Emissão automática ou em lote', 'Integração Focus NFe e Brasil NFe', 'Consulta de status em tempo real', 'Histórico de notas emitidas', 'Cancelamento online']} />;
+  if (!liberado) return <BloqueioModulo salaoId={perfil?.salao_id} moduloChave="nfse" nome="NFS-e — Nota Fiscal de Serviço" descricao="Emita NFS-e automaticamente ao fechar a conta, sem papel e sem retrabalho." preco={49.90} itens={['Emissão automática ou em lote', 'Integração direta com a Brasil NFe', 'Consulta de status em tempo real', 'Histórico de notas emitidas', 'Cancelamento online']} />;
   if (carregando) return <div style={{ padding: 40, color: C.textLight, fontWeight: 700 }}>A sincronizar painel fiscal...</div>;
 
   return (
@@ -316,7 +327,7 @@ const inputStyle = { ...inputAdmin };
                             <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : C.textMuted, display: "inline-block" }}>
                               {nota.status}
                             </span>
-                            {nota.link_pdf && <a href={nota.link_pdf} target="_blank" rel="noreferrer" title="Abrir PDF da nota" onClick={e => e.stopPropagation()} style={{ color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</a>}
+                            {nota.storage_path_pdf && <button onClick={e => { e.stopPropagation(); abrirPdf(nota.id); }} title="Abrir PDF da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</button>}
                             {nota.status === 'Erro' && nota.mensagem_erro && <p style={{ margin: 0, fontSize: 10, color: C.danger, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={nota.mensagem_erro}>{nota.mensagem_erro}</p>}
                           </div>
                         </td>

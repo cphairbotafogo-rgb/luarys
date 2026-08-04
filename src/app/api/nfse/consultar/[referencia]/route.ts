@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { consultarNFSe } from '@/lib/nfse/focusnfe';
+import { BrasilNFeAdaptador } from '@/lib/nfse';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -15,16 +15,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
   if (erro) return erro;
 
   const { data: salao } = await supabaseAdmin.from('saloes').select('config_fiscal').eq('id', perfil!.salao_id).single();
-  const tokenFocus: string | undefined = salao?.config_fiscal?.focus_nfe_token || undefined;
+  const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
-  const resultado = await consultarNFSe(referencia, tokenFocus);
+  const resultado = await BrasilNFeAdaptador.consultar(referencia, tokenNFSe);
 
   if (resultado.status === 'autorizado') {
     await supabaseAdmin.from('notas_fiscais').update({
       status: 'Emitida',
       numero_nota: resultado.numero_nota ?? null,
-      link_pdf: resultado.link_pdf ?? null,
-      link_xml: resultado.link_xml ?? null,
+      storage_path_pdf: resultado.storage_path_pdf ?? null,
+      storage_path_xml: resultado.storage_path_xml ?? null,
       data_emissao: new Date().toISOString(),
       mensagem_erro: null,
     }).eq('id', referencia).eq('salao_id', perfil!.salao_id);

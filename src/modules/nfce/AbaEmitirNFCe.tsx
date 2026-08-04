@@ -2,11 +2,25 @@
 import { useState } from 'react';
 import { C } from '@/lib/constants';
 import { FiPlus, FiX, FiDownload, FiCheckCircle, FiLoader } from 'react-icons/fi';
-import { S, API, FORMAS_PAG, moedaParaFloat, ptBR } from './tipos';
+import { S, API, FORMAS_PAG, moedaParaFloat, ptBR, getAuthToken } from './tipos';
 
 export function AbaEmitirNFCe({ state, dispatch, bancoProdutos, salaoId, toast }: any) {
   const [emitindo, setEmitindo] = useState(false);
   const [sucesso, setSucesso] = useState<any>(null);
+
+  // Signed URL é de curta duração (60s) — busca só na hora do clique, nunca
+  // antecipado, senão o link pode já ter expirado quando o usuário clicar.
+  async function abrirArquivo(referencia: string, arquivo: 'danfe' | 'xml') {
+    try {
+      const token = await getAuthToken();
+      const resp = await fetch(`/api/nfse/arquivo/${referencia}?tipo=nfce&arquivo=${arquivo}`, { headers: { Authorization: `Bearer ${token}` } });
+      const json = await resp.json();
+      if (!resp.ok) { toast(json.erro || 'Erro ao abrir o arquivo.', 'erro'); return; }
+      window.open(json.url, '_blank');
+    } catch {
+      toast('Falha de conexão ao abrir o arquivo.', 'erro');
+    }
+  }
 
   const totalProdutos = state.itens.reduce((acc: number, it: any) => acc + moedaParaFloat(it.vProd), 0);
   const desconto = moedaParaFloat(state.vDesconto);
@@ -57,8 +71,8 @@ export function AbaEmitirNFCe({ state, dispatch, bancoProdutos, salaoId, toast }
       <p style={{ color: C.textLight, fontSize: 14, margin: '0 0 4px' }}>Nota Nº {sucesso.numero_nota} · Série {state.config?.serie}</p>
       {sucesso.chave && <p style={{ color: C.textLight, fontSize: 11, wordBreak: 'break-all', margin: '0 0 24px' }}>Chave: {sucesso.chave}</p>}
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        {sucesso.link_danfe && <a href={sucesso.link_danfe} target="_blank" rel="noopener noreferrer" style={{ ...S.btn(), textDecoration: 'none', fontSize: 12 }}><FiDownload size={14} /> DANFE</a>}
-        {sucesso.link_xml  && <a href={sucesso.link_xml}   target="_blank" rel="noopener noreferrer" style={{ ...S.btn(C.textMuted), textDecoration: 'none', fontSize: 12 }}><FiDownload size={14} /> XML</a>}
+        {sucesso.storage_path_danfe && <button onClick={() => abrirArquivo(sucesso.referencia, 'danfe')} style={{ ...S.btn(), fontSize: 12 }}><FiDownload size={14} /> DANFE</button>}
+        {sucesso.storage_path_xml  && <button onClick={() => abrirArquivo(sucesso.referencia, 'xml')} style={{ ...S.btn(C.textMuted), fontSize: 12 }}><FiDownload size={14} /> XML</button>}
         <button onClick={() => setSucesso(null)} style={{ ...S.btn(C.sidebarBg), fontSize: 12 }}><FiPlus size={14} /> Nova Nota</button>
       </div>
     </div>

@@ -12,7 +12,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { emitirNFCe, buildPayloadNFCe } from '@/lib/nfce/focusnfe';
+import { BrasilNFeAdaptadorNFCe } from '@/lib/nfce/brasilnfe';
+import { buildPayloadNFCe } from '@/lib/nfce/payloadBalcao';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -43,20 +44,23 @@ export async function POST(req: NextRequest) {
     .eq('id', perfil.salao_id)
     .single();
 
-  const tokenFocus: string | undefined = salao?.config_fiscal?.focus_nfe_token || undefined;
+  const tokenNFCe: string | undefined = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
   if (!salao?.cnpj) return NextResponse.json({ erro: 'CNPJ não cadastrado. Configure em Dados da Empresa.' }, { status: 422 });
   if (!salao?.codigo_ibge) return NextResponse.json({ erro: 'Código IBGE não cadastrado. Configure em Dados da Empresa.' }, { status: 422 });
+  if (!tokenNFCe) {
+    return NextResponse.json({ erro: 'Salão não registrado na Brasil NFe. Solicite ao administrador do Luarys que faça o cadastro do CNPJ.' }, { status: 422 });
+  }
 
   // ── Config NFC-e ─────────────────────────────────────────────────────────────
   const { data: configNfce } = await supabaseAdmin
     .from('configuracoes_nfce_produtos')
-    .select('crt, serie, csc_token, csc_id')
+    .select('crt, serie')
     .eq('salao_id', perfil.salao_id)
     .maybeSingle();
 
-  if (!configNfce?.csc_token) {
-    return NextResponse.json({ erro: 'Token CSC não configurado. Configure em NFC-e → Configuração Fiscal.' }, { status: 422 });
+  if (!configNfce) {
+    return NextResponse.json({ erro: 'Configuração fiscal do NFC-e não encontrada. Configure em NFC-e → Configuração Fiscal.' }, { status: 422 });
   }
 
   // ── Reserva do número: atômico, uma única instrução no banco ────────────────
@@ -104,8 +108,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Não foi possível registrar a emissão. Tente novamente.' }, { status: 500 });
   }
 
-  // ── Emissão na Focus NFe ─────────────────────────────────────────────────────
-  const resultado = await emitirNFCe(referencia, payload, tokenFocus);
+  // ── Emissão na Brasil NFe ────────────────────────────────────────────────────
+  const resultado = await BrasilNFeAdaptadorNFCe.emitir(referencia, payload, tokenNFCe);
 
   // ── Atualiza o registro com o resultado ──────────────────────────────────────
   const statusInterno =
@@ -117,9 +121,9 @@ export async function POST(req: NextRequest) {
     .from('nfce_emissoes')
     .update({
       status: statusInterno,
-      chave_acesso: (resultado as any).chave ?? null,
-      link_danfe: (resultado as any).link_danfe ?? null,
-      link_xml: (resultado as any).link_xml ?? null,
+      chave_acesso: resultado.chave ?? null,
+      storage_path_danfe: resultado.storage_path_danfe ?? null,
+      storage_path_xml: resultado.storage_path_xml ?? null,
       mensagem_erro: resultado.status === 'erro' ? (resultado.mensagem_erro ?? null) : null,
     })
     .eq('referencia', referencia)

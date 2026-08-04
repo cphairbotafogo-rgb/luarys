@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { consultarNFCe } from '@/lib/nfce/focusnfe';
+import { BrasilNFeAdaptadorNFCe } from '@/lib/nfce/brasilnfe';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     .select('config_fiscal')
     .eq('id', perfil!.salao_id)
     .maybeSingle();
-  const tokenFocus: string | undefined = salao?.config_fiscal?.focus_nfe_token || undefined;
+  const tokenNFCe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
   // Só reconcilia notas com mais de 2 minutos — as recém-emitidas ainda podem
   // estar na fila normal da SEFAZ e serão resolvidas pelo próprio fluxo de emissão.
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   for (const nota of fila) {
     try {
-      const resultado = await consultarNFCe(nota.referencia, tokenFocus);
+      const resultado = await BrasilNFeAdaptadorNFCe.consultar(nota.referencia, tokenNFCe);
 
       const statusInterno =
         resultado.status === 'autorizado' ? 'autorizado' :
@@ -74,9 +74,9 @@ export async function POST(req: NextRequest) {
         .from('nfce_emissoes')
         .update({
           status: statusInterno,
-          chave_acesso: (resultado as any).chave ?? null,
-          link_danfe: (resultado as any).link_danfe ?? null,
-          link_xml: (resultado as any).link_xml ?? null,
+          chave_acesso: resultado.chave ?? null,
+          storage_path_danfe: resultado.storage_path_danfe ?? null,
+          storage_path_xml: resultado.storage_path_xml ?? null,
           mensagem_erro: statusInterno === 'erro' ? (resultado.mensagem_erro ?? null) : null,
         })
         .eq('referencia', nota.referencia)

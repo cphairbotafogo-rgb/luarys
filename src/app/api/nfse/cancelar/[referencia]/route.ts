@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cancelarNFSe } from '@/lib/nfse/focusnfe';
+import { BrasilNFeAdaptador } from '@/lib/nfse';
 import { autenticarRota } from '@/lib/apiAuth';
 
 const supabaseAdmin = createClient(
@@ -21,10 +21,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ r
   }
 
   const { data: salao } = await supabaseAdmin.from('saloes').select('config_fiscal').eq('id', perfil!.salao_id).maybeSingle();
-  const tokenFocus: string | undefined = salao?.config_fiscal?.focus_nfe_token || undefined;
+  const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
   const { justificativa } = await req.json().catch(() => ({ justificativa: 'Cancelamento solicitado pelo cliente.' }));
-  const resultado = await cancelarNFSe(referencia, justificativa || 'Cancelamento solicitado pelo cliente.', tokenFocus);
+  const resultado = await BrasilNFeAdaptador.cancelar(referencia, justificativa || 'Cancelamento solicitado pelo cliente.', tokenNFSe);
 
   if (resultado.sucesso) {
     await supabaseAdmin.from('notas_fiscais').update({ status: 'Cancelada' }).eq('id', referencia);

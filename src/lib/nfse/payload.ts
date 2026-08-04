@@ -1,87 +1,10 @@
-import type { PayloadNFSe, RespostaFocusNFSe, ResultadoEmissao } from './tipos';
-import {
-  FOCUS_BASE_URL as BASE_URL,
-  focusAuthHeader as authHeader,
-  resolverTokenFocus,
-  fetchFocusComRetry as fetchComRetry,
-  formatarErrosFocus,
-} from '@/lib/fiscal/shared';
+import type { PayloadNFSe } from './tipos';
 
-function resolverToken(tokenDb?: string): string {
-  return resolverTokenFocus(tokenDb);
-}
-
-export async function emitirNFSe(referencia: string, payload: PayloadNFSe, tokenDb?: string): Promise<ResultadoEmissao> {
-  const token = resolverToken(tokenDb);
-  if (!token) {
-    return { sucesso: false, status: 'erro', mensagem_erro: 'Token Focus NFe não configurado. Acesse Configurações → Nota Fiscal.' };
-  }
-
-  const resp = await fetchComRetry(`${BASE_URL}/nfse?ref=${referencia}`, {
-    method: 'POST',
-    headers: { Authorization: authHeader(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const json: RespostaFocusNFSe = await resp.json();
-
-  if (json.status === 'autorizado') {
-    return {
-      sucesso: true,
-      status: 'autorizado',
-      numero_nota: json.numero,
-      link_pdf: json.link_pdf_nfse,
-      link_xml: json.link_xml_nfse,
-    };
-  }
-
-  if (json.status === 'processando') {
-    return { sucesso: true, status: 'processando' };
-  }
-
-  return { sucesso: false, status: 'erro', mensagem_erro: formatarErrosFocus(json.erros, json.status) };
-}
-
-export async function consultarNFSe(referencia: string, tokenDb?: string): Promise<ResultadoEmissao> {
-  const token = resolverToken(tokenDb);
-  if (!token) return { sucesso: false, status: 'erro', mensagem_erro: 'Token Focus NFe não configurado.' };
-
-  const resp = await fetch(`${BASE_URL}/nfse/${referencia}?completa=1`, {
-    headers: { Authorization: authHeader(token) },
-  });
-
-  const json: RespostaFocusNFSe = await resp.json();
-
-  if (json.status === 'autorizado') {
-    return {
-      sucesso: true,
-      status: 'autorizado',
-      numero_nota: json.numero,
-      link_pdf: json.link_pdf_nfse,
-      link_xml: json.link_xml_nfse,
-    };
-  }
-
-  if (json.status === 'processando') {
-    return { sucesso: true, status: 'processando' };
-  }
-
-  return { sucesso: false, status: 'erro', mensagem_erro: formatarErrosFocus(json.erros, json.status) };
-}
-
-export async function cancelarNFSe(referencia: string, justificativa: string, tokenDb?: string): Promise<{ sucesso: boolean; erro?: string }> {
-  const token = resolverToken(tokenDb);
-  if (!token) return { sucesso: false, erro: 'Token Focus NFe não configurado.' };
-
-  const resp = await fetch(`${BASE_URL}/nfse/${referencia}`, {
-    method: 'DELETE',
-    headers: { Authorization: authHeader(token), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ justificativa }),
-  });
-
-  return { sucesso: resp.ok, erro: resp.ok ? undefined : `HTTP ${resp.status}` };
-}
-
+/**
+ * Monta o payload de NFS-e a partir dos dados do salão e da nota — genérico,
+ * independente de provedor (a conversão pro formato específico da API é feita
+ * dentro do adaptador, ver `brasilnfe.ts`).
+ */
 export function buildPayloadNFSe(opts: {
   salao: {
     cnpj: string;

@@ -19,8 +19,8 @@ type NotaEmissao = {
   serie: string | null;
   status: 'processando' | 'autorizado' | 'erro' | 'cancelado';
   chave_acesso: string | null;
-  link_danfe: string | null;
-  link_xml: string | null;
+  storage_path_danfe: string | null;
+  storage_path_xml: string | null;
   mensagem_erro: string | null;
   valor_total: number | null;
   os_numero: string | null;
@@ -51,7 +51,7 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
     setCarregando(true);
     const { data, error } = await supabase
       .from('nfce_emissoes')
-      .select('id, referencia, numero, serie, status, chave_acesso, link_danfe, link_xml, mensagem_erro, valor_total, os_numero, criado_em')
+      .select('id, referencia, numero, serie, status, chave_acesso, storage_path_danfe, storage_path_xml, mensagem_erro, valor_total, os_numero, criado_em')
       .eq('salao_id', salaoId)
       .order('criado_em', { ascending: false })
       .limit(200);
@@ -92,6 +92,18 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
   };
 
   const visiveis = filtro === 'todas' ? notas : notas.filter(n => n.status === filtro);
+
+  const abrirArquivo = async (referencia: string, arquivo: 'danfe' | 'xml') => {
+    try {
+      const token = await getAuthToken();
+      const resp = await fetch(`/api/nfse/arquivo/${referencia}?tipo=nfce&arquivo=${arquivo}`, { headers: { Authorization: `Bearer ${token}` } });
+      const json = await resp.json();
+      if (!resp.ok) { toast(json.erro || 'Erro ao abrir o arquivo.', 'erro'); return; }
+      window.open(json.url, '_blank');
+    } catch {
+      toast('Falha de conexão ao abrir o arquivo.', 'erro');
+    }
+  };
 
   return (
     <div style={S.card}>
@@ -176,15 +188,15 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
                     <td style={{ padding: '10px 8px' }}>
                       {n.status === 'autorizado' ? (
                         <div style={{ display: 'flex', gap: 12 }}>
-                          {n.link_danfe && (
-                            <a href={n.link_danfe} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.sidebarBg, fontWeight: 700, fontSize: 11.5, textDecoration: 'none' }}>
+                          {n.storage_path_danfe && (
+                            <button onClick={() => abrirArquivo(n.referencia, 'danfe')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, color: C.sidebarBg, fontWeight: 700, fontSize: 11.5 }}>
                               <FiFileText size={13} /> DANFE
-                            </a>
+                            </button>
                           )}
-                          {n.link_xml && (
-                            <a href={n.link_xml} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.textMuted, fontWeight: 700, fontSize: 11.5, textDecoration: 'none' }}>
+                          {n.storage_path_xml && (
+                            <button onClick={() => abrirArquivo(n.referencia, 'xml')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, color: C.textMuted, fontWeight: 700, fontSize: 11.5 }}>
                               <FiDownload size={13} /> XML
-                            </a>
+                            </button>
                           )}
                         </div>
                       ) : <span style={{ color: C.textMuted }}>—</span>}

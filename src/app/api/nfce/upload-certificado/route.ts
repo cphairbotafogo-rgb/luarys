@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { uploadCertificadoFocus } from '@/lib/nfce/focusnfe';
 import { submeterCertificadoA1 } from '@/lib/nfse/brasilnfe';
 import { autenticarRota } from '@/lib/apiAuth';
 
@@ -96,7 +95,6 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const arquivo       = form.get('arquivo') as File | null;
   const senha         = form.get('senha') as string | null;
-  const provedorParam = (form.get('provedor') as string | null) || 'focusnfe';
 
   if (!arquivo || !senha) {
     return NextResponse.json({ erro: 'Arquivo e senha são obrigatórios.' }, { status: 400 });
@@ -132,7 +130,7 @@ export async function POST(req: NextRequest) {
   const metadados = {
     salaoId:      salaoId,
     usuarioId:    usuarioId,
-    provedor:     provedorParam,
+    provedor:     'brasilnfe',
     nomeArquivo:  arquivo.name,
     tamanhoBytes: arquivo.size,
     ipOrigem,
@@ -142,76 +140,33 @@ export async function POST(req: NextRequest) {
   console.log('[upload-certificado] Iniciando upload', {
     salao_id:    salaoId,
     usuario_id:  usuarioId,
-    provedor:    provedorParam,
     nome_arquivo: arquivo.name,
     tamanho_kb:  (arquivo.size / 1024).toFixed(1),
     ip:          ipOrigem,
     ts:          new Date().toISOString(),
   });
 
-  // ── 7. Roteamento por provedor ─────────────────────────────────────────────
+  const companyToken: string = salao.config_fiscal?.brasilnfe_company_token || '';
 
-  if (provedorParam === 'brasilnfe') {
-    const companyToken: string = salao.config_fiscal?.brasilnfe_company_token || '';
-
-    if (!companyToken) {
-      return NextResponse.json({
-        erro: 'Salão não registrado na Brasil NFe. Solicite ao administrador do Luarys que faça o cadastro do CNPJ antes de enviar o certificado.',
-      }, { status: 422 });
-    }
-
-    const resultado = await submeterCertificadoA1(buffer.toString('base64'), senha, companyToken);
-
-    if (!resultado.sucesso) {
-      const mensagemErro = `Brasil NFe recusou o certificado: ${resultado.erro ?? 'erro desconhecido'}`;
-
-      await gravarAuditoria({ ...metadados, sucesso: false, mensagemErro });
-      console.error('[upload-certificado] Falha no envio para Brasil NFe', {
-        salao_id: salaoId,
-        usuario_id: usuarioId,
-        erro: resultado.erro,
-      });
-
-      return NextResponse.json({ erro: mensagemErro }, { status: 422 });
-    }
-
-    // Registra metadados na tabela de configuração (sem a senha ou o arquivo)
-    await supabaseAdmin
-      .from('configuracoes_nfce_produtos')
-      .upsert({
-        salao_id: salaoId,
-        cert_info: {
-          instalado:        true,
-          data_instalacao:  new Date().toISOString(),
-          nome_arquivo:     arquivo.name,
-          tamanho_bytes:    arquivo.size,
-          provedor:         'brasilnfe',
-          usuario_id:       usuarioId,
-        },
-      }, { onConflict: 'salao_id' });
-
-    await gravarAuditoria({ ...metadados, sucesso: true });
-    console.log('[upload-certificado] Sucesso — Brasil NFe', {
-      salao_id:  salaoId,
-      usuario_id: usuarioId,
-      ts:        new Date().toISOString(),
-    });
-
-    return NextResponse.json({ sucesso: true });
+  if (!companyToken) {
+    return NextResponse.json({
+      erro: 'Salão não registrado na Brasil NFe. Solicite ao administrador do Luarys que faça o cadastro do CNPJ antes de enviar o certificado.',
+    }, { status: 422 });
   }
 
-  // ── Focus NFe (padrão) ────────────────────────────────────────────────────
-  const tokenFocus: string | undefined = salao.config_fiscal?.focus_nfe_token || undefined;
-  const resultado = await uploadCertificadoFocus(salao.cnpj, buffer, senha, tokenFocus);
+  const resultado = await submeterCertificadoA1(buffer.toString('base64'), senha, companyToken);
 
   if (!resultado.sucesso) {
-    await gravarAuditoria({ ...metadados, sucesso: false, mensagemErro: resultado.erro });
-    console.error('[upload-certificado] Falha no envio para Focus NFe', {
-      salao_id:  salaoId,
+    const mensagemErro = `Brasil NFe recusou o certificado: ${resultado.erro ?? 'erro desconhecido'}`;
+
+    await gravarAuditoria({ ...metadados, sucesso: false, mensagemErro });
+    console.error('[upload-certificado] Falha no envio para Brasil NFe', {
+      salao_id: salaoId,
       usuario_id: usuarioId,
-      erro:       resultado.erro,
+      erro: resultado.erro,
     });
-    return NextResponse.json({ erro: resultado.erro }, { status: 422 });
+
+    return NextResponse.json({ erro: mensagemErro }, { status: 422 });
   }
 
   // Registra metadados na tabela de configuração (sem a senha ou o arquivo)
@@ -220,17 +175,17 @@ export async function POST(req: NextRequest) {
     .upsert({
       salao_id: salaoId,
       cert_info: {
-        instalado:       true,
-        data_instalacao: new Date().toISOString(),
-        nome_arquivo:    arquivo.name,
-        tamanho_bytes:   arquivo.size,
-        provedor:        'focusnfe',
-        usuario_id:      usuarioId,
+        instalado:        true,
+        data_instalacao:  new Date().toISOString(),
+        nome_arquivo:     arquivo.name,
+        tamanho_bytes:    arquivo.size,
+        provedor:         'brasilnfe',
+        usuario_id:       usuarioId,
       },
     }, { onConflict: 'salao_id' });
 
   await gravarAuditoria({ ...metadados, sucesso: true });
-  console.log('[upload-certificado] Sucesso — Focus NFe', {
+  console.log('[upload-certificado] Sucesso — Brasil NFe', {
     salao_id:  salaoId,
     usuario_id: usuarioId,
     ts:        new Date().toISOString(),
