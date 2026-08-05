@@ -41,6 +41,7 @@ export function GavetaNFSe({ perfil }: any) {
   const [codigoMunCorrecao, setCodigoMunCorrecao] = useState('');
   const [corrigindo, setCorrigindo] = useState(false);
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
   // Prazo de cancelamento configurado pelo salao (config_fiscal). Null = sem
   // aviso: nao ha padrao seguro, o prazo varia por prefeitura.
   const [prazoCancelamentoDias, setPrazoCancelamentoDias] = useState<number | null>(null);
@@ -204,6 +205,55 @@ export function GavetaNFSe({ perfil }: any) {
    * contador. Por isso o erro do provedor e mostrado na integra: e ele que diz
    * se o problema foi prazo, e nao adianta o sistema adivinhar.
    */
+  /**
+   * Baixa num zip os XMLs do mes — o pacote que o contador pede toda virada de
+   * mes. Sem isto so havia download nota a nota, inviavel com centenas delas.
+   */
+  async function exportarXmlDoMes() {
+    const hoje = new Date();
+    const ref = window.prompt(
+      'Exportar os XML das notas emitidas em qual mês?\n\nInforme no formato MM/AAAA:',
+      `${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`,
+    );
+    if (!ref) return;
+    const [mesStr, anoStr] = ref.split('/');
+    const mes = Number(mesStr), ano = Number(anoStr);
+    if (!(mes >= 1 && mes <= 12) || !(ano >= 2020)) {
+      toast.aviso('Período inválido. Use MM/AAAA — ex: 08/2026.');
+      return;
+    }
+
+    setExportando(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { toast.erro('Sessão expirada.'); return; }
+      const resp = await fetch(`/api/nfse/exportar-xml?mes=${mes}&ano=${ano}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        toast.aviso(json?.erro || 'Não foi possível exportar.');
+        return;
+      }
+      // Baixa via blob para o navegador respeitar o Content-Disposition mesmo
+      // com o header de autorizacao (link direto nao carrega o token).
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `NFSe-${ano}-${String(mes).padStart(2, '0')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.sucesso('Download iniciado.');
+    } catch (e: any) {
+      toast.erro('Erro ao exportar: ' + e.message);
+    } finally {
+      setExportando(false);
+    }
+  }
+
   async function cancelarNota(nota: any) {
     // Aviso preventivo, nunca bloqueio. Se o salao configurou o prazo da sua
     // prefeitura, avisamos quando ja passou — mas deixamos tentar assim mesmo,
@@ -502,6 +552,11 @@ const inputStyle = { ...inputAdmin };
                     </button>
                   </div>
                 )}
+                <button onClick={exportarXmlDoMes} disabled={exportando}
+                  title="Baixar num zip os XML das notas emitidas no mês — o pacote que o contador pede"
+                  style={{ background: C.bgCard, color: C.sidebarBg, border: `1px solid ${C.borderMid}`, padding: "12px 16px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 700, cursor: exportando ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", opacity: exportando ? 0.6 : 1, whiteSpace: "nowrap" }}>
+                  <FiExternalLink size={14} /> {exportando ? 'Gerando...' : 'XML do mês'}
+                </button>
                 <button onClick={dispararLoteSelecionado} disabled={processandoLote || notasSelecionadas.length === 0}
                   style={{ background: notasSelecionadas.length > 0 ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", padding: "12px 20px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 800, cursor: (processandoLote || notasSelecionadas.length === 0) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", transition: "0.2s", opacity: (processandoLote || notasSelecionadas.length === 0) ? 0.65 : 1 }}>
                   {processandoLote ? <><FiSend size={16} /> Transmitindo...</> : <><FiSend size={16} /> Transmitir {notasSelecionadas.length > 0 ? `(${notasSelecionadas.length})` : 'Selecionadas'}</>}
