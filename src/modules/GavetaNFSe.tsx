@@ -113,6 +113,22 @@ export function GavetaNFSe({ perfil }: any) {
     else toast.info(`${pendentes.length} nota(s) ainda em processamento.`);
   }
 
+  // Nota rejeitada tem de poder ser retransmitida depois de corrigida — antes
+  // so 'Não Emitido' era selecionavel, entao uma recusa da prefeitura virava
+  // beco sem saida: nao dava para cancelar nem reenviar. 'Pendente' fica de
+  // fora de proposito: ja esta em processamento na prefeitura e reenviar
+  // duplicaria a nota.
+  const podeTransmitir = (status: string | null | undefined) =>
+    status === 'Não Emitido' || status === 'Erro';
+
+  /** Ja emitida: nao entra na contagem de pendencias nem pode ser retransmitida. */
+  const jaEmitida = (status: string | null | undefined) =>
+    status === 'Emitida' || status === 'Emitido' || status === 'AUTORIZADA';
+
+  // Declarados aqui, acima do primeiro uso: como sao const, usa-los antes da
+  // linha de declaracao estoura ReferenceError em runtime (temporal dead zone)
+  // mesmo com o tsc passando, porque a chamada acontece dentro de callback.
+
   // Filtro client-side (status + texto + período)
   const normalizar = (s: string) => (s || '').toLowerCase();
   const notasFiltradasBase = notasPendentes.filter(n => {
@@ -148,18 +164,6 @@ export function GavetaNFSe({ perfil }: any) {
   // Avisos de codigo so valem para nota que ainda vai ser transmitida.
   const semCodigoFiscal = notasFiltradasBase.filter(n => !jaEmitida(n.status) && !n.item_lista_servico).length;
   const comCodigoInvalido = notasFiltradasBase.filter(n => !jaEmitida(n.status) && codigoInvalido(n)).length;
-
-  // Nota rejeitada tem de poder ser retransmitida depois de corrigida — antes
-  // so 'Não Emitido' era selecionavel, entao uma recusa da prefeitura virava
-  // beco sem saida: nao dava para cancelar nem reenviar. 'Pendente' fica de
-  // fora de proposito: ja esta em processamento na prefeitura e reenviar
-  // duplicaria a nota.
-  const podeTransmitir = (status: string | null | undefined) =>
-    status === 'Não Emitido' || status === 'Erro';
-
-  /** Ja emitida: nao entra na contagem de pendencias nem pode ser retransmitida. */
-  const jaEmitida = (status: string | null | undefined) =>
-    status === 'Emitida' || status === 'Emitido' || status === 'AUTORIZADA';
 
   const toggleNota = (id: string) => {
     setNotasSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
