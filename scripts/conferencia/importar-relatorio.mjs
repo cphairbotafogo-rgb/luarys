@@ -65,10 +65,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const MARCA_IMPORTACAO = 'importacao-relatorio-externo';
 
-const arquivo = process.argv[2];
+const arquivos = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const aplicar = process.argv.includes('--aplicar');
-if (!arquivo) {
-  console.error('uso: node scripts/conferencia/importar-relatorio.mjs <arquivo.json> [--aplicar]');
+if (!arquivos.length) {
+  console.error('uso: node scripts/conferencia/importar-relatorio.mjs <arquivo.json...> [--aplicar]');
+  console.error('     aceita vários arquivos: um por profissional, ou o mês inteiro.');
   process.exit(1);
 }
 
@@ -95,11 +96,39 @@ const paginado = async (tabela, colunas, filtro = q => q) => {
   return todos;
 };
 
-const entrada = JSON.parse(fs.readFileSync(arquivo, 'utf8'));
-const LINHAS = entrada.atendimentos ?? [];
+// Vários arquivos são unidos ANTES de processar, de propósito.
+//
+// A trava de dia ocupado (regra 1) olha o banco: importando um profissional por
+// vez, o primeiro ocupa os dias e o segundo seria integralmente descartado. Com
+// o merge, o mês inteiro entra de uma vez e a trava só compara com o que existia
+// antes da importação. Descoberto ao importar abril/2026.
+const partes = arquivos.map(a => JSON.parse(fs.readFileSync(a, 'utf8')));
+const divergente = partes.find(p => p.salao !== partes[0].salao);
+if (divergente) {
+  console.error(`Arquivos de salões diferentes na mesma execução: "${partes[0].salao}" e "${divergente.salao}".`);
+  process.exit(1);
+}
+const entrada = {
+  salao: partes[0].salao,
+  periodo: partes[0].periodo,
+  atendimentos: partes.flatMap(p => p.atendimentos ?? []),
+};
+const LINHAS = entrada.atendimentos;
 
-console.log(`\n${aplicar ? 'APLICANDO' : 'SIMULAÇÃO (nada será gravado)'} — ${arquivo}`);
+console.log(`\n${aplicar ? 'APLICANDO' : 'SIMULAÇÃO (nada será gravado)'} — ${arquivos.join(', ')}`);
 console.log(`${LINHAS.length} atendimentos no relatório\n`);
+
+// Totais por profissional: é o número que se compara com o rodapé do PDF.
+// Conferir ANTES de aplicar — se não bater, a transcrição está errada.
+const totaisProf = {};
+LINHAS.forEach(l => {
+  totaisProf[l[1]] ??= { n: 0, valor: 0, comissao: 0 };
+  totaisProf[l[1]].n++; totaisProf[l[1]].valor += l[4]; totaisProf[l[1]].comissao += l[5];
+});
+console.log('Confira contra o rodapé de cada relatório:');
+Object.entries(totaisProf).forEach(([nome, t]) => console.log(
+  `   ${nome.padEnd(26)} ${String(t.n).padStart(3)} itens | serviços R$ ${t.valor.toFixed(2).padStart(9)} | comissão R$ ${t.comissao.toFixed(2).padStart(9)}`));
+console.log();
 
 const { data: salao } = await db.from('saloes').select('id').eq('nome_fantasia', entrada.salao).maybeSingle();
 if (!salao) { console.error(`salão "${entrada.salao}" não encontrado`); process.exit(1); }
