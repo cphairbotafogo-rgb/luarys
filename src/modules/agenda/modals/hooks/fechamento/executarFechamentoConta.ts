@@ -348,7 +348,27 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
 
       // Emissão automática — só dispara se o salão configurou "Automático" no painel fiscal
       const modoEmissao = salaoConf?.config_fiscal?.modo_emissao;
-      if (modoEmissao === 'Automático' && notaInserida?.id) {
+
+      // Formas de pagamento que o salao prefere revisar antes de transmitir.
+      //
+      // Isto ADIA a emissao, nao dispensa: a nota ja foi criada acima, continua
+      // contada como pendente no painel fiscal e sai no proximo lote. A
+      // obrigacao de emitir nasce da prestacao do servico, nao do meio de
+      // pagamento — uma configuracao que simplesmente pulasse a nota seria
+      // sonegacao, e nao e isso que este campo faz.
+      //
+      // Uso legitimo: venda em dinheiro costuma nao ter CPF do tomador e o dono
+      // quer conferir antes de mandar.
+      const formasAdiadas: string[] = Array.isArray(salaoConf?.config_fiscal?.formas_emissao_adiada)
+        ? salaoConf.config_fiscal.formas_emissao_adiada
+        : [];
+      const emissaoAdiada = formasAdiadas.includes(formaFin);
+
+      if (emissaoAdiada && notaInserida?.id) {
+        toast.info(`Nota fiscal criada como pendente (pagamento em ${formaFin}) — emita pelo painel fiscal.`, 6000);
+      }
+
+      if (modoEmissao === 'Automático' && !emissaoAdiada && notaInserida?.id) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.access_token) {

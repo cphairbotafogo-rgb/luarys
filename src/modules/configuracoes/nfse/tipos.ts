@@ -24,6 +24,8 @@ export const CFG_INICIAL = {
   // prefeitura, entao nao ha padrao seguro para cravar aqui.
   prazo_cancelamento_dias: '',
   prazo_emissao_dias: '',
+  // Formas em que a emissao automatica e adiada para revisao (nao dispensada).
+  formas_emissao_adiada: [] as string[],
   cnae: '',
   nao_enviar_cnae: false,
   desconto_operadora: false,

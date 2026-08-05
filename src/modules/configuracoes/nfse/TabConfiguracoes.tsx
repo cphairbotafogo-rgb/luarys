@@ -49,6 +49,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
           cmc:                          cf.cmc                          || '',
           prazo_cancelamento_dias:      String(cf.prazo_cancelamento_dias ?? ''),
           prazo_emissao_dias:           String(cf.prazo_emissao_dias ?? ''),
+          formas_emissao_adiada:        Array.isArray(cf.formas_emissao_adiada) ? cf.formas_emissao_adiada : [],
           cnae:                         data.cnae                       || '',
           nao_enviar_cnae:              cf.nao_enviar_cnae              || false,
           desconto_operadora:           cf.desconto_operadora           || false,
@@ -77,6 +78,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
         cmc:                          cfg.cmc,
         prazo_cancelamento_dias:      cfg.prazo_cancelamento_dias === '' ? null : Number(cfg.prazo_cancelamento_dias),
         prazo_emissao_dias:           cfg.prazo_emissao_dias === '' ? null : Number(cfg.prazo_emissao_dias),
+        formas_emissao_adiada:        cfg.formas_emissao_adiada,
         nao_enviar_cnae:              cfg.nao_enviar_cnae,
         desconto_operadora:           cfg.desconto_operadora,
         emitir_padrao_nacional:       cfg.emitir_padrao_nacional,
@@ -237,6 +239,37 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
             <option value="Lucro Real">Lucro Real</option>
           </select>
         </div>
+        <div style={card}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Revisar antes de emitir</h3>
+          {/* ADIA a emissao automatica, nao dispensa a nota. A obrigacao nasce da
+              prestacao do servico, nao do meio de pagamento — a nota continua
+              criada, contada como pendente e sai no lote. Deixar isso explicito
+              na tela e proposital: sem o texto, a opcao parece "dinheiro nao gera
+              nota", que seria outra coisa. */}
+          <p style={{ margin: '0 0 12px', fontSize: 11, color: C.textLight, lineHeight: 1.6 }}>
+            Nestas formas de pagamento a nota <strong>não sai sozinha</strong> ao fechar a conta —
+            ela fica pendente para você conferir e transmitir em lote. A nota continua devida:
+            isto muda <em>quando</em> emitir, não <em>se</em> emitir.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(['DINHEIRO', 'PIX', 'Cartão Crédito', 'Cartão Débito', 'Outros'] as const).map(forma => {
+              const marcada = (cfg.formas_emissao_adiada || []).includes(forma);
+              return (
+                <label key={forma} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.textMain, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={marcada} style={{ accentColor: C.sidebarBg }}
+                    onChange={e => up('formas_emissao_adiada', e.target.checked
+                      ? [...(cfg.formas_emissao_adiada || []), forma]
+                      : (cfg.formas_emissao_adiada || []).filter((f: string) => f !== forma))} />
+                  {forma === 'DINHEIRO' ? 'Dinheiro' : forma}
+                </label>
+              );
+            })}
+          </div>
+          <p style={{ margin: '10px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.6 }}>
+            Só tem efeito com o Modo de Emissão em <strong>Automático</strong>.
+          </p>
+        </div>
+
         <div style={card}>
           <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: C.sidebarBg }}>Modo de Emissão</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
