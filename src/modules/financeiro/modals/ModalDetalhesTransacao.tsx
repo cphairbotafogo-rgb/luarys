@@ -112,7 +112,7 @@ export function ModalDetalhesTransacao({ transacao, onClose, aoAtualizar, perfil
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
-      await fetch(`/api/nfse/cancelar/${notaId}`, {
+      const resp = await fetch(`/api/nfse/cancelar/${notaId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         // Brasil NFe exige justificativa com no mínimo 15 caracteres — o motivo
@@ -120,9 +120,30 @@ export function ModalDetalhesTransacao({ transacao, onClose, aoAtualizar, perfil
         // prefixamos com um texto fixo que já garante o mínimo.
         body: JSON.stringify({ justificativa: `Estorno da venda no Luarys — motivo: ${motivoEstorno}`.slice(0, 1000) }),
       });
-      toast.aviso('NFS-e vinculada cancelada automaticamente.');
-    } catch {
-      // falha silenciosa — não bloqueia o estorno
+
+      // O resultado precisa ser conferido. Antes o aviso de "cancelada" era
+      // disparado sempre, mesmo com a prefeitura recusando — prazo de
+      // cancelamento vencido, por exemplo. A venda ficava estornada e a nota
+      // continuava valendo: o salão pagaria ISS sobre uma venda que não houve,
+      // sem ninguém saber. Falha aqui não desfaz o estorno (a reversão já
+      // aconteceu e é o que o gerente pediu), mas tem de ficar visível.
+      const json = await resp.json().catch(() => ({}));
+      if (resp.ok && json?.sucesso !== false) {
+        toast.aviso('NFS-e vinculada cancelada automaticamente.');
+      } else {
+        toast.erro(
+          'ATENÇÃO: o estorno foi feito, mas a NFS-e NÃO foi cancelada na prefeitura' +
+          (json?.erro ? ` (${json.erro})` : '') +
+          '. A nota continua válida — cancele pelo painel fiscal ou fale com seu contador.',
+          15000,
+        );
+      }
+    } catch (e: any) {
+      toast.erro(
+        'ATENÇÃO: o estorno foi feito, mas não consegui falar com a prefeitura para cancelar a NFS-e. ' +
+        'A nota pode continuar válida — confira no painel fiscal.',
+        15000,
+      );
     }
   }
 

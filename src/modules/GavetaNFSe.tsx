@@ -36,6 +36,7 @@ export function GavetaNFSe({ perfil }: any) {
   // e impossivel quando o servico foi excluido do catalogo.
   const [codigoCorrecao, setCodigoCorrecao] = useState('');
   const [corrigindo, setCorrigindo] = useState(false);
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -178,6 +179,55 @@ export function GavetaNFSe({ perfil }: any) {
     const todasSelecionadas = elegiveisIds.length > 0 && elegiveisIds.every(id => notasSelecionadas.includes(id));
     setNotasSelecionadas(todasSelecionadas ? [] : elegiveisIds);
   };
+
+  /**
+   * Cancela uma NFS-e ja emitida na prefeitura.
+   *
+   * Ate aqui isso so existia embutido no estorno da venda (Financeiro), entao
+   * cancelar uma nota emitida por engano — sem querer desfazer a venda —
+   * simplesmente nao tinha caminho.
+   *
+   * O cancelamento tem prazo legal, que varia por municipio. Vencido o prazo a
+   * prefeitura recusa e o caminho passa a ser nota de substituicao, com o
+   * contador. Por isso o erro do provedor e mostrado na integra: e ele que diz
+   * se o problema foi prazo, e nao adianta o sistema adivinhar.
+   */
+  async function cancelarNota(nota: any) {
+    const justificativa = window.prompt(
+      `Cancelar a NFS-e nº ${nota.numero_nota ?? ''} de ${nota.cliente_nome}?
+
+` +
+      'Descreva o motivo (mínimo 15 caracteres — exigência da prefeitura):',
+      '',
+    );
+    if (justificativa === null) return;
+    if (justificativa.trim().length < 15) {
+      toast.aviso('A justificativa precisa ter pelo menos 15 caracteres.');
+      return;
+    }
+
+    setCancelandoId(nota.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { toast.erro('Sessão expirada.'); return; }
+      const resp = await fetch(`/api/nfse/cancelar/${nota.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ justificativa: justificativa.trim() }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json?.sucesso === false) {
+        toast.erro(json?.erro || 'A prefeitura recusou o cancelamento.', 12000);
+        return;
+      }
+      toast.sucesso('NFS-e cancelada na prefeitura.');
+      await buscarNotasPendentes();
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+    } finally {
+      setCancelandoId(null);
+    }
+  }
 
   async function aplicarCorrecaoCodigo() {
     const codigo = codigoCorrecao.trim();
@@ -466,6 +516,13 @@ const inputStyle = { ...inputAdmin };
                             <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : jaEmitida(nota.status) ? "#DCFCE7" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : jaEmitida(nota.status) ? "#166534" : C.textMuted, display: "inline-block" }}>
                               {nota.status}
                             </span>
+                            {jaEmitida(nota.status) && (
+                              <button onClick={e => { e.stopPropagation(); cancelarNota(nota); }} disabled={cancelandoId === nota.id}
+                                title="Cancelar esta nota na prefeitura"
+                                style={{ background: "none", border: "none", padding: 0, cursor: cancelandoId === nota.id ? "wait" : "pointer", color: C.danger, display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700 }}>
+                                <FiX size={11} /> {cancelandoId === nota.id ? 'Cancelando...' : 'Cancelar'}
+                              </button>
+                            )}
                             {nota.storage_path_pdf && <button onClick={e => { e.stopPropagation(); abrirPdf(nota.id); }} title="Abrir PDF da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</button>}
                             {nota.status === 'Erro' && nota.mensagem_erro && <p style={{ margin: 0, fontSize: 10, color: C.danger, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={nota.mensagem_erro}>{nota.mensagem_erro}</p>}
                           </div>
