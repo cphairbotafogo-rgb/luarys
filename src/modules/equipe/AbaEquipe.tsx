@@ -24,7 +24,7 @@ import { ModalAdiantamento } from "./modal/ModalAdiantamento";
 import { ModalFuncoes } from "./modal/ModalFuncoes";
 import { ModalLimitePlano } from "./modal/ModalLimitePlano";
 import { limparCnpj, validarCnpj, cnpjCompleto } from '@/lib/cnpj';
-import { contratoEhParceria, funcaoPermitidaParceria, regimePermiteSalaoParceiro, FUNCOES_PERMITIDAS_PARCERIA } from '@/lib/salaoParceiro';
+import { contratoEhParceria, funcaoPermitidaParceria, regimePermiteSalaoParceiro, ehTitularDoSalao, FUNCOES_PERMITIDAS_PARCERIA } from '@/lib/salaoParceiro';
 
 // Deriva o regime fiscal do profissional a partir do tipo de contrato e CNPJ.
 // Usada em salvarProfissional — coluna tipo_parceiro é consultável no banco.
@@ -54,6 +54,7 @@ export function AbaEquipe({ perfil }: any) {
 
   const [listaFuncoes, setListaFuncoes] = useState<any[]>([]);
   const [regimeSalao, setRegimeSalao] = useState<string>('');
+  const [cnpjSalao, setCnpjSalao] = useState<string>('');
   const [modalFuncoesAberto, setModalFuncoesAberto] = useState(false);
   const [novaFuncaoTexto, setNovaFuncaoTexto] = useState("");
   const [subindoFoto, setSubindoFoto] = useState(false);
@@ -115,7 +116,7 @@ export function AbaEquipe({ perfil }: any) {
     const [resProfissionais, resServicos, resSalao] = await Promise.all([
       supabase.from('profissionais').select('*').eq('salao_id', perfil.salao_id).order('nome'),
       supabase.from('servicos').select('id, nome_servico, categoria, setor, comissao_padrao').eq('salao_id', perfil.salao_id).order('categoria').order('nome_servico'),
-      supabase.from('saloes').select('limite_profissionais, acesso_total, pin_gerente, regime_tributario').eq('id', perfil.salao_id).maybeSingle()
+      supabase.from('saloes').select('limite_profissionais, acesso_total, pin_gerente, regime_tributario, cnpj').eq('id', perfil.salao_id).maybeSingle()
     ]);
     if (resProfissionais.data) setProfissionaisReais(resProfissionais.data);
     if (resServicos.data) setServicosDb(resServicos.data);
@@ -123,6 +124,7 @@ export function AbaEquipe({ perfil }: any) {
       setInfoPlano({ limite: resSalao.data.limite_profissionais ?? null, acessoTotal: !!resSalao.data.acesso_total });
       setPinGerente(resSalao.data.pin_gerente || null);
       setRegimeSalao(resSalao.data.regime_tributario || '');
+      setCnpjSalao(resSalao.data.cnpj || '');
     }
     setCarregando(false);
   }
@@ -283,6 +285,18 @@ export function AbaEquipe({ perfil }: any) {
         toast.aviso(
           `O salão está cadastrado como ${regimeSalao}, e a Lei 13.352/2016 não permite salão-parceiro nesse regime. ` +
           'Ajuste o regime em Configurações → Dados da Empresa ou mude o tipo de contrato.'
+        );
+        setAbaModal("contrato");
+        return;
+      }
+      // O dono do CNPJ nao celebra parceria consigo mesmo: a parceria pressupoe
+      // duas partes distintas. A remuneracao do titular pelos servicos que ele
+      // presta e pro-labore.
+      if (ehTitularDoSalao(form.contrato?.cnpj, cnpjSalao)) {
+        toast.aviso(
+          'Este CNPJ é o do próprio salão. O titular não pode ser parceiro de si mesmo — ' +
+          'a parceria exige duas partes distintas. A remuneração dele pelos serviços prestados ' +
+          'deve ser pró-labore; use outro tipo de contrato.'
         );
         setAbaModal("contrato");
         return;

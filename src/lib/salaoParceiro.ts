@@ -82,6 +82,29 @@ export function regimePermiteSalaoParceiro(regime: string | null | undefined): b
   return !REGIMES_VEDADOS_AO_SALAO_PARCEIRO.some(v => r.toUpperCase() === v);
 }
 
+// ─── Titular não é parceiro de si mesmo ──────────────────────────────────────
+//
+// O contrato de parceria pressupõe DUAS partes: o salão-parceiro (pessoa
+// jurídica) e o profissional-parceiro. O dono do CNPJ não celebra parceria
+// consigo mesmo — a remuneração dele pelos serviços que presta é pró-labore.
+//
+// Apontado pela contabilidade em 05/08/2026: o titular estava cadastrado como
+// parceiro pessoa física com 30%, o que não se sustenta.
+
+export function ehTitularDoSalao(
+  cnpjProfissional: string | null | undefined,
+  cnpjSalao: string | null | undefined,
+): boolean {
+  const limpar = (v: string | null | undefined) =>
+    String(v ?? '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  const p = limpar(cnpjProfissional);
+  const sal = limpar(cnpjSalao);
+  if (!p || !sal) return false;
+  // Compara também a raiz (8 primeiras posições): filial do mesmo grupo continua
+  // sendo a mesma pessoa jurídica para efeito de parceria.
+  return p === sal || p.slice(0, 8) === sal.slice(0, 8);
+}
+
 // ─── Retenções do parceiro pessoa física (RPA) ───────────────────────────────
 //
 // Só se aplicam quando o parceiro NÃO tem CNPJ. Parceiro MEI/ME/EPP emite nota
@@ -119,26 +142,53 @@ export const TABELA_IRRF = [
 export const DEDUCAO_DEPENDENTE = 189.59;
 
 /**
+ * Redutor do IRRF criado pela Lei 15.270/2025, com efeitos a partir de 2026.
+ *
+ * Zera o imposto para rendimento tributável mensal de até R$ 5.000 e reduz
+ * gradualmente até R$ 7.350, quando se anula. Acima disso vale a tabela pura.
+ *
+ * A contabilidade confirmou (05/08/2026) que o redutor alcança pagamento a
+ * autônomo via RPA feito por pessoa jurídica — antes disto retínhamos pela
+ * tabela tradicional, acima do devido, desde janeiro/2026.
+ */
+export const REDUTOR_ISENCAO_TOTAL = 5000;
+export const REDUTOR_LIMITE = 7350;
+
+export function calcularRedutorIrrf(rendimentoTributavel: number): number {
+  const r = Number(rendimentoTributavel) || 0;
+  if (r <= REDUTOR_ISENCAO_TOTAL) return Infinity; // zera o imposto
+  if (r > REDUTOR_LIMITE) return 0;
+  // Fórmula da lei para a faixa de redução parcial.
+  const red = 978.62 - (0.133145 * r);
+  return red > 0 ? red : 0;
+}
+
+/**
  * IRRF a reter do parceiro pessoa física.
  *
  * A base é a cota-parte MENOS o INSS retido e menos as deduções por dependente
  * — descontar o INSS antes é regra, não arredondamento: aplicar a tabela sobre
  * o bruto reteria imposto a mais.
  *
- * ⚠️ Usa a tabela progressiva tradicional. A Lei 15.270/2025 criou um redutor
- * que amplia a isenção efetiva até R$ 5.000 de rendimento tributável mensal
- * (com redução parcial até R$ 7.350); se ele alcançar o rendimento de autônomo,
- * o valor retido aqui fica acima do devido — e o excesso é restituível na
- * declaração anual. Preferimos esse lado: reter a menos deixa o salão, como
- * fonte pagadora, responsável pela diferença. Confirmar com o contador.
+ * Sobre a tabela progressiva aplica-se o redutor da Lei 15.270/2025. O redutor
+ * incide sobre o RENDIMENTO TRIBUTÁVEL (a cota-parte bruta), não sobre a base
+ * já líquida de INSS — são grandezas diferentes e trocá-las deslocaria a faixa
+ * de isenção para cima.
  */
 export function calcularIrrfRetido(cotaParte: number, inssRetido: number, dependentes = 0): number {
-  const base = (Number(cotaParte) || 0) - (Number(inssRetido) || 0) - (dependentes * DEDUCAO_DEPENDENTE);
+  const bruto = Number(cotaParte) || 0;
+  const base = bruto - (Number(inssRetido) || 0) - (dependentes * DEDUCAO_DEPENDENTE);
   if (base <= 0) return 0;
 
   const faixa = TABELA_IRRF.find(f => base <= f.ate) ?? TABELA_IRRF[TABELA_IRRF.length - 1];
-  const imposto = base * faixa.aliquota - faixa.deduzir;
-  return imposto > 0 ? Math.round(imposto * 100) / 100 : 0;
+  const impostoTabela = base * faixa.aliquota - faixa.deduzir;
+  if (impostoTabela <= 0) return 0;
+
+  const redutor = calcularRedutorIrrf(bruto);
+  if (redutor === Infinity) return 0;
+
+  const devido = impostoTabela - redutor;
+  return devido > 0 ? Math.round(devido * 100) / 100 : 0;
 }
 
 /** Retenções e líquido do parceiro pessoa física, num cálculo só. */

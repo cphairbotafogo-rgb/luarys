@@ -37,6 +37,12 @@ export interface ServicoNFSe {
 
 export interface PayloadNFSe {
   data_emissao: string;
+  /**
+   * Data da prestacao do servico. Define a competencia do ISS — sem ela o
+   * provedor assume a data de emissao, jogando nota retroativa na competencia
+   * errada.
+   */
+  data_competencia?: string;
   natureza_operacao?: 1 | 2 | 3 | 4 | 5 | 6;
   optante_simples_nacional?: boolean;
   /**

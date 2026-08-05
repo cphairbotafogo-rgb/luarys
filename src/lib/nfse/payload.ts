@@ -28,6 +28,8 @@ export function buildPayloadNFSe(opts: {
     aliquota_iss?: number | null;
     /** Código de tributação da prefeitura (cTribMun), complementar ao cTribNac. */
     codigo_tributacao_municipio?: string | null;
+    /** Data do atendimento — vira a competência do ISS. Ver abaixo. */
+    data_movimentacao?: string | null;
     /** NBS do serviço (Lei da Transparência 12.741/12). */
     nbs?: string | null;
     // campos de cota-parte (Fatia 5 — discriminação gDed na NFS-e)
@@ -157,8 +159,20 @@ export function buildPayloadNFSe(opts: {
       ].join('\n')
     : descricaoBase;
 
+  // Competência do ISS = data da PRESTAÇÃO do serviço, não da emissão.
+  //
+  // Sem este campo o provedor assume a data de emissão, e uma nota emitida hoje
+  // por um atendimento de três meses atrás cairia na competência atual —
+  // concentrando receita antiga no mês corrente e divergindo da escrituração.
+  // `data_movimentacao` já guarda a data do atendimento (o fechamento a grava
+  // assim de propósito, para o DRE contar a receita no mês certo).
+  const dataCompetencia = nota.data_movimentacao
+    ? String(nota.data_movimentacao).slice(0, 10)
+    : undefined;
+
   const payload: PayloadNFSe = {
     data_emissao: dataEmissao,
+    data_competencia: dataCompetencia,
     natureza_operacao: 1,
     optante_simples_nacional: simples,
     regime_especial_tributacao: regimeEspecial,

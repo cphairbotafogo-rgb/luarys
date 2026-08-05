@@ -111,6 +111,8 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
       nFSInfo: [{
         IdentificadorInterno: referencia,
         DataEmissao: payload.data_emissao,
+        // Competencia do ISS. Omitido, o provedor usa a data de emissao.
+        DataCompetencia: payload.data_competencia,
         Tomador: montarTomador(payload),
         Servico: {
           Descricao: servico.descricao,
