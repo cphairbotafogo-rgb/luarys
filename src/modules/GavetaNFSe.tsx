@@ -8,7 +8,7 @@ import { FiShield, FiList, FiSettings, FiCheckSquare, FiSend, FiRefreshCw, FiLoa
 import { useGuardModulo } from "@/lib/useGuardModulo";
 import { BloqueioModulo } from "@/components/BloqueioModulo";
 import { ConfiguracaoNFSe } from "@/modules/configuracoes/nfse";
-import { lc116Invalido } from "@/lib/nfse/lc116";
+import { lc116Invalido, lc116Valido } from "@/lib/nfse/lc116";
 
 export function GavetaNFSe({ perfil }: any) {
   const toast = useToast();
@@ -31,6 +31,11 @@ export function GavetaNFSe({ perfil }: any) {
   // '' = todas | 'sem' = sem código LC 116 | 'invalido' = código fora do formato
   const [filtroCodigo, setFiltroCodigo] = useState<'' | 'sem' | 'invalido'>('');
   const [busca, setBusca] = useState('');
+  // Correcao de codigo direto nesta tela: antes era preciso sair para
+  // Servicos -> Edicao Rapida Fiscal, o que nao resolve as notas ja criadas e
+  // e impossivel quando o servico foi excluido do catalogo.
+  const [codigoCorrecao, setCodigoCorrecao] = useState('');
+  const [corrigindo, setCorrigindo] = useState(false);
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -173,6 +178,35 @@ export function GavetaNFSe({ perfil }: any) {
     const todasSelecionadas = elegiveisIds.length > 0 && elegiveisIds.every(id => notasSelecionadas.includes(id));
     setNotasSelecionadas(todasSelecionadas ? [] : elegiveisIds);
   };
+
+  async function aplicarCorrecaoCodigo() {
+    const codigo = codigoCorrecao.trim();
+    if (notasSelecionadas.length === 0) { toast.aviso('Selecione as notas a corrigir.'); return; }
+    if (!lc116Valido(codigo)) {
+      toast.aviso('Código inválido. São 6 dígitos, sem ponto — ex: 060101.');
+      return;
+    }
+    setCorrigindo(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { toast.erro('Sessão expirada.'); return; }
+      const resp = await fetch('/api/nfse/corrigir-codigo', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ nota_ids: notasSelecionadas, item_lista_servico: codigo }),
+      });
+      const json = await resp.json();
+      if (!resp.ok) { toast.erro(json.erro || 'Erro ao corrigir.'); return; }
+      toast.sucesso(`${json.atualizadas} nota(s) corrigida(s) para ${codigo}.`);
+      if (json.aviso) toast.aviso(json.aviso);
+      setCodigoCorrecao('');
+      await buscarNotasPendentes();
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+    } finally {
+      setCorrigindo(false);
+    }
+  }
 
   const dispararLoteSelecionado = async () => {
     if (notasSelecionadas.length === 0) { toast.aviso('Selecione ao menos uma nota.'); return; }
@@ -358,6 +392,25 @@ const inputStyle = { ...inputAdmin };
                     <FiRefreshCw size={14} style={{ animation: verificandoPendentes ? "spin 1s linear infinite" : "none" }} />
                     {verificandoPendentes ? "Consultando..." : "Verificar Status"}
                   </button>
+                )}
+                {notasSelecionadas.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.bgCard, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: "6px 10px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, whiteSpace: "nowrap" }}>Corrigir código:</span>
+                    <input
+                      list="lc116-sugestoes"
+                      value={codigoCorrecao}
+                      onChange={e => setCodigoCorrecao(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="060101"
+                      style={{ width: 92, padding: "6px 8px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: "monospace" }} />
+                    <datalist id="lc116-sugestoes">
+                      <option value="060101">Cabeleireiros, barbeiros, manicuros, pedicuros</option>
+                      <option value="060201">Esteticistas, tratamento de pele, depilação</option>
+                    </datalist>
+                    <button onClick={aplicarCorrecaoCodigo} disabled={corrigindo || !codigoCorrecao}
+                      style={{ background: codigoCorrecao ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", padding: "7px 12px", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 800, cursor: (corrigindo || !codigoCorrecao) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                      {corrigindo ? 'Aplicando...' : `Aplicar (${notasSelecionadas.length})`}
+                    </button>
+                  </div>
                 )}
                 <button onClick={dispararLoteSelecionado} disabled={processandoLote || notasSelecionadas.length === 0}
                   style={{ background: notasSelecionadas.length > 0 ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", padding: "12px 20px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 800, cursor: (processandoLote || notasSelecionadas.length === 0) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", transition: "0.2s", opacity: (processandoLote || notasSelecionadas.length === 0) ? 0.65 : 1 }}>
