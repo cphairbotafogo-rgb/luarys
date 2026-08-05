@@ -47,6 +47,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
           cofins_percentual:            String(cf.cofins_percentual     || '3.00'),
           regime_especial_tributacao:   cf.regime_especial_tributacao   || '',
           cmc:                          cf.cmc                          || '',
+          prazo_cancelamento_dias:      String(cf.prazo_cancelamento_dias ?? ''),
           cnae:                         data.cnae                       || '',
           nao_enviar_cnae:              cf.nao_enviar_cnae              || false,
           desconto_operadora:           cf.desconto_operadora           || false,
@@ -73,6 +74,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
         cofins_percentual:            cfg.cofins_percentual,
         regime_especial_tributacao:   cfg.regime_especial_tributacao,
         cmc:                          cfg.cmc,
+        prazo_cancelamento_dias:      cfg.prazo_cancelamento_dias === '' ? null : Number(cfg.prazo_cancelamento_dias),
         nao_enviar_cnae:              cfg.nao_enviar_cnae,
         desconto_operadora:           cfg.desconto_operadora,
         emitir_padrao_nacional:       cfg.emitir_padrao_nacional,
@@ -162,6 +164,24 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
                 Como a prefeitura enquadra o salão — não é o mesmo que o Regime Tributário abaixo.
                 Em <strong>— Nenhum —</strong>, o sistema usa o regime da empresa
                 (Simples Nacional → Microempresa ou EPP).
+              </p>
+            </div>
+            <div>
+              <label style={lbl}>Prazo de cancelamento (dias)</label>
+              <input type="number" min={1} max={3650} style={inputAdmin}
+                value={cfg.prazo_cancelamento_dias}
+                onChange={e => up('prazo_cancelamento_dias', e.target.value)}
+                placeholder="deixe vazio se não souber" />
+              {/* Deliberadamente vazio por padrao e configuravel por salao: o
+                  prazo varia por prefeitura e muda com a regulamentacao. Cravar
+                  um numero no codigo faria o sistema afirmar uma regra que pode
+                  nao valer — no Rio, por exemplo, fontes antigas ainda repetem
+                  "7 dias uteis" do ISSNet, revogado para quem emite pelo
+                  Ambiente Nacional desde 01/01/2026. Este campo so gera AVISO;
+                  quem decide continua sendo a prefeitura na hora da tentativa. */}
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.5 }}>
+                Só para avisar antes de tentar — não bloqueia. Varia por município e muda com a
+                regulamentação; confirme com seu contador. Vazio = sem aviso.
               </p>
             </div>
             <div>

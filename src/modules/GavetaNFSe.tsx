@@ -37,6 +37,9 @@ export function GavetaNFSe({ perfil }: any) {
   const [codigoCorrecao, setCodigoCorrecao] = useState('');
   const [corrigindo, setCorrigindo] = useState(false);
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
+  // Prazo de cancelamento configurado pelo salao (config_fiscal). Null = sem
+  // aviso: nao ha padrao seguro, o prazo varia por prefeitura.
+  const [prazoCancelamentoDias, setPrazoCancelamentoDias] = useState<number | null>(null);
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -58,6 +61,11 @@ export function GavetaNFSe({ perfil }: any) {
       .order('data_emissao', { ascending: false });
     if (error) toast.erro('Erro ao buscar notas: ' + error.message);
     if (data) setNotasPendentes(data);
+
+    const { data: cfgSalao } = await supabase
+      .from('saloes').select('config_fiscal').eq('id', perfil.salao_id).maybeSingle();
+    const prazo = Number(cfgSalao?.config_fiscal?.prazo_cancelamento_dias);
+    setPrazoCancelamentoDias(Number.isFinite(prazo) && prazo > 0 ? prazo : null);
     setCarregando(false);
   }
 
@@ -193,10 +201,26 @@ export function GavetaNFSe({ perfil }: any) {
    * se o problema foi prazo, e nao adianta o sistema adivinhar.
    */
   async function cancelarNota(nota: any) {
-    const justificativa = window.prompt(
-      `Cancelar a NFS-e nº ${nota.numero_nota ?? ''} de ${nota.cliente_nome}?
+    // Aviso preventivo, nunca bloqueio. Se o salao configurou o prazo da sua
+    // prefeitura, avisamos quando ja passou — mas deixamos tentar assim mesmo,
+    // porque existem excecoes (processo administrativo) e porque quem decide de
+    // verdade e a prefeitura no momento da tentativa, nao a nossa conta de dias.
+    let avisoPrazo = '';
+    if (prazoCancelamentoDias && nota.data_emissao) {
+      const dias = Math.floor((Date.now() - new Date(nota.data_emissao).getTime()) / 86400000);
+      if (dias > prazoCancelamentoDias) {
+        avisoPrazo =
+          `
 
-` +
+ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
+          `${prazoCancelamentoDias} dias configurado para a sua prefeitura. O cancelamento ` +
+          'automático provavelmente será recusado — nesse caso, o caminho é nota de ' +
+          'substituição ou processo administrativo, com seu contador. Você pode tentar mesmo assim.';
+      }
+    }
+
+    const justificativa = window.prompt(
+      `Cancelar a NFS-e nº ${nota.numero_nota ?? ''} de ${nota.cliente_nome}?` + avisoPrazo + '\n\n' +
       'Descreva o motivo (mínimo 15 caracteres — exigência da prefeitura):',
       '',
     );

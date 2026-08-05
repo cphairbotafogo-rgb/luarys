@@ -20,6 +20,9 @@ export const CFG_INICIAL = {
   cofins_percentual: '3.00',
   regime_especial_tributacao: '',
   cmc: '',
+  // Vazio = sem aviso. Ver comentario em TabConfiguracoes: o prazo varia por
+  // prefeitura, entao nao ha padrao seguro para cravar aqui.
+  prazo_cancelamento_dias: '',
   cnae: '',
   nao_enviar_cnae: false,
   desconto_operadora: false,
