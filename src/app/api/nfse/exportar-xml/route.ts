@@ -38,13 +38,12 @@ export async function GET(req: NextRequest) {
   const inicio = new Date(Date.UTC(ano, mes - 1, 1)).toISOString();
   const fim = new Date(Date.UTC(ano, mes, 1)).toISOString(); // 1º do mês seguinte, exclusivo
 
-  // Só nota que virou documento fiscal. Inclui os status legados da migração,
-  // senão o mês em que o salão migrou sairia incompleto para o contador.
+  // Só nota que virou documento fiscal.
   const { data: notas, error } = await supabaseAdmin
     .from('notas_fiscais')
     .select('id, numero_nota, cliente_nome, data_emissao, storage_path_xml')
     .eq('salao_id', perfil.salao_id)
-    .in('status', ['Emitida', 'Emitido', 'AUTORIZADA'])
+    .eq('status', 'Emitida')
     .gte('data_emissao', inicio)
     .lt('data_emissao', fim)
     .order('numero_nota', { ascending: true })

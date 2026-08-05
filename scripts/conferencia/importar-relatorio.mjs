@@ -21,6 +21,12 @@
  *    mesmos atendimentos de novo — o salão passaria a faturar duas vezes o
  *    mesmo corte.
  *
+ *    A trava olha AGENDAMENTOS, não comissões. Primeira versão consultava só
+ *    `comissoes` e furou em junho/2026: a migração tinha criado 126 agendamentos
+ *    sem comissão lançada, os dias 04 a 18 passaram por vazios e 36 atendimentos
+ *    entraram em duplicidade (R$ 5.888,01). Agendamento é o registro que sempre
+ *    existe quando o dia foi operado; comissão pode faltar.
+ *
  * 2. O VALOR VEM DO RELATÓRIO, NUNCA DO CATÁLOGO.
  *    Preço cobrado e preço de tabela divergem com frequência (desconto, valor
  *    combinado, serviço promocional). Quando diferem, o agendamento é marcado
@@ -150,10 +156,17 @@ if (jaImportado) {
 const profs = await paginado('profissionais', 'id,nome', q => q.eq('salao_id', SID));
 const servs = await paginado('servicos', 'id,nome_servico,preco_padrao,codigo_tributacao_nacional,codigo_municipio,aliquota_iss,nbs', q => q.eq('salao_id', SID));
 let clientes = await paginado('clientes', 'id,nome_completo', q => q.eq('salao_id', SID));
-const ocupados = new Set(
-  (await paginado('comissoes', 'data_evento', q => q
+// Agendamento é a fonte da verdade sobre "esse dia foi operado". Comissão entra
+// junto, mas é redundante de propósito: se um dia tiver comissão sem agendamento
+// (fechamento manual antigo), ele também precisa ser considerado ocupado.
+const ocupados = new Set([
+  ...(await paginado('agendamentos', 'data', q => q
+    .eq('salao_id', SID).gte('data', datas[0]).lte('data', datas.at(-1))))
+    .map(r => r.data),
+  ...(await paginado('comissoes', 'data_evento', q => q
     .eq('salao_id', SID).gte('data_evento', datas[0]).lte('data_evento', datas.at(-1))))
-    .map(r => r.data_evento));
+    .map(r => r.data_evento),
+]);
 
 const acharProf = n => profs.find(p => norm(p.nome) === norm(n)) ?? profs.find(p => norm(p.nome).includes(norm(n)));
 const acharServ = n => servs.find(x => norm(x.nome_servico) === norm(n));

@@ -63,9 +63,8 @@ export function GavetaNFSe({ perfil }: any) {
       .eq('salao_id', perfil.salao_id)
       // 'Emitida' entra na lista para a nota nao sumir depois de transmitida —
       // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
-      // Os status legados da migracao ('Emitido', 'AUTORIZADA') tambem entram,
-      // senao essas notas ficam invisiveis no sistema.
-      .in('status', ['Não Emitido', 'Pendente', 'Erro', 'Emitida', 'Emitido', 'AUTORIZADA', 'Dispensada'])
+      // 'Cancelada' fica de fora de proposito: ja saiu do fluxo de emissao.
+      .in('status', ['Não Emitido', 'Pendente', 'Erro', 'Emitida', 'Dispensada', 'Histórico'])
       .order('data_emissao', { ascending: false });
     if (error) toast.erro('Erro ao buscar notas: ' + error.message);
     if (data) setNotasPendentes(data);
@@ -146,8 +145,7 @@ export function GavetaNFSe({ perfil }: any) {
     status === 'Não Emitido' || status === 'Erro';
 
   /** Ja emitida: nao entra na contagem de pendencias nem pode ser retransmitida. */
-  const jaEmitida = (status: string | null | undefined) =>
-    status === 'Emitida' || status === 'Emitido' || status === 'AUTORIZADA';
+  const jaEmitida = (status: string | null | undefined) => status === 'Emitida';
 
   /**
    * Dispensada: servico sem receita (pacote ja pago, cortesia, avaliacao). Fica
@@ -156,8 +154,17 @@ export function GavetaNFSe({ perfil }: any) {
    */
   const dispensada = (status: string | null | undefined) => status === 'Dispensada';
 
+  /**
+   * Historico: competencia que o salao declarou no sistema anterior. Fica visivel
+   * no historico do cliente, mas nunca pode ser transmitida — no dia em que a
+   * producao e ligada, transmitir essas notas seria declarar em duplicidade uma
+   * competencia ja entregue, e cada uma precisaria ser cancelada no prazo.
+   */
+  const historica = (status: string | null | undefined) => status === 'Histórico';
+
   /** Nao esta esperando nenhuma acao do salao. */
-  const semPendencia = (status: string | null | undefined) => jaEmitida(status) || dispensada(status);
+  const semPendencia = (status: string | null | undefined) =>
+    jaEmitida(status) || dispensada(status) || historica(status);
 
   // Declarados aqui, acima do primeiro uso: como sao const, usa-los antes da
   // linha de declaracao estoura ReferenceError em runtime (temporal dead zone)
@@ -166,9 +173,7 @@ export function GavetaNFSe({ perfil }: any) {
   // Filtro client-side (status + texto + período)
   const normalizar = (s: string) => (s || '').toLowerCase();
   const notasFiltradasBase = notasPendentes.filter(n => {
-    // O filtro 'Emitida' cobre tambem os status legados da migracao, senao a
-    // nota emitida antes do sistema atual nao apareceria em lugar nenhum.
-    if (filtroStatus === 'Emitida' ? !jaEmitida(n.status) : (filtroStatus && n.status !== filtroStatus)) return false;
+    if (filtroStatus && n.status !== filtroStatus) return false;
     if (busca) {
       const b = normalizar(busca);
       if (!normalizar(n.cliente_nome).includes(b) && !normalizar(n.descricao_servico).includes(b)) return false;
@@ -514,6 +519,7 @@ const inputStyle = { ...inputAdmin };
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Pendente' ? '' : 'Pendente')} style={statusPillStyle(filtroStatus === 'Pendente', '#D97706')}>Processando</button>
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Erro' ? '' : 'Erro')} style={statusPillStyle(filtroStatus === 'Erro', '#EF4444')}>Rejeitado</button>
                   <button onClick={() => setFiltroStatus(filtroStatus === 'Emitida' ? '' : 'Emitida')} style={statusPillStyle(filtroStatus === 'Emitida', '#16A34A')}>Emitida</button>
+                  <button onClick={() => setFiltroStatus(filtroStatus === 'Histórico' ? '' : 'Histórico')} style={statusPillStyle(filtroStatus === 'Histórico', '#64748B')} title="Competências declaradas no sistema anterior. Não são transmitidas.">Histórico</button>
                 </div>
               </div>
               {/* Busca */}
@@ -680,7 +686,9 @@ const inputStyle = { ...inputAdmin };
                         <td style={{ padding: "14px 0", fontSize: 12, color: C.textMain, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.descricao_servico}</td>
                         <td style={{ padding: "14px 0" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : jaEmitida(nota.status) ? "#DCFCE7" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : jaEmitida(nota.status) ? "#166534" : C.textMuted, display: "inline-block" }}>
+                            <span
+                              title={historica(nota.status) ? 'Competência declarada no sistema anterior. Não é transmitida — enviá-la seria declarar em duplicidade.' : undefined}
+                              style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, background: nota.status === 'Erro' ? "#FEE2E2" : nota.status === 'Pendente' ? "#FEF9C3" : jaEmitida(nota.status) ? "#DCFCE7" : "#F1F5F9", color: nota.status === 'Erro' ? C.danger : nota.status === 'Pendente' ? "#92400E" : jaEmitida(nota.status) ? "#166534" : C.textMuted, display: "inline-block", cursor: historica(nota.status) ? 'help' : undefined }}>
                               {nota.status}
                             </span>
                             {jaEmitida(nota.status) && (

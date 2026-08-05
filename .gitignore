@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Resultado de execucao dos scripts de conferencia: backup de limpeza e lista de
+# pareamento. Levam nome de cliente e valor dentro, e servem para desfazer uma
+# operacao daquele dia — nao para virar historico do repositorio.
+scripts/conferencia/backup-limpeza-*.json
+scripts/conferencia/pareamento-*.json
