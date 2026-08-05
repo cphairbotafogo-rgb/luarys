@@ -320,6 +320,22 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
       const cnpjProfissional: string | null = profPrincipalObj?.cnpj_mei || null;
       const tipoParceiro: string | null = profPrincipalObj?.tipo_parceiro || null;
 
+      // Cota-parte deduzida na nota: só o que vai para profissional-parceiro com
+      // CNPJ. O que fica com o dono é receita do salão e NÃO se deduz.
+      //
+      // Antes somava todas as comissões da visita. Numa conta em que o dono e um
+      // parceiro atendem juntos, isso deduziria também a parte do dono — nota com
+      // base de cálculo menor que a devida. As NFS-e reais do piloto confirmam o
+      // comportamento certo: na conta de 25/07/2026 (R$ 1.425), o mega-hair de
+      // R$ 490 feito pelo dono entrou sem rateio nenhum, e a dedução de R$ 719,85
+      // corresponde só à cota da parceira com CNPJ.
+      const cotaParceirosCnpj = calc.comissoes.reduce((soma: number, c: any) => {
+        const p = profissionaisDb.find((pd: any) => pd.id === c.profissional_id);
+        return p?.tipo_parceiro === 'parceiro_cnpj' && p?.cnpj_mei
+          ? soma + (Number(c.valor_comissao) || 0)
+          : soma;
+      }, 0);
+
       const { data: notaInserida, error: errNota } = await supabase.from('notas_fiscais').insert([{
         salao_id: perfil.salao_id,
         financeiro_id: idLancamentoFinanceiro,
@@ -336,8 +352,8 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
         codigo_tributacao_municipio: servicoFiscal?.codigo_municipio ?? null,
         // NBS do servico (Lei da Transparencia). O provedor tem campo proprio.
         nbs: servicoFiscal?.nbs ?? null,
-        valor_cota_salao: Math.max(0, dadosCaixa.total - valorTotalComissoes),
-        valor_cota_profissional: valorTotalComissoes,
+        valor_cota_salao: Math.max(0, dadosCaixa.total - cotaParceirosCnpj),
+        valor_cota_profissional: cotaParceirosCnpj,
         profissional_nome: valorTotalComissoes > 0 ? profissionalPrincipal : null,
         cnpj_profissional: cnpjProfissional,
         tipo_parceiro: tipoParceiro,

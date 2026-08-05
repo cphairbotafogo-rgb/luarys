@@ -128,6 +128,16 @@ export async function POST(req: NextRequest) {
       storage_path_xml: resultado.storage_path_xml ?? null,
       mensagem_erro: resultado.mensagem_erro ?? null,
       data_emissao: resultado.status === 'autorizado' ? new Date().toISOString() : null,
+      // O que a prefeitura devolve junto e antes era descartado. A chave e a que
+      // abre a nota no portal nacional; sem ela o salao nao tem como provar a
+      // emissao fora do nosso banco.
+      chave_acesso: resultado.chave_acesso ?? null,
+      rps_numero: resultado.rps_numero ?? null,
+      protocolo_sefaz: resultado.protocolo_sefaz ?? null,
+      codigo_verificacao: resultado.codigo_verificacao ?? null,
+      base_calculo: resultado.base_calculo ?? null,
+      valor_iss: resultado.valor_iss ?? null,
+      aliquota_apurada: resultado.aliquota_apurada ?? null,
     }).eq('id', nota.id);
 
     if (erroUpdateNota) {

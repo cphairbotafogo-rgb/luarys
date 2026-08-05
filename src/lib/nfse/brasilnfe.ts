@@ -158,10 +158,32 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
       numero_nota: nota.NumeroNFSe,
       storage_path_pdf,
       storage_path_xml,
+      ...retornoDaPrefeitura(nota, resp.Protocolo),
     };
   } catch (e: any) {
     return { sucesso: false, status: 'erro', mensagem_erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
+}
+
+/**
+ * Campos que a prefeitura devolve junto com a nota e que antes eram descartados.
+ *
+ * A chave de acesso e a que abre a nota no portal nacional — fonte oficial, vale
+ * mais que PDF guardado. Os Valores sao o que a PREFEITURA apurou: comparar com
+ * o que enviamos e a unica forma de perceber enquadramento errado sem abrir nota
+ * por nota (uma aliquota devolvida diferente da enviada e o sintoma).
+ */
+function retornoDaPrefeitura(nota: any, protocolo?: string) {
+  const num = (v: any) => (v === null || v === undefined || v === '' ? undefined : Number(v));
+  return {
+    chave_acesso: nota?.Chave || undefined,
+    rps_numero: nota?.NumeroRPS != null ? String(nota.NumeroRPS) : undefined,
+    codigo_verificacao: nota?.CodVerificacao || undefined,
+    protocolo_sefaz: protocolo || undefined,
+    base_calculo: num(nota?.Valores?.BaseCalculo),
+    valor_iss: num(nota?.Valores?.ValorISS),
+    aliquota_apurada: num(nota?.Valores?.Aliquota),
+  };
 }
 
 async function consultar(referencia: string, companyToken?: string): Promise<ResultadoEmissao> {
@@ -202,6 +224,7 @@ async function consultar(referencia: string, companyToken?: string): Promise<Res
       numero_nota: notaInfo.NumeroNFSe,
       storage_path_pdf,
       storage_path_xml,
+      ...retornoDaPrefeitura(notaInfo, resp.Protocolo),
     };
   } catch (e: any) {
     return { sucesso: false, status: 'erro', mensagem_erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };

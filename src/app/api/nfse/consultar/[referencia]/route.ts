@@ -27,6 +27,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
       storage_path_xml: resultado.storage_path_xml ?? null,
       data_emissao: new Date().toISOString(),
       mensagem_erro: null,
+      // Mesma gravação da rota de emissão: a nota que só se confirma aqui (lote
+      // que ficou em processamento) precisa guardar a chave igual às outras.
+      chave_acesso: resultado.chave_acesso ?? null,
+      rps_numero: resultado.rps_numero ?? null,
+      protocolo_sefaz: resultado.protocolo_sefaz ?? null,
+      codigo_verificacao: resultado.codigo_verificacao ?? null,
+      base_calculo: resultado.base_calculo ?? null,
+      valor_iss: resultado.valor_iss ?? null,
+      aliquota_apurada: resultado.aliquota_apurada ?? null,
     }).eq('id', referencia).eq('salao_id', perfil!.salao_id);
   }
 

@@ -67,6 +67,15 @@ export interface ResultadoEmissao {
   storage_path_pdf?: string;
   storage_path_xml?: string;
   mensagem_erro?: string;
+  /** Chave de acesso: abre a nota no portal nacional, que é a fonte oficial. */
+  chave_acesso?: string;
+  rps_numero?: string;
+  protocolo_sefaz?: string;
+  codigo_verificacao?: string;
+  /** Valores que a PREFEITURA apurou — comparar com o que enviamos revela enquadramento errado. */
+  base_calculo?: number;
+  valor_iss?: number;
+  aliquota_apurada?: number;
 }
 
 export interface AdaptadorNFSe {

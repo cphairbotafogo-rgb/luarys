@@ -59,7 +59,7 @@ export function GavetaNFSe({ perfil }: any) {
     if (!perfil?.salao_id) return;
     const { data, error } = await supabase
       .from('notas_fiscais')
-      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, mensagem_erro, data_emissao, data_movimentacao, item_lista_servico')
+      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, storage_path_xml, mensagem_erro, data_emissao, data_movimentacao, item_lista_servico, chave_acesso, profissional_nome, aliquota_apurada, aliquota_iss')
       .eq('salao_id', perfil.salao_id)
       // 'Emitida' entra na lista para a nota nao sumir depois de transmitida —
       // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
@@ -102,16 +102,18 @@ export function GavetaNFSe({ perfil }: any) {
     return () => { supabase.removeChannel(canal); };
   }, [perfil?.salao_id]);
 
-  async function abrirPdf(notaId: string) {
+  async function abrirArquivo(notaId: string, arquivo: 'pdf' | 'xml') {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) { toast.erro('Sessão expirada.'); return; }
     try {
-      const resp = await fetch(`/api/nfse/arquivo/${notaId}?tipo=nfse&arquivo=pdf`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const resp = await fetch(`/api/nfse/arquivo/${notaId}?tipo=nfse&arquivo=${arquivo}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
       const json = await resp.json();
-      if (!resp.ok) { toast.erro(json.erro || 'Erro ao abrir o PDF.'); return; }
+      if (!resp.ok) { toast.erro(json.erro || `Erro ao abrir o ${arquivo.toUpperCase()}.`); return; }
       window.open(json.url, '_blank');
     } catch (e: any) { toast.erro('Erro de conexão: ' + e.message); }
   }
+  const abrirPdf = (notaId: string) => abrirArquivo(notaId, 'pdf');
+  const abrirXml = (notaId: string) => abrirArquivo(notaId, 'xml');
 
   async function verificarStatusPendentes() {
     const pendentes = notasPendentes.filter(n => n.status === 'Pendente');
@@ -682,6 +684,7 @@ const inputStyle = { ...inputAdmin };
                         <td style={{ padding: "14px 0" }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: C.sidebarBg }}>{nota.cliente_nome}</div>
                           {nota.cliente_cpf && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>CPF: {nota.cliente_cpf}</div>}
+                          {nota.profissional_nome && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{nota.profissional_nome}</div>}
                         </td>
                         <td style={{ padding: "14px 0", fontSize: 12, color: C.textMain, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.descricao_servico}</td>
                         <td style={{ padding: "14px 0" }}>
@@ -698,7 +701,28 @@ const inputStyle = { ...inputAdmin };
                                 <FiX size={11} /> {cancelandoId === nota.id ? 'Cancelando...' : 'Cancelar'}
                               </button>
                             )}
+                            {/* Portal nacional: fonte oficial da nota. Vale mais que o PDF
+                                guardado — e em homologacao o provedor nao devolve PDF nenhum,
+                                entao por muito tempo nao havia caminho nenhum para ver a nota. */}
+                            {nota.chave_acesso && (
+                              <a href={`https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=${nota.chave_acesso}`}
+                                target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                title="Abrir a nota no portal nacional da NFS-e"
+                                style={{ color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, textDecoration: "none" }}>
+                                <FiExternalLink size={11} /> Portal nacional
+                              </a>
+                            )}
                             {nota.storage_path_pdf && <button onClick={e => { e.stopPropagation(); abrirPdf(nota.id); }} title="Abrir PDF da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</button>}
+                            {nota.storage_path_xml && <button onClick={e => { e.stopPropagation(); abrirXml(nota.id); }} title="Baixar o XML da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.textMuted, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> XML</button>}
+                            {/* Aliquota que a prefeitura aplicou, quando difere da que enviamos:
+                                e o sintoma mais barato de enquadramento errado. */}
+                            {nota.aliquota_apurada != null && nota.aliquota_iss != null
+                              && Number(nota.aliquota_apurada) !== Number(nota.aliquota_iss) && (
+                              <span title={`Enviamos ${nota.aliquota_iss}%, a prefeitura aplicou ${nota.aliquota_apurada}%`}
+                                style={{ fontSize: 10, fontWeight: 700, color: "#92400E", cursor: "help" }}>
+                                ⚠ alíquota {nota.aliquota_apurada}%
+                              </span>
+                            )}
                             {nota.status === 'Erro' && nota.mensagem_erro && <p style={{ margin: 0, fontSize: 10, color: C.danger, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={nota.mensagem_erro}>{nota.mensagem_erro}</p>}
                           </div>
                         </td>
