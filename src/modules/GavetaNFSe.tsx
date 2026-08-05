@@ -35,6 +35,10 @@ export function GavetaNFSe({ perfil }: any) {
   // Servicos -> Edicao Rapida Fiscal, o que nao resolve as notas ja criadas e
   // e impossivel quando o servico foi excluido do catalogo.
   const [codigoCorrecao, setCodigoCorrecao] = useState('');
+  // Codigo municipal tambem e corrigivel aqui: cada item da LC 116 tem o seu no
+  // municipio, e a rejeicao E0314 vem justamente dele estar errado para aquele
+  // servico — nao adianta so acertar o nacional.
+  const [codigoMunCorrecao, setCodigoMunCorrecao] = useState('');
   const [corrigindo, setCorrigindo] = useState(false);
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
   // Prazo de cancelamento configurado pelo salao (config_fiscal). Null = sem
@@ -267,13 +271,18 @@ ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
       const resp = await fetch('/api/nfse/corrigir-codigo', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ nota_ids: notasSelecionadas, item_lista_servico: codigo }),
+        body: JSON.stringify({
+          nota_ids: notasSelecionadas,
+          item_lista_servico: codigo,
+          codigo_tributacao_municipio: codigoMunCorrecao.trim() || undefined,
+        }),
       });
       const json = await resp.json();
       if (!resp.ok) { toast.erro(json.erro || 'Erro ao corrigir.'); return; }
       toast.sucesso(`${json.atualizadas} nota(s) corrigida(s) para ${codigo}.`);
       if (json.aviso) toast.aviso(json.aviso);
       setCodigoCorrecao('');
+      setCodigoMunCorrecao('');
       await buscarNotasPendentes();
     } catch (e: any) {
       toast.erro('Erro de conexão: ' + e.message);
@@ -480,6 +489,13 @@ const inputStyle = { ...inputAdmin };
                       <option value="060101">Cabeleireiros, barbeiros, manicuros, pedicuros</option>
                       <option value="060201">Esteticistas, tratamento de pele, depilação</option>
                     </datalist>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, whiteSpace: "nowrap" }}>Munic.:</span>
+                    <input
+                      value={codigoMunCorrecao}
+                      onChange={e => setCodigoMunCorrecao(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="005"
+                      title="Código de tributação do município. Cada item da LC 116 tem o seu — deixe vazio para não alterar."
+                      style={{ width: 62, padding: "6px 8px", borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12, fontFamily: "monospace" }} />
                     <button onClick={aplicarCorrecaoCodigo} disabled={corrigindo || !codigoCorrecao}
                       style={{ background: codigoCorrecao ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", padding: "7px 12px", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 800, cursor: (corrigindo || !codigoCorrecao) ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
                       {corrigindo ? 'Aplicando...' : `Aplicar (${notasSelecionadas.length})`}
