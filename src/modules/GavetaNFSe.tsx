@@ -45,6 +45,8 @@ export function GavetaNFSe({ perfil }: any) {
   // Prazo de cancelamento configurado pelo salao (config_fiscal). Null = sem
   // aviso: nao ha padrao seguro, o prazo varia por prefeitura.
   const [prazoCancelamentoDias, setPrazoCancelamentoDias] = useState<number | null>(null);
+  // Janela de emissao configurada pelo salao. Null = sem aviso.
+  const [prazoEmissaoDias, setPrazoEmissaoDias] = useState<number | null>(null);
 
   useEffect(() => {
     if (!perfil?.salao_id) return;
@@ -56,7 +58,7 @@ export function GavetaNFSe({ perfil }: any) {
     if (!perfil?.salao_id) return;
     const { data, error } = await supabase
       .from('notas_fiscais')
-      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, mensagem_erro, data_emissao, item_lista_servico')
+      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, mensagem_erro, data_emissao, data_movimentacao, item_lista_servico')
       .eq('salao_id', perfil.salao_id)
       // 'Emitida' entra na lista para a nota nao sumir depois de transmitida —
       // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
@@ -71,6 +73,8 @@ export function GavetaNFSe({ perfil }: any) {
       .from('saloes').select('config_fiscal').eq('id', perfil.salao_id).maybeSingle();
     const prazo = Number(cfgSalao?.config_fiscal?.prazo_cancelamento_dias);
     setPrazoCancelamentoDias(Number.isFinite(prazo) && prazo > 0 ? prazo : null);
+    const prazoEmi = Number(cfgSalao?.config_fiscal?.prazo_emissao_dias);
+    setPrazoEmissaoDias(Number.isFinite(prazoEmi) && prazoEmi > 0 ? prazoEmi : null);
     setCarregando(false);
   }
 
@@ -361,6 +365,31 @@ ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
       );
       setFiltroCodigo('invalido');
       return;
+    }
+
+    // Aviso de competencia: o ISS e devido no mes da prestacao do servico, entao
+    // transmitir hoje uma nota de meses atras joga aquela receita na competencia
+    // errada — e, num lote grande, concentra meses de faturamento num mes so.
+    // Confirmacao, nunca bloqueio: fechamento retroativo legitimo acontece.
+    if (prazoEmissaoDias) {
+      const atrasadas = notasSelecionadas
+        .map(id => notasPendentes.find(n => n.id === id))
+        .filter((n): n is NonNullable<typeof n> => {
+          const ref = n?.data_movimentacao || n?.data_emissao;
+          if (!n || !ref) return false;
+          return Math.floor((Date.now() - new Date(ref).getTime()) / 86400000) > prazoEmissaoDias;
+        });
+
+      if (atrasadas.length > 0) {
+        const ok = window.confirm(
+          `${atrasadas.length} das ${notasSelecionadas.length} nota(s) selecionadas são mais antigas ` +
+          `que ${prazoEmissaoDias} dias.\n\n` +
+          'O ISS é devido no mês da prestação do serviço. Emitir agora joga essa receita na ' +
+          'competência atual, o que pode divergir da sua escrituração.\n\n' +
+          'Transmitir mesmo assim?'
+        );
+        if (!ok) return;
+      }
     }
 
     setProcessandoLote(true);

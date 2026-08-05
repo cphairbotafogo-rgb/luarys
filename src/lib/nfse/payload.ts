@@ -1,6 +1,7 @@
 import { resolverLc116 } from './lc116';
 import { validarCnpj, formatarCnpj } from '../cnpj';
 import { regimePermiteSalaoParceiro } from '../salaoParceiro';
+import { cpfParaNota } from '../cpf';
 import type { PayloadNFSe } from './tipos';
 
 /**
@@ -193,7 +194,11 @@ export function buildPayloadNFSe(opts: {
   if (nota.cliente_nome) {
     payload.tomador = {
       razao_social: nota.cliente_nome,
-      cpf: nota.cliente_cpf ? nota.cliente_cpf.replace(/\D/g, '') : undefined,
+      // CPF invalido e omitido em vez de enviado: o campo e opcional na NFS-e,
+      // entao mandar lixo transforma um dado dispensavel numa nota recusada
+      // ("CPF/CNPJ do tomador invalido"). Sem CPF a nota sai como consumidor
+      // nao identificado, que e o resultado util.
+      cpf: cpfParaNota(nota.cliente_cpf),
     };
   }
 

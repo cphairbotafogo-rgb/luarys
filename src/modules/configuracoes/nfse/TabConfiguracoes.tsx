@@ -48,6 +48,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
           regime_especial_tributacao:   cf.regime_especial_tributacao   || '',
           cmc:                          cf.cmc                          || '',
           prazo_cancelamento_dias:      String(cf.prazo_cancelamento_dias ?? ''),
+          prazo_emissao_dias:           String(cf.prazo_emissao_dias ?? ''),
           cnae:                         data.cnae                       || '',
           nao_enviar_cnae:              cf.nao_enviar_cnae              || false,
           desconto_operadora:           cf.desconto_operadora           || false,
@@ -75,6 +76,7 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
         regime_especial_tributacao:   cfg.regime_especial_tributacao,
         cmc:                          cfg.cmc,
         prazo_cancelamento_dias:      cfg.prazo_cancelamento_dias === '' ? null : Number(cfg.prazo_cancelamento_dias),
+        prazo_emissao_dias:           cfg.prazo_emissao_dias === '' ? null : Number(cfg.prazo_emissao_dias),
         nao_enviar_cnae:              cfg.nao_enviar_cnae,
         desconto_operadora:           cfg.desconto_operadora,
         emitir_padrao_nacional:       cfg.emitir_padrao_nacional,
@@ -164,6 +166,22 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
                 Como a prefeitura enquadra o salão — não é o mesmo que o Regime Tributário abaixo.
                 Em <strong>— Nenhum —</strong>, o sistema usa o regime da empresa
                 (Simples Nacional → Microempresa ou EPP).
+              </p>
+            </div>
+            <div>
+              <label style={lbl}>Emitir em até (dias)</label>
+              <input type="number" min={1} max={365} style={inputAdmin}
+                value={cfg.prazo_emissao_dias}
+                onChange={e => up('prazo_emissao_dias', e.target.value)}
+                placeholder="ex: 7" />
+              {/* Nao e limite tecnico: e competencia fiscal. O ISS e devido no mes
+                  da prestacao, entao emitir hoje uma nota de tres meses atras joga
+                  aquela receita na competencia errada. Aviso, nunca bloqueio —
+                  fechamento retroativo legitimo existe. */}
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.5 }}>
+                Avisa ao transmitir nota mais antiga que isso. O ISS é devido no mês da
+                prestação — emitir com meses de atraso joga a receita na competência errada.
+                Vazio = sem aviso.
               </p>
             </div>
             <div>

@@ -23,6 +23,7 @@ export const CFG_INICIAL = {
   // Vazio = sem aviso. Ver comentario em TabConfiguracoes: o prazo varia por
   // prefeitura, entao nao ha padrao seguro para cravar aqui.
   prazo_cancelamento_dias: '',
+  prazo_emissao_dias: '',
   cnae: '',
   nao_enviar_cnae: false,
   desconto_operadora: false,
