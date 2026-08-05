@@ -3,6 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 import { BrasilNFeAdaptador, buildPayloadNFSe } from '@/lib/nfse';
 import { autenticarRota } from '@/lib/apiAuth';
 
+/**
+ * Emissao roda em lotes limitados de proposito.
+ *
+ * A transmissao do backlog de 253 notas falhou em 7 delas com "Erro ao efetuar
+ * requisicao HTTPS": cada nota e uma chamada sequencial ao provedor (~1s), e a
+ * funcao serverless morre bem antes de terminar. A nota fica marcada como erro
+ * permanente sem que a prefeitura tenha recusado nada.
+ *
+ * O corte fica no backend, nao na tela: o usuario seleciona o periodo que
+ * quiser e o cliente pede os lotes em sequencia, mostrando progresso. Empurrar
+ * a limitacao para o salao — obrigando a fatiar a selecao na mao — seria
+ * transferir um problema nosso para quem esta usando.
+ */
+export const maxDuration = 60;
+
+/** Notas por chamada. Com ~1s por nota, cabe folgado no limite da funcao. */
+const LOTE_MAX = 25;
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -85,9 +103,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Nenhuma nota válida encontrada' }, { status: 404 });
   }
 
+  // Processa só o começo da fila e devolve o que sobrou, para o cliente pedir o
+  // próximo lote. Nota não processada continua intocada — nada a desfazer.
+  const desteLote = notas.slice(0, LOTE_MAX);
+  const restantes = notas.slice(LOTE_MAX).map(n => n.id);
+
   const resultados: Record<string, any> = {};
 
-  for (const nota of notas) {
+  for (const nota of desteLote) {
     const referencia = nota.id;
     const payload = buildPayloadNFSe({ salao, nota });
     const resultado = await BrasilNFeAdaptador.emitir(referencia, payload, tokenNFSe);
@@ -117,5 +140,5 @@ export async function POST(req: NextRequest) {
     resultados[nota.id] = { ...resultado, status: novoStatus };
   }
 
-  return NextResponse.json({ resultados });
+  return NextResponse.json({ resultados, restantes, processadas: desteLote.length });
 }

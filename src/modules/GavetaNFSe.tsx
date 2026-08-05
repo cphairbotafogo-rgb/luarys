@@ -42,6 +42,7 @@ export function GavetaNFSe({ perfil }: any) {
   const [corrigindo, setCorrigindo] = useState(false);
   const [cancelandoId, setCancelandoId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [progressoLote, setProgressoLote] = useState('');
   // Prazo de cancelamento configurado pelo salao (config_fiscal). Null = sem
   // aviso: nao ha padrao seguro, o prazo varia por prefeitura.
   const [prazoCancelamentoDias, setPrazoCancelamentoDias] = useState<number | null>(null);
@@ -396,24 +397,56 @@ ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { toast.erro('Sessão expirada. Faça login novamente.'); return; }
-      const resp = await fetch('/api/nfse/emitir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ nota_ids: notasSelecionadas }),
-      });
-      const json = await resp.json();
-      if (!resp.ok) { toast.erro(json.erro || 'Erro ao transmitir notas.'); return; }
-      const resultados: Record<string, any> = json.resultados || {};
-      const emitidas = Object.values(resultados).filter((r: any) => r.status === 'Emitida').length;
-      const pendentes = Object.values(resultados).filter((r: any) => r.status === 'Pendente').length;
-      const erros = Object.values(resultados).filter((r: any) => r.status === 'Erro').length;
+      // A rota processa um lote por chamada e devolve o que sobrou. Percorremos
+      // os lotes aqui, para o usuário poder selecionar o período inteiro sem
+      // precisar fatiar a seleção na mão — o corte é problema nosso, não dele.
+      let fila: string[] = [...notasSelecionadas];
+      const total = fila.length;
+      let emitidas = 0, pendentes = 0, erros = 0, jaFeitas = 0;
+
+      while (fila.length > 0) {
+        const resp = await fetch('/api/nfse/emitir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ nota_ids: fila }),
+        });
+        const json = await resp.json();
+        if (!resp.ok) {
+          toast.erro(json.erro || 'Erro ao transmitir notas.');
+          break;
+        }
+        const resultados: Record<string, any> = json.resultados || {};
+        emitidas  += Object.values(resultados).filter((r: any) => r.status === 'Emitida').length;
+        pendentes += Object.values(resultados).filter((r: any) => r.status === 'Pendente').length;
+        erros     += Object.values(resultados).filter((r: any) => r.status === 'Erro').length;
+
+        jaFeitas += Number(json.processadas) || Object.keys(resultados).length;
+        const proximos: string[] = Array.isArray(json.restantes) ? json.restantes : [];
+
+        // Progresso só quando há mais de um lote — em transmissão pequena o
+        // aviso seria ruído.
+        if (proximos.length > 0) {
+          toast.info(`Transmitindo... ${jaFeitas} de ${total}`, 3000);
+          setProgressoLote(`${jaFeitas}/${total}`);
+        }
+
+        // Trava de segurança: se a rota parar de reduzir a fila, aborta em vez
+        // de repetir o mesmo lote para sempre.
+        if (proximos.length >= fila.length) {
+          toast.erro('A transmissão não avançou — interrompida para não repetir notas.');
+          break;
+        }
+        fila = proximos;
+      }
+
+      setProgressoLote('');
       if (emitidas > 0) toast.sucesso(`${emitidas} nota(s) emitida(s) com sucesso!`);
       if (pendentes > 0) toast.aviso(`${pendentes} nota(s) em processamento na prefeitura.`);
       if (erros > 0) toast.erro(`${erros} nota(s) com erro — verifique as configurações fiscais.`);
       setNotasSelecionadas([]);
       await buscarNotasPendentes();
     } catch (e: any) { toast.erro('Erro de conexão: ' + e.message); }
-    finally { setProcessandoLote(false); }
+    finally { setProcessandoLote(false); setProgressoLote(''); }
   };
 
 const inputStyle = { ...inputAdmin };
@@ -588,7 +621,7 @@ const inputStyle = { ...inputAdmin };
                 </button>
                 <button onClick={dispararLoteSelecionado} disabled={processandoLote || notasSelecionadas.length === 0}
                   style={{ background: notasSelecionadas.length > 0 ? C.sidebarBg : C.borderMid, color: "#fff", border: "none", padding: "12px 20px", borderRadius: RAIO_MD, fontSize: 12, fontWeight: 800, cursor: (processandoLote || notasSelecionadas.length === 0) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase", transition: "0.2s", opacity: (processandoLote || notasSelecionadas.length === 0) ? 0.65 : 1 }}>
-                  {processandoLote ? <><FiSend size={16} /> Transmitindo...</> : <><FiSend size={16} /> Transmitir {notasSelecionadas.length > 0 ? `(${notasSelecionadas.length})` : 'Selecionadas'}</>}
+                  {processandoLote ? <><FiSend size={16} /> Transmitindo{progressoLote ? ` ${progressoLote}` : '...'}</> : <><FiSend size={16} /> Transmitir {notasSelecionadas.length > 0 ? `(${notasSelecionadas.length})` : 'Selecionadas'}</>}
                 </button>
               </div>
             </div>
