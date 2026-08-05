@@ -285,7 +285,12 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
 
     // ── FASE 4: nota fiscal de SERVIÇO (NFS-e) — não se aplica a venda só de produto,
     // que é NFC-e (fluxo próprio). Por isso pulamos quando somenteProdutos.
-    if (!somenteProdutos) {
+    // Servico sem receita nao gera nota: a propria prefeitura recusa com "O
+    // valor dos servicos devera ser superior a R$ 0,00", e faz sentido — pacote
+    // ja foi tributado quando vendido, e avaliacao gratuita nao tem o que
+    // tributar. Criar a nota so enchia a fila de rejeitadas com algo que nunca
+    // teria como ser emitido.
+    if (!somenteProdutos && Number(dadosCaixa.total) > 0) {
       const descServicos = (dadosCaixa.servicos as any[]).map((s: any) => s.nome).join(', ');
       // O campo da nota e o cTribNac (6 digitos, ex "060101"), nao o NBS nem o
       // item da LC 116 com ponto — os dois ja foram recusados pela prefeitura.

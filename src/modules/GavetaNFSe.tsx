@@ -65,7 +65,7 @@ export function GavetaNFSe({ perfil }: any) {
       // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
       // Os status legados da migracao ('Emitido', 'AUTORIZADA') tambem entram,
       // senao essas notas ficam invisiveis no sistema.
-      .in('status', ['Não Emitido', 'Pendente', 'Erro', 'Emitida', 'Emitido', 'AUTORIZADA'])
+      .in('status', ['Não Emitido', 'Pendente', 'Erro', 'Emitida', 'Emitido', 'AUTORIZADA', 'Dispensada'])
       .order('data_emissao', { ascending: false });
     if (error) toast.erro('Erro ao buscar notas: ' + error.message);
     if (data) setNotasPendentes(data);
@@ -149,6 +149,16 @@ export function GavetaNFSe({ perfil }: any) {
   const jaEmitida = (status: string | null | undefined) =>
     status === 'Emitida' || status === 'Emitido' || status === 'AUTORIZADA';
 
+  /**
+   * Dispensada: servico sem receita (pacote ja pago, cortesia, avaliacao). Fica
+   * visivel para nao sumir do historico, mas nao e pendencia — nao ha nota a
+   * emitir, e a prefeitura recusaria de qualquer forma.
+   */
+  const dispensada = (status: string | null | undefined) => status === 'Dispensada';
+
+  /** Nao esta esperando nenhuma acao do salao. */
+  const semPendencia = (status: string | null | undefined) => jaEmitida(status) || dispensada(status);
+
   // Declarados aqui, acima do primeiro uso: como sao const, usa-los antes da
   // linha de declaracao estoura ReferenceError em runtime (temporal dead zone)
   // mesmo com o tsc passando, porque a chamada acontece dentro de callback.
@@ -186,8 +196,8 @@ export function GavetaNFSe({ perfil }: any) {
   const valorSelecionado = notasSelecionadas.reduce((s, id) => s + Number(notasPendentes.find(n => n.id === id)?.valor || 0), 0);
   // Contagens sempre sobre a base, senão filtrar pelo aviso zeraria o próprio aviso.
   // Avisos de codigo so valem para nota que ainda vai ser transmitida.
-  const semCodigoFiscal = notasFiltradasBase.filter(n => !jaEmitida(n.status) && !n.item_lista_servico).length;
-  const comCodigoInvalido = notasFiltradasBase.filter(n => !jaEmitida(n.status) && codigoInvalido(n)).length;
+  const semCodigoFiscal = notasFiltradasBase.filter(n => !semPendencia(n.status) && !n.item_lista_servico).length;
+  const comCodigoInvalido = notasFiltradasBase.filter(n => !semPendencia(n.status) && codigoInvalido(n)).length;
 
   const toggleNota = (id: string) => {
     setNotasSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -473,7 +483,7 @@ const inputStyle = { ...inputAdmin };
       <div style={{ background: C.bgCard, padding: 8, borderRadius: RAIO_XL, border: `1px solid ${C.border}`, marginBottom: 24, display: "flex", gap: 8 }}>
         <button style={tabButtonStyle(abaAtiva === 'pendentes')} onClick={() => setAbaAtiva('pendentes')}>
           <FiList size={16} /> Pendentes para Emissão
-          {notasPendentes.filter(n => !jaEmitida(n.status)).length > 0 && <span style={{ background: abaAtiva === 'pendentes' ? C.bgCard : C.sidebarBg, color: abaAtiva === 'pendentes' ? C.sidebarBg : C.bgCard, padding: "2px 8px", borderRadius: RAIO_XL, fontSize: 10 }}>{notasPendentes.filter(n => !jaEmitida(n.status)).length}</span>}
+          {notasPendentes.filter(n => !semPendencia(n.status)).length > 0 && <span style={{ background: abaAtiva === 'pendentes' ? C.bgCard : C.sidebarBg, color: abaAtiva === 'pendentes' ? C.sidebarBg : C.bgCard, padding: "2px 8px", borderRadius: RAIO_XL, fontSize: 10 }}>{notasPendentes.filter(n => !semPendencia(n.status)).length}</span>}
         </button>
         <button style={tabButtonStyle(abaAtiva === 'config')} onClick={() => setAbaAtiva('config')}>
           <FiSettings size={16} /> Configurações Tributárias
