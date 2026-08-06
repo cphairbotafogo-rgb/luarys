@@ -47,3 +47,6 @@ next-env.d.ts
 # operacao daquele dia — nao para virar historico do repositorio.
 scripts/conferencia/backup-limpeza-*.json
 scripts/conferencia/pareamento-*.json
+
+# Zip gerado para auditoria externa — recriavel com scripts/conferencia/empacotar-codigo.mjs
+luarys-codigo.zip
