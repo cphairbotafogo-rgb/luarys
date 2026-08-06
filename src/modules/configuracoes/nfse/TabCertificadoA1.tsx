@@ -33,17 +33,23 @@ export function TabCertificadoA1({ perfil }: Props) {
   const [enviando, setEnviando]         = useState(false);
   const [carregando, setCarregando]     = useState(true);
   const [renovando, setRenovando]       = useState(false);
+  // Vencimento informado pelo salao. Opcional de proposito: acompanhar a
+  // validade do certificado e da contabilidade, nao do Luarys. Vazio = nenhum
+  // aviso, nunca cobranca. Serve so para quem quiser a contagem regressiva.
+  const [vencimento, setVencimento]     = useState('');
+  const [salvandoVenc, setSalvandoVenc] = useState(false);
 
   useEffect(() => {
     supabase
       .from('saloes')
-      .select('status_fiscal, a1_enviado_em')
+      .select('status_fiscal, a1_enviado_em, config_fiscal')
       .eq('id', perfil.salao_id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setStatus((data.status_fiscal as StatusFiscal) || 'inativo');
           setEnviadoEm(data.a1_enviado_em);
+          setVencimento(String((data as any).config_fiscal?.certificado_vencimento || ''));
         }
         setCarregando(false);
       });
@@ -97,9 +103,32 @@ export function TabCertificadoA1({ perfil }: Props) {
     }
   }
 
+  async function salvarVencimento(valor: string) {
+    setVencimento(valor);
+    setSalvandoVenc(true);
+    const { data } = await supabase.from('saloes').select('config_fiscal').eq('id', perfil.salao_id).maybeSingle();
+    const { error } = await supabase
+      .from('saloes')
+      .update({ config_fiscal: { ...(data?.config_fiscal || {}), certificado_vencimento: valor || null } })
+      .eq('id', perfil.salao_id);
+    setSalvandoVenc(false);
+    if (error) toast.erro('Não foi possível salvar: ' + error.message);
+    else toast.sucesso(valor ? 'Vencimento salvo.' : 'Aviso de vencimento desligado.');
+  }
+
   if (carregando) return <p style={{ color: C.textLight, fontSize: 13 }}>Carregando...</p>;
 
   const info = LABELS[status];
+
+  // Dias restantes. Comparacao por data local (T12:00 evita o certificado
+  // "vencer" um dia antes por causa de fuso).
+  const diasRestantes = vencimento
+    ? Math.ceil((new Date(vencimento + 'T12:00:00').getTime() - Date.now()) / 86400000)
+    : null;
+  const corPrazo = diasRestantes === null ? C.textLight
+    : diasRestantes < 0 ? '#B91C1C'
+    : diasRestantes <= 30 ? '#B45309'
+    : '#15803D';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -116,6 +145,50 @@ export function TabCertificadoA1({ perfil }: Props) {
           )}
         </div>
       </div>
+
+      {/* Aviso de vencimento — opcional. Acompanhar a validade do certificado é
+          da contabilidade; isto só oferece a contagem para quem quiser. Campo
+          vazio não gera aviso nenhum e não aparece como pendência. */}
+      {status !== 'inativo' && (
+        <div style={{ padding: '14px 16px', borderRadius: RAIO_XL, background: C.bg, border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <FiClock size={14} color={C.textMuted} />
+            <label htmlFor="venc-cert" style={{ fontSize: 12, fontWeight: 700, color: C.textMain }}>
+              Vencimento do certificado
+            </label>
+            <span style={{ fontSize: 11, color: C.textLight }}>(opcional)</span>
+            <input
+              id="venc-cert"
+              type="date"
+              value={vencimento}
+              disabled={salvandoVenc}
+              onChange={e => salvarVencimento(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12 }}
+            />
+            {diasRestantes !== null && (
+              <strong style={{ fontSize: 12, color: corPrazo }}>
+                {diasRestantes < 0
+                  ? `vencido há ${Math.abs(diasRestantes)} dia${Math.abs(diasRestantes) === 1 ? '' : 's'}`
+                  : diasRestantes === 0
+                    ? 'vence hoje'
+                    : `faltam ${diasRestantes} dia${diasRestantes === 1 ? '' : 's'}`}
+              </strong>
+            )}
+            {vencimento && (
+              <button type="button" onClick={() => salvarVencimento('')}
+                style={{ background: 'none', border: 'none', color: C.textLight, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
+                não avisar
+              </button>
+            )}
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 11, color: C.textLight, lineHeight: 1.5 }}>
+            Preencha se quiser uma contagem regressiva. Quem acompanha a validade do
+            certificado é a sua contabilidade — o Luarys só mostra o prazo que você informar.
+            {diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 30 &&
+              ' Certificado vencido interrompe a emissão de notas.'}
+          </p>
+        </div>
+      )}
 
       {/* Módulo ativo — estado final */}
       {status === 'ativo' && !renovando && (

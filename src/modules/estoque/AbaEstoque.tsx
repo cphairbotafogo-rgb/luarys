@@ -119,6 +119,13 @@ export function AbaEstoque({ perfil }: any) {
   async function salvarProduto(e: any) {
     e.preventDefault();
     if (!form.nome_produto) { toast.aviso('O nome do produto é obrigatório.'); return; }
+    // NCM com 8 dígitos, senão a SEFAZ recusa o item — e só na hora da venda,
+    // com o cliente na frente. O `required` do formulário só barra campo vazio;
+    // esta checagem existe porque produto salvo por outro caminho passava direto.
+    if (form.categoria !== 'Uso Interno' && String(form.ncm || '').replace(/\D/g, '').length !== 8) {
+      toast.aviso('O NCM precisa ter 8 dígitos — é ele que identifica o produto na nota fiscal.');
+      return;
+    }
     const parseNum = (val: any) => parseFloat(val.toString().replace(',', '.')) || 0;
     const dados = {
       salao_id: perfil.salao_id, nome_produto: form.nome_produto,

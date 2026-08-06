@@ -6,8 +6,14 @@ import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
 import {
   FiDownload, FiCheckCircle, FiClock,
-  FiKey, FiEye, FiEyeOff, FiRefreshCw,
+  FiKey, FiEye, FiEyeOff, FiRefreshCw, FiHash, FiAlertTriangle,
 } from 'react-icons/fi';
+
+interface Numeracao {
+  TipoAmbiente: number; ModeloDocumento: number; Serie: string;
+  Numero: number; Padrao: boolean;
+  modelo_nome: string; ambiente_nome: string;
+}
 
 type StatusFiscal = 'inativo' | 'pendente_a1' | 'a1_recebido' | 'processando' | 'ativo';
 
@@ -20,6 +26,15 @@ const BADGE: Record<StatusFiscal, { texto: string; cor: string; bg: string }> = 
 };
 
 interface ConfigFiscal { nfse_ativo: boolean; nfce_ativo: boolean }
+
+/**
+ * Numeração fiscal por empresa + ambiente + modelo + série, lida da Brasil NFe.
+ *
+ * Existe porque a numeração de produção de um salão novo começa em 1. Se o CNPJ
+ * já emitiu por outro sistema, a primeira nota pelo Luarys repete número já
+ * autorizado. Aqui só se VÊ e se ajusta com confirmação — quem define o número
+ * responde por ele.
+ */
 
 interface Salao {
   id: string;
@@ -55,6 +70,11 @@ export function GavetaFiscalSaloes() {
   const [verToken, setVerToken]     = useState(false);
   const [salvandoToken, setSalvandoToken] = useState(false);
   const [baixando, setBaixando]     = useState<string | null>(null);
+  // Numeração aberta por salão (null = painel fechado).
+  const [numSalao, setNumSalao]     = useState<string | null>(null);
+  const [numeracoes, setNumeracoes] = useState<Numeracao[]>([]);
+  const [numCarregando, setNumCarregando] = useState(false);
+  const [numSalvando, setNumSalvando]     = useState('');
 
   useEffect(() => { carregar(); }, []);
 
@@ -67,6 +87,58 @@ export function GavetaFiscalSaloes() {
       .order('a1_enviado_em', { ascending: false });
     setSaloes((data ?? []) as Salao[]);
     setCarregando(false);
+  }
+
+  async function verNumeracao(salaoId: string) {
+    if (numSalao === salaoId) { setNumSalao(null); return; }
+    setNumSalao(salaoId);
+    setNumeracoes([]);
+    setNumCarregando(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch(`/api/admin/brasilnfe/numeracao?salao_id=${salaoId}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      const j = await r.json();
+      if (!r.ok) { toast.erro(j.erro || 'Não foi possível consultar a numeração.'); setNumSalao(null); return; }
+      setNumeracoes(j.numeracoes || []);
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+      setNumSalao(null);
+    } finally { setNumCarregando(false); }
+  }
+
+  async function salvarNumeracao(salaoId: string, n: Numeracao, novo: number) {
+    const chave = `${n.TipoAmbiente}-${n.ModeloDocumento}-${n.Serie}`;
+    // Confirmação explícita: número igual ou inferior a um já autorizado gera
+    // rejeição por duplicidade na SEFAZ, e isso não tem desfazer.
+    const ok = window.confirm(
+      `Alterar a numeração de ${n.modelo_nome} (${n.ambiente_nome}, série ${n.Serie}) de ${n.Numero} para ${novo}?
+
+` +
+      'Número igual ou inferior a um já autorizado causa rejeição por duplicidade. ' +
+      'Confirme com quem responde pela emissão antes de seguir.',
+    );
+    if (!ok) return;
+
+    setNumSalvando(chave);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/admin/brasilnfe/numeracao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          salao_id: salaoId, tipo_ambiente: n.TipoAmbiente, modelo_documento: n.ModeloDocumento,
+          serie: n.Serie, numero: novo, padrao: n.Padrao, confirmo: true,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) { toast.erro(j.erro || 'A Brasil NFe recusou a alteração.', 10000); return; }
+      toast.sucesso(`${n.modelo_nome} (${n.ambiente_nome}) agora começa em ${novo}.`);
+      setNumeracoes(ns => ns.map(x => (x.TipoAmbiente === n.TipoAmbiente && x.ModeloDocumento === n.ModeloDocumento && x.Serie === n.Serie ? { ...x, Numero: novo } : x)));
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+    } finally { setNumSalvando(''); }
   }
 
   async function atualizarStatus(salaoId: string, status: StatusFiscal) {
@@ -246,7 +318,56 @@ export function GavetaFiscalSaloes() {
                       <FiKey size={12} /> {s.status_fiscal === 'ativo' ? 'Editar módulos' : 'Inserir Token e Ativar'}
                     </button>
                   )}
+                  {s.config_fiscal?.brasilnfe_company_token && (
+                    <button onClick={() => verNumeracao(s.id)} style={btnSt('#0F766E')}>
+                      <FiHash size={12} /> {numSalao === s.id ? 'Fechar numeração' : 'Numeração'}
+                    </button>
+                  )}
                 </div>
+
+                {/* Numeração — visível antes de virar para produção. Um salão que
+                    já emitiu por outro sistema não pode recomeçar do 1. */}
+                {numSalao === s.id && (
+                  <div style={{ gridColumn: '1 / -1', borderTop: `1px solid ${C.border}`, paddingTop: 14, marginTop: 4 }}>
+                    {numCarregando ? (
+                      <p style={{ margin: 0, fontSize: 12, color: C.textLight }}>Consultando a Brasil NFe...</p>
+                    ) : numeracoes.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: 12, color: C.textLight }}>Nenhuma numeração registrada para os modelos que emitimos.</p>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10, padding: '8px 10px', borderRadius: RAIO_MD, background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                          <FiAlertTriangle size={13} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
+                          <p style={{ margin: 0, fontSize: 11, color: '#92400E', lineHeight: 1.5 }}>
+                            <strong>Número é o próximo a ser usado.</strong> Se este CNPJ já emitiu por outro sistema,
+                            a numeração de produção precisa continuar de onde parou — recomeçar do 1 repete documento
+                            já autorizado e a prefeitura recusa por duplicidade. Quem define o número responde por ele.
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {numeracoes.map(n => {
+                            const chave = `${n.TipoAmbiente}-${n.ModeloDocumento}-${n.Serie}`;
+                            const producao = n.TipoAmbiente === 1;
+                            return (
+                              <div key={chave} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12, padding: '6px 10px', borderRadius: RAIO_MD, background: producao ? '#FEF2F2' : C.bg, border: `1px solid ${producao ? '#FECACA' : C.border}` }}>
+                                <strong style={{ minWidth: 58, color: C.textMain }}>{n.modelo_nome}</strong>
+                                <span style={{ minWidth: 96, color: producao ? '#B91C1C' : C.textMuted, fontWeight: producao ? 800 : 400 }}>{n.ambiente_nome}</span>
+                                <span style={{ color: C.textLight }}>série {n.Serie}</span>
+                                <span style={{ marginLeft: 'auto', color: C.textMuted }}>próximo nº</span>
+                                <input
+                                  type="number" min={1} defaultValue={n.Numero} disabled={numSalvando === chave}
+                                  onKeyDown={e => { if (e.key === 'Enter') { const v = Number((e.target as HTMLInputElement).value); if (v > 0 && v !== n.Numero) salvarNumeracao(s.id, n, v); } }}
+                                  onBlur={e => { const v = Number(e.target.value); if (v > 0 && v !== n.Numero) salvarNumeracao(s.id, n, v); else e.target.value = String(n.Numero); }}
+                                  style={{ width: 90, padding: '4px 8px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}
+                                />
+                                {numSalvando === chave && <span style={{ fontSize: 11, color: C.textLight }}>salvando...</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

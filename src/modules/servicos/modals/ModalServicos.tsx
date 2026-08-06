@@ -16,11 +16,20 @@ import { ModalGerenciarSetores } from "./ModalGerenciarSetores";
 // Codigos conferidos na lista nacional em 04/08/2026:
 //   060101 Barbearia, cabeleireiros, manicuros, pedicuros e congeneres
 //   060201 Esteticistas, tratamento de pele, depilacao e congeneres
+// Corrigido em 05/08/2026 contra cinco NFS-e de producao do salao piloto
+// (notas 613, 626, 635, 642 e 644). Todas trazem 060101 / 005 — inclusive a 626,
+// que e depilacao pura. O municipio classifica pela ATIVIDADE DO SALAO, nao pelo
+// item da LC 116: o 005 e o codigo do salao-parceiro optante pelo Simples
+// (LF 12.592/2012) e cobre cabeleireiros, barbeiros, manicuros, pedicuros e
+// maquiadores — a operacao inteira. A tabela anterior separava em 060201/06.02,
+// e era isso que produzia a rejeicao E0314.
+//
+// O NBS e o unico campo que varia entre os tipos.
 const TABELA_TRIBUTACAO_SALAO = [
-  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '06.01', nac: '060101' },
-  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', mun: '06.01', nac: '060101' },
-  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126023000', mun: '06.02', nac: '060201' },
-  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', mun: '06.02', nac: '060201' }
+  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '005', nac: '060101' },
+  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', mun: '005', nac: '060101' },
+  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126022000', mun: '005', nac: '060101' },
+  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', mun: '005', nac: '060101' }
 ];
 
 const formVazio = { 
@@ -341,15 +350,18 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Seleção Inteligente de Tributação</label>
               <select
-                value={TABELA_TRIBUTACAO_SALAO.find(t => t.nbs === form.nbs)?.nbs || ''}
+                // Indexado por id, nao por nbs: tipos diferentes podem compartilhar
+                // o mesmo NBS (manicure e estetica sao os dois 126022000), e o
+                // select nao conseguiria distingui-los.
+                value={String(TABELA_TRIBUTACAO_SALAO.find(t => t.nbs === form.nbs)?.id ?? '')}
                 style={{ ...inputStyle, cursor: "pointer", border: `1px solid ${C.sidebarBg}`, color: C.sidebarBg, fontWeight: 700 }}
                 onChange={(e) => {
-                  const selecionado = TABELA_TRIBUTACAO_SALAO.find(t => t.nbs === e.target.value);
+                  const selecionado = TABELA_TRIBUTACAO_SALAO.find(t => String(t.id) === e.target.value);
                   if (selecionado) setForm({...form, nbs: selecionado.nbs, codigo_municipio: selecionado.mun, codigo_tributacao_nacional: selecionado.nac});
                 }}
               >
                 <option value="">-- Selecione o tipo de serviço para auto-preencher --</option>
-                {TABELA_TRIBUTACAO_SALAO.map(t => <option key={t.id} value={t.nbs}>{t.label}</option>)}
+                {TABELA_TRIBUTACAO_SALAO.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr", gap: 16 }}>

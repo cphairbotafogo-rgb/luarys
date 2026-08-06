@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { C } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL } from '@/lib/estiloGlobal';
-import { FiFileText, FiSettings, FiInfo, FiSend, FiBook, FiMessageCircle } from 'react-icons/fi';
+import { FiFileText, FiSettings, FiInfo, FiSend, FiBook, FiMessageCircle, FiHash } from 'react-icons/fi';
 import { TabEstabelecimento }    from './TabEstabelecimento';
 import { TabConfiguracoes }      from './TabConfiguracoes';
 import { TabInformacoesFiscais } from './TabInformacoesFiscais';
 import { TabCertificadoA1 }      from './TabCertificadoA1';
+import { TabNumeracao }          from './TabNumeracao';
 import type { TabNFSe } from './tipos';
 
 interface Props {
@@ -87,12 +88,14 @@ export function ConfiguracaoNFSe({ perfil, onEmitirNotas }: Props) {
         {tabBtn('configuracoes',   'Configurações da Nota',    FiSettings)}
         {tabBtn('informacoes',     'Informações Fiscais',       FiInfo)}
         {tabBtn('certificado',     'Certificado A1',            FiSettings)}
+        {tabBtn('numeracao',       'Numeração',                 FiHash)}
       </div>
 
       {aba === 'estabelecimento' && <TabEstabelecimento perfil={perfil} />}
       {aba === 'configuracoes'   && <TabConfiguracoes   perfil={perfil} />}
       {aba === 'informacoes'     && <TabInformacoesFiscais />}
       {aba === 'certificado'     && <TabCertificadoA1 perfil={perfil} />}
+      {aba === 'numeracao'       && <TabNumeracao perfil={perfil} />}
     </div>
   );
 }

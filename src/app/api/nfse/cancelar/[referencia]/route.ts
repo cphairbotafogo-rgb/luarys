@@ -23,8 +23,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ r
   const { data: salao } = await supabaseAdmin.from('saloes').select('config_fiscal').eq('id', perfil!.salao_id).maybeSingle();
   const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
-  const { justificativa } = await req.json().catch(() => ({ justificativa: 'Cancelamento solicitado pelo cliente.' }));
-  const resultado = await BrasilNFeAdaptador.cancelar(referencia, justificativa || 'Cancelamento solicitado pelo cliente.', tokenNFSe);
+  const corpo = await req.json().catch(() => ({}));
+  const justificativa = corpo?.justificativa || 'Cancelamento solicitado pelo cliente.';
+  // 1 erro na emissão · 2 serviço não prestado · 3 duplicidade · 9 outros.
+  // Valor fora da lista cai em 9 ("outros") em vez de mentir "erro na emissão".
+  const codigoMotivo = [1, 2, 3, 9].includes(Number(corpo?.codigo_motivo)) ? Number(corpo.codigo_motivo) : 9;
+  const resultado = await BrasilNFeAdaptador.cancelar(referencia, justificativa, tokenNFSe, codigoMotivo);
 
   if (resultado.sucesso) {
     await supabaseAdmin.from('notas_fiscais').update({ status: 'Cancelada' }).eq('id', referencia);

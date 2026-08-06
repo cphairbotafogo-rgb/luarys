@@ -295,8 +295,26 @@ ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
       }
     }
 
-    const justificativa = window.prompt(
+    // O codigo do motivo e o que a prefeitura le — a justificativa em texto e
+    // complemento. Antes ia sempre 1 ("erro na emissao") fixo, entao um
+    // cancelamento por servico nao prestado era declarado como erro nosso.
+    const motivo = window.prompt(
       `Cancelar a NFS-e nº ${nota.numero_nota ?? ''} de ${nota.cliente_nome}?` + avisoPrazo + '\n\n' +
+      'Por que está cancelando? Digite o número:\n\n' +
+      '  1 — Erro na emissão\n' +
+      '  2 — Serviço não prestado\n' +
+      '  3 — Duplicidade da nota\n' +
+      '  9 — Outros',
+      '', // sem valor sugerido: apertar Enter nao pode declarar motivo nenhum
+    );
+    if (motivo === null) return;
+    const codigoMotivo = Number(String(motivo).trim());
+    if (![1, 2, 3, 9].includes(codigoMotivo)) {
+      toast.aviso('Escolha 1, 2, 3 ou 9.');
+      return;
+    }
+
+    const justificativa = window.prompt(
       'Descreva o motivo (mínimo 15 caracteres — exigência da prefeitura):',
       '',
     );
@@ -313,7 +331,7 @@ ATENÇÃO: esta nota foi emitida há ${dias} dias, acima do prazo de ` +
       const resp = await fetch(`/api/nfse/cancelar/${nota.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ justificativa: justificativa.trim() }),
+        body: JSON.stringify({ justificativa: justificativa.trim(), codigo_motivo: codigoMotivo }),
       });
       const json = await resp.json().catch(() => ({}));
       if (!resp.ok || json?.sucesso === false) {
@@ -714,13 +732,15 @@ const inputStyle = { ...inputAdmin };
                             )}
                             {nota.storage_path_pdf && <button onClick={e => { e.stopPropagation(); abrirPdf(nota.id); }} title="Abrir PDF da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sidebarBg, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> PDF</button>}
                             {nota.storage_path_xml && <button onClick={e => { e.stopPropagation(); abrirXml(nota.id); }} title="Baixar o XML da nota" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.textMuted, display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}><FiExternalLink size={11} /> XML</button>}
-                            {/* Aliquota que a prefeitura aplicou, quando difere da que enviamos:
-                                e o sintoma mais barato de enquadramento errado. */}
-                            {nota.aliquota_apurada != null && nota.aliquota_iss != null
-                              && Number(nota.aliquota_apurada) !== Number(nota.aliquota_iss) && (
-                              <span title={`Enviamos ${nota.aliquota_iss}%, a prefeitura aplicou ${nota.aliquota_apurada}%`}
+                            {/* Aviso so quando a prefeitura APURA ISS acima de zero.
+                                Comparar com a aliquota enviada nao serve: para optante do
+                                Simples o normal e mandar 5% e a nota sair com 0%, entao o
+                                alerta acenderia em toda nota e viraria ruido. ISS apurado
+                                acima de zero, esse sim, e o que nao deveria acontecer. */}
+                            {Number(nota.aliquota_apurada) > 0 && (
+                              <span title={`A prefeitura apurou ISS de ${nota.aliquota_apurada}% nesta nota. Para optante do Simples o esperado é 0% — confira o enquadramento.`}
                                 style={{ fontSize: 10, fontWeight: 700, color: "#92400E", cursor: "help" }}>
-                                ⚠ alíquota {nota.aliquota_apurada}%
+                                ⚠ ISS {nota.aliquota_apurada}%
                               </span>
                             )}
                             {nota.status === 'Erro' && nota.mensagem_erro && <p style={{ margin: 0, fontSize: 10, color: C.danger, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={nota.mensagem_erro}>{nota.mensagem_erro}</p>}

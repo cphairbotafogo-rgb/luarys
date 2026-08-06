@@ -81,5 +81,6 @@ export interface ResultadoEmissao {
 export interface AdaptadorNFSe {
   emitir(referencia: string, payload: PayloadNFSe, token?: string): Promise<ResultadoEmissao>;
   consultar(referencia: string, token?: string): Promise<ResultadoEmissao>;
-  cancelar(referencia: string, justificativa: string, token?: string): Promise<{ sucesso: boolean; erro?: string }>;
+  /** codigoMotivo: 1 erro na emissao · 2 servico nao prestado · 3 duplicidade · 9 outros. */
+  cancelar(referencia: string, justificativa: string, token?: string, codigoMotivo?: number): Promise<{ sucesso: boolean; erro?: string }>;
 }

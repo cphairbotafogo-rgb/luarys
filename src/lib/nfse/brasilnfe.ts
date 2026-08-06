@@ -231,7 +231,7 @@ async function consultar(referencia: string, companyToken?: string): Promise<Res
   }
 }
 
-async function cancelar(referencia: string, justificativa: string, companyToken?: string): Promise<{ sucesso: boolean; erro?: string }> {
+async function cancelar(referencia: string, justificativa: string, companyToken?: string, codigoMotivo: number = 1): Promise<{ sucesso: boolean; erro?: string }> {
   if (!companyToken) return { sucesso: false, erro: 'Salão não registrado na Brasil NFe.' };
   if ((justificativa || '').trim().length < 15) {
     return { sucesso: false, erro: 'Justificativa precisa ter pelo menos 15 caracteres.' };
@@ -254,7 +254,11 @@ async function cancelar(referencia: string, justificativa: string, companyToken?
     const resp = await bnfe.eventos.cancelarNotaFiscal({
       TipoDocumento: 1, // 1 = NFS-e (usa NumeroNFSe, não ChaveNF)
       NumeroNFSe: nota.numero_nota,
-      CodCancelamentoNFSe: 1, // 1 = Erro na emissão (padrão)
+      // 1 erro na emissão · 2 serviço não prestado · 3 duplicidade · 9 outros.
+      // É este código que a prefeitura lê; a justificativa em texto é
+      // complemento. Ficava fixo em 1, então cancelar por serviço não prestado
+      // declarava erro nosso na emissão — informação falsa ao fisco.
+      CodCancelamentoNFSe: codigoMotivo,
       TipoAmbiente: tipoAmbiente,
       Justificativa: justificativa,
       DataEvento: new Date().toISOString(),

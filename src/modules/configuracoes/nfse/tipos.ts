@@ -1,4 +1,4 @@
-export type TabNFSe = 'estabelecimento' | 'configuracoes' | 'informacoes' | 'certificado';
+export type TabNFSe = 'estabelecimento' | 'configuracoes' | 'informacoes' | 'certificado' | 'numeracao';
 
 export interface FormEstabelecimento {
   nome_fantasia: string;
