@@ -48,10 +48,17 @@ export function buildPayloadNFSe(opts: {
   // configurado. Só cai no valor do salão quando o serviço não tem alíquota
   // própria; zero é valor legítimo (serviço isento), por isso o teste é por
   // null/undefined e não por falsy.
+  //
+  // Se nem o serviço nem o salão têm alíquota, vai ZERO — não um número
+  // arbitrário. O padrão anterior era '2.00': salão sem `aliquota_padrao` no
+  // config emitia com 2% de ISS que ninguém escolheu, em silêncio. Nota tem que
+  // levar o que alguém decidiu; na ausência de decisão, o único valor honesto é
+  // nenhum imposto.
   const aliquotaServico = nota.aliquota_iss;
+  const aliquotaSalao = parseFloat(String(salao.config_fiscal?.aliquota_padrao ?? '').trim() || '0');
   const aliquota = (aliquotaServico !== null && aliquotaServico !== undefined && Number.isFinite(Number(aliquotaServico)))
     ? Number(aliquotaServico) / 100
-    : parseFloat(salao.config_fiscal?.aliquota_padrao || '2.00') / 100;
+    : (Number.isFinite(aliquotaSalao) ? aliquotaSalao : 0) / 100;
   // Regime tributário: usa o campo direto do salão (Dados da Empresa) primeiro,
   // e cai para config_fiscal se não estiver preenchido (compatibilidade com configuração do admin)
   const regime = salao.regime_tributario || salao.config_fiscal?.regime_tributario || '';
