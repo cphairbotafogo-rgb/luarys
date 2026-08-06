@@ -20,20 +20,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erro: 'ID de salão inválido.' }, { status: 400 });
     }
 
-    // Se há sessão de painel (funcionário), verifica que pertence ao salão
+    // Se há sessão de painel (funcionário), verifica que pertence ao salão.
+    //
+    // Token presente e INVÁLIDO precisa derrubar a requisição, não seguir como
+    // anônimo. Antes, `if (user)` deixava passar quando getUser devolvia null —
+    // e como o guard de baixo testa `!bearerToken`, mandar
+    // "Authorization: Bearer lixo" pulava as DUAS travas de uma vez: a posse do
+    // salão e a exigência de agendamento_id que ancora a cobrança.
     const bearerToken = request.headers.get('authorization')?.replace('Bearer ', '');
+    let sessaoValida = false;
     if (bearerToken) {
       const { data: { user } } = await supabaseAdmin.auth.getUser(bearerToken);
-      if (user) {
-        const { data: perfil } = await supabaseAdmin.from('perfis_usuarios').select('salao_id').eq('id', user.id).maybeSingle();
-        if (perfil && perfil.salao_id !== salao_id) {
-          return NextResponse.json({ erro: 'Não autorizado para este salão.' }, { status: 403 });
-        }
+      if (!user) {
+        return NextResponse.json({ erro: 'Sessão inválida ou expirada.' }, { status: 401 });
+      }
+      sessaoValida = true;
+      const { data: perfil } = await supabaseAdmin.from('perfis_usuarios').select('salao_id').eq('id', user.id).maybeSingle();
+      if (perfil && perfil.salao_id !== salao_id) {
+        return NextResponse.json({ erro: 'Não autorizado para este salão.' }, { status: 403 });
       }
     }
 
-    // Sem sessão (chamada do portal): exige agendamento_id para ancorar a cobrança
-    if (!bearerToken && (!agendamento_id || !UUID_REGEX.test(agendamento_id))) {
+    // Sem sessão válida (chamada do portal): exige agendamento_id para ancorar a
+    // cobrança. Testa `sessaoValida`, não a mera presença do header — presença
+    // de header não é prova de nada, e era por ela que o guard passava.
+    if (!sessaoValida && (!agendamento_id || !UUID_REGEX.test(agendamento_id))) {
       return NextResponse.json({ erro: 'agendamento_id obrigatório para pagamento via portal.' }, { status: 400 });
     }
 

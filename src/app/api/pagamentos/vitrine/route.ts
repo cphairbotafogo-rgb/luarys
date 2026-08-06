@@ -208,14 +208,18 @@ export async function PATCH(request: Request) {
     }
 
     // Se há sessão de portal, verifica que o cliente_id do pedido pertence ao usuário
+    // Token presente e inválido derruba a requisição. Antes, `if (userConfirm)`
+    // deixava seguir quando getUser devolvia null: bastava mandar um Bearer
+    // qualquer para a verificação de vínculo com o pedido nunca rodar.
     const bearerConfirm = (request as any).headers?.get?.('authorization')?.replace('Bearer ', '');
     if (bearerConfirm) {
       const { data: { user: userConfirm } } = await supabaseAdmin.auth.getUser(bearerConfirm);
-      if (userConfirm) {
-        const { data: clienteSession } = await supabaseAdmin.from('clientes').select('id').eq('usuario_portal_id', userConfirm.id).eq('salao_id', pedido.salao_id).maybeSingle();
-        if (!clienteSession || clienteSession.id !== pedido.cliente_id) {
-          return NextResponse.json({ erro: 'Pedido não pertence a este usuário.' }, { status: 403 });
-        }
+      if (!userConfirm) {
+        return NextResponse.json({ erro: 'Sessão inválida ou expirada.' }, { status: 401 });
+      }
+      const { data: clienteSession } = await supabaseAdmin.from('clientes').select('id').eq('usuario_portal_id', userConfirm.id).eq('salao_id', pedido.salao_id).maybeSingle();
+      if (!clienteSession || clienteSession.id !== pedido.cliente_id) {
+        return NextResponse.json({ erro: 'Pedido não pertence a este usuário.' }, { status: 403 });
       }
     }
 
