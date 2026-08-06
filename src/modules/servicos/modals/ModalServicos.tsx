@@ -16,20 +16,21 @@ import { ModalGerenciarSetores } from "./ModalGerenciarSetores";
 // Codigos conferidos na lista nacional em 04/08/2026:
 //   060101 Barbearia, cabeleireiros, manicuros, pedicuros e congeneres
 //   060201 Esteticistas, tratamento de pele, depilacao e congeneres
-// Corrigido em 05/08/2026 contra cinco NFS-e de producao do salao piloto
-// (notas 613, 626, 635, 642 e 644). Todas trazem 060101 / 005 — inclusive a 626,
-// que e depilacao pura. O municipio classifica pela ATIVIDADE DO SALAO, nao pelo
-// item da LC 116: o 005 e o codigo do salao-parceiro optante pelo Simples
-// (LF 12.592/2012) e cobre cabeleireiros, barbeiros, manicuros, pedicuros e
-// maquiadores — a operacao inteira. A tabela anterior separava em 060201/06.02,
-// e era isso que produzia a rejeicao E0314.
+// Codigo nacional e NBS sao FEDERAIS — valem em qualquer municipio do pais.
+// Ja o codigo municipal e o desdobro que cada prefeitura criou, com formato
+// proprio, e por isso NAO entra aqui: preencher um valor fixo faria todo salao
+// do Brasil nascer com o codigo de uma cidade so. Ele vem de
+// /api/nfse/codigo-municipal, que sugere o que aquela prefeitura ja aceitou —
+// e fica em branco, com orientacao, quando nao ha historico.
 //
-// O NBS e o unico campo que varia entre os tipos.
+// Conferido em 05/08/2026 contra cinco NFS-e de producao (notas 613, 626, 635,
+// 642 e 644): todas em 060101, inclusive a 626, que e depilacao pura. O
+// municipio classifica pela atividade do salao, nao pelo item da LC 116.
 const TABELA_TRIBUTACAO_SALAO = [
-  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', mun: '005', nac: '060101' },
-  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', mun: '005', nac: '060101' },
-  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126022000', mun: '005', nac: '060101' },
-  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', mun: '005', nac: '060101' }
+  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', nac: '060101' },
+  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', nac: '060101' },
+  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126022000', nac: '060101' },
+  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', nac: '060101' }
 ];
 
 const formVazio = { 
@@ -49,6 +50,29 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
   const [salvando, setSalvando] = useState(false);
   const [setoresAtivos, setSetoresAtivos] = useState<any[]>([]);
   const [modalSetoresAberto, setModalSetoresAberto] = useState(false);
+  // Sugestao de codigo municipal para o municipio DESTE salao. Vazio nao e
+  // falha: significa que ninguem emitiu ali ainda, e ai a tela pede o codigo a
+  // contabilidade em vez de chutar um valor de outra cidade.
+  const [sugestoesMun, setSugestoesMun] = useState<{ ctrib_mun: string; aceitos: number; ambiente: number }[]>([]);
+  const [municipioNome, setMunicipioNome] = useState('');
+  const [buscandoMun, setBuscandoMun] = useState(false);
+
+  async function buscarCodigoMunicipal(nac: string) {
+    if (!nac) return;
+    setBuscandoMun(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch(`/api/nfse/codigo-municipal?nac=${nac}`, { headers: { Authorization: `Bearer ${session?.access_token}` } });
+      const j = await r.json();
+      if (!r.ok) return;
+      setMunicipioNome(j.municipio || '');
+      setSugestoesMun(j.sugestoes || []);
+      // Uma unica sugestao aceita: preenche. Mais de uma, deixa escolher.
+      if ((j.sugestoes || []).length === 1 && !form.codigo_municipio) {
+        setForm(f => ({ ...f, codigo_municipio: j.sugestoes[0].ctrib_mun }));
+      }
+    } finally { setBuscandoMun(false); }
+  }
 
   async function carregarSetores() {
     const { data } = await supabase
@@ -357,7 +381,10 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
                 style={{ ...inputStyle, cursor: "pointer", border: `1px solid ${C.sidebarBg}`, color: C.sidebarBg, fontWeight: 700 }}
                 onChange={(e) => {
                   const selecionado = TABELA_TRIBUTACAO_SALAO.find(t => String(t.id) === e.target.value);
-                  if (selecionado) setForm({...form, nbs: selecionado.nbs, codigo_municipio: selecionado.mun, codigo_tributacao_nacional: selecionado.nac});
+                  if (selecionado) {
+                    setForm({...form, nbs: selecionado.nbs, codigo_tributacao_nacional: selecionado.nac});
+                    buscarCodigoMunicipal(selecionado.nac);
+                  }
                 }}
               >
                 <option value="">-- Selecione o tipo de serviço para auto-preencher --</option>
@@ -374,7 +401,26 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
               </div>
               <div>
                 <label style={labelStyle}>Código Municipal</label>
-                <input style={inputStyle} value={form.codigo_municipio} onChange={e=>setForm({...form, codigo_municipio: e.target.value})} placeholder="Ex: 06.01" />
+                <input style={inputStyle} value={form.codigo_municipio} onChange={e=>setForm({...form, codigo_municipio: e.target.value})}
+                  placeholder={sugestoesMun.length ? sugestoesMun[0].ctrib_mun : 'da sua prefeitura'} />
+                {buscandoMun ? (
+                  <p style={{ margin: '4px 0 0', fontSize: 10, color: C.textLight }}>consultando...</p>
+                ) : sugestoesMun.length > 0 ? (
+                  <p style={{ margin: '4px 0 0', fontSize: 10, color: C.textLight, lineHeight: 1.5 }}>
+                    Já aceito em {municipioNome || 'seu município'}:{' '}
+                    {sugestoesMun.map(sg => (
+                      <button key={sg.ctrib_mun} type="button" onClick={() => setForm({ ...form, codigo_municipio: sg.ctrib_mun })}
+                        style={{ background: 'none', border: 'none', padding: 0, marginRight: 6, color: C.sidebarBg, fontWeight: 700, fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}>
+                        {sg.ctrib_mun}
+                      </button>
+                    ))}
+                  </p>
+                ) : form.codigo_tributacao_nacional ? (
+                  <p style={{ margin: '4px 0 0', fontSize: 10, color: '#B45309', lineHeight: 1.5 }}>
+                    Ainda não temos emissão aceita em {municipioNome || 'seu município'} para este código.
+                    Peça à sua contabilidade ou à prefeitura a tabela de correlação — cada município tem a sua.
+                  </p>
+                ) : null}
               </div>
               <div>
                 <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 5 }}>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { BrasilNFeAdaptador, buildPayloadNFSe } from '@/lib/nfse';
 import { autenticarRota } from '@/lib/apiAuth';
+import { registrarResultadoCodigo } from '@/lib/nfse/codigosMunicipais';
 
 /**
  * Emissao roda em lotes limitados de proposito.
@@ -108,6 +109,12 @@ export async function POST(req: NextRequest) {
   const desteLote = notas.slice(0, LOTE_MAX);
   const restantes = notas.slice(LOTE_MAX).map(n => n.id);
 
+  // Mesmo ambiente que o adaptador usa. Lido aqui para registrar o aprendizado
+  // no ambiente certo — aceite em produção vale mais que aceite em teste.
+  const { data: cfgPlataforma } = await supabaseAdmin
+    .from('plataforma_nfse_config').select('ambiente').eq('id', 1).maybeSingle();
+  const ambienteAtual: 1 | 2 = cfgPlataforma?.ambiente === 'producao' ? 1 : 2;
+
   const resultados: Record<string, any> = {};
 
   for (const nota of desteLote) {
@@ -145,6 +152,21 @@ export async function POST(req: NextRequest) {
       // registrar o resultado localmente. Loga alto porque, sem isso, a nota
       // pode ficar presa em "Não Emitido" mesmo já emitida de verdade lá fora.
       console.error(`[nfse/emitir] Nota ${nota.id} processada (${resultado.status}) mas falhou ao atualizar o registro local:`, erroUpdateNota.message);
+    }
+
+    // Aprendizado por municipio: guarda se aquela combinacao de codigo passou ou
+    // foi recusada ali. E a unica fonte que temos — nao existe API publica de
+    // codigo municipal — e serve para sugerir o codigo ao proximo salao da mesma
+    // cidade. Nao bloqueia a emissao se falhar.
+    if (resultado.status !== 'processando') {
+      await registrarResultadoCodigo({
+        codigoIbge: salao.codigo_ibge,
+        ctribNac: nota.item_lista_servico,
+        ctribMun: nota.codigo_tributacao_municipio,
+        ambiente: ambienteAtual,
+        aceito: resultado.status === 'autorizado',
+        erro: resultado.mensagem_erro,
+      });
     }
 
     resultados[nota.id] = { ...resultado, status: novoStatus };
