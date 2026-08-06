@@ -39,7 +39,6 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
           aliquota_padrao:              String(cf.aliquota_padrao       || '2.00'),
           modo_emissao:                 cf.modo_emissao                 || 'Lote Manual',
           codigo_ibge:                  data.codigo_ibge                || '',
-          item_lista_servico:           cf.item_lista_servico           || '6.01',
           codigo_tributacao_municipio:  cf.codigo_tributacao_municipio  || '',
           optante_simples:              cf.optante_simples !== undefined ? cf.optante_simples : true,
           cpf_emissor:                  cf.cpf_emissor                  || '',
@@ -68,7 +67,6 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
         regime_tributario:            cfg.regime_tributario,
         aliquota_padrao:              cfg.aliquota_padrao,
         modo_emissao:                 cfg.modo_emissao,
-        item_lista_servico:           cfg.item_lista_servico,
         codigo_tributacao_municipio:  cfg.codigo_tributacao_municipio,
         optante_simples:              cfg.optante_simples,
         cpf_emissor:                  cfg.cpf_emissor,
@@ -112,16 +110,6 @@ export function TabConfiguracoes({ perfil }: { perfil: any }) {
         <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 14 }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={lbl}>Item da Lista de Serviços (LC 116)</label>
-              <select style={inputAdmin} value={cfg.item_lista_servico} onChange={e => up('item_lista_servico', e.target.value)}>
-                <option value="6.01">6.01 — Cabeleireiros, manicuros, pedicuros</option>
-                <option value="6.02">6.02 — Esteticistas, tratamento de pele, depilação</option>
-                <option value="6.03">6.03 — Banhos, sauna, massagens, ginástica</option>
-                <option value="6.04">6.04 — Centros de emagrecimento, spa</option>
-                <option value="14.13">14.13 — Tatuar / piercing</option>
-              </select>
-            </div>
             <div>
               <label style={lbl}>Alíquota ISS (%)</label>
               <input type="number" min={0} max={5} step={0.01} style={inputAdmin}

@@ -7,17 +7,30 @@ export interface FormEstabelecimento {
   inscricao_municipal: string;
 }
 
+// Padrao de salao NOVO. Nada aqui pode carregar valor de um municipio ou de um
+// regime especifico: o Luarys atende o pais inteiro, e valor errado que "parece
+// certo" e pior que campo vazio — o dono nao revisa o que ja veio preenchido.
+//
+// item_lista_servico saiu: guardava '6.01', formato com ponto que a prefeitura
+// recusa (E0310), e hoje o codigo vem da ficha de cada servico. Estava em 4 dos
+// 5 saloes sem nunca ter sido usado na emissao.
+//
+// aliquota_padrao vai a '0': ela e o FALLBACK de servico sem aliquota. Com um
+// numero qualquer ali, servico mal cadastrado emite com imposto inventado em
+// silencio. Zero e o unico valor que nao inventa nada.
+//
+// PIS/COFINS a '0.00': o padrao anterior (0.65 / 3.00) e do regime cumulativo
+// comum. O publico do Luarys e Simples Nacional, onde esses tributos vao no DAS.
 export const CFG_INICIAL = {
   regime_tributario: 'Simples Nacional',
-  aliquota_padrao: '2.00',
+  aliquota_padrao: '0',
   modo_emissao: 'Lote Manual',
   codigo_ibge: '',
-  item_lista_servico: '6.01',
   codigo_tributacao_municipio: '',
   optante_simples: true,
   cpf_emissor: '',
-  pis_percentual: '0.65',
-  cofins_percentual: '3.00',
+  pis_percentual: '0.00',
+  cofins_percentual: '0.00',
   regime_especial_tributacao: '',
   cmc: '',
   // Vazio = sem aviso. Ver comentario em TabConfiguracoes: o prazo varia por
