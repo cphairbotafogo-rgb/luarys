@@ -264,6 +264,43 @@ export function AbaMeuPlano({ perfil }: any) {
     carregarDados();
   }
 
+  /**
+   * Troca o cartao sem perder dia pago.
+   *
+   * Abre o checkout hospedado do Asaas — o numero do cartao nunca passa pelo
+   * Luarys. A rota cria uma assinatura nova com a MESMA data de vencimento e
+   * cancela a antiga; se algo falhar no meio, nada muda. Ver comentario em
+   * /api/assinatura/trocar-cartao.
+   */
+  async function trocarCartao(moduloChave: string, rotulo: string) {
+    if (!window.confirm(
+      `Trocar o cartão de ${rotulo}?
+
+` +
+      'Vamos abrir a página segura do Asaas para você cadastrar o novo cartão. ' +
+      'A data de vencimento não muda e você não é cobrado agora.'
+    )) return;
+
+    setProcessandoChave(moduloChave);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/assinatura/trocar-cartao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ modulo_chave: moduloChave }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j?.checkoutUrl) { toast.erro(j?.erro || 'Não foi possível iniciar a troca.', 10000); return; }
+      window.open(j.checkoutUrl, '_blank');
+      toast.sucesso(`Página aberta em outra aba. O vencimento segue em ${new Date(j.vencimento_mantido + 'T12:00:00').toLocaleDateString('pt-BR')}.`, 10000);
+      carregarDados();
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+    } finally {
+      setProcessandoChave(null);
+    }
+  }
+
   async function reativarPlano(plano: any) {
     // Mesmo caso do módulo: "Cancelar" já apagou a subscription no Asaas, não
     // tem como só desfazer — precisa assinar de novo. Preserva o preço
@@ -456,9 +493,19 @@ export function AbaMeuPlano({ perfil }: any) {
                           : salao?.asaas_subscription_id ? "Manter Assinatura" : "Reativar (nova cobrança)"}
                       </button>
                     ) : (
-                      <button onClick={() => desativarPlano(p)} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
-                        {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <><FiCheckCircle size={14} /> Plano Atual — Cancelar</>}
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <button onClick={() => desativarPlano(p)} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
+                          {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <><FiCheckCircle size={14} /> Plano Atual — Cancelar</>}
+                        </button>
+                        {/* So aparece quando ha assinatura recorrente: sem ela nao ha
+                            cartao para trocar, e o botao seria uma promessa vazia. */}
+                        {salao?.asaas_subscription_id && (
+                          <button onClick={() => trocarCartao(p.chave, p.nome)} disabled={!!processandoChave}
+                            style={{ background: 'none', border: 'none', padding: 0, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: processandoChave ? 'not-allowed' : 'pointer', textDecoration: 'underline' }}>
+                            Trocar forma de pagamento
+                          </button>
+                        )}
+                      </div>
                     )
                   ) : isEnterprise ? (
                     <button disabled title="Fale com a nossa equipe para configurar um plano sob medida." style={btnDisabled}>Fale com a gente</button>
@@ -530,9 +577,17 @@ export function AbaMeuPlano({ perfil }: any) {
                         : info?.asaas_subscription_id ? "Manter Assinatura" : "Reativar (nova cobrança)"}
                     </button>
                   ) : (
-                    <button onClick={() => desativarModulo({ ...m, ...info })} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
-                      {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <><FiCheckCircle size={14} /> Ativo — Desativar</>}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <button onClick={() => desativarModulo({ ...m, ...info })} disabled={!!processandoChave} style={{ ...btnAtivo, cursor: processandoChave ? "not-allowed" : "pointer" }}>
+                        {carregandoEste ? <FiLoader className="animate-spin" size={14} /> : <><FiCheckCircle size={14} /> Ativo — Desativar</>}
+                      </button>
+                      {info?.asaas_subscription_id && (
+                        <button onClick={() => trocarCartao(m.chave, m.nome)} disabled={!!processandoChave}
+                          style={{ background: 'none', border: 'none', padding: 0, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: processandoChave ? 'not-allowed' : 'pointer', textDecoration: 'underline' }}>
+                          Trocar forma de pagamento
+                        </button>
+                      )}
+                    </div>
                   )
                 ) : gratis ? (
                   <button disabled title="Configure este módulo na aba correspondente." style={btnDisabled}>Configuração manual</button>
