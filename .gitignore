@@ -47,6 +47,12 @@ next-env.d.ts
 # operacao daquele dia — nao para virar historico do repositorio.
 scripts/conferencia/backup-limpeza-*.json
 scripts/conferencia/pareamento-*.json
+scripts/conferencia/backup-nbs-*.json
+
+# Documento gerado para a contabilidade do salao: leva CNPJ, inscricao estadual
+# e municipal dentro. Recriavel com scripts/conferencia/gerar-pdf-contabilidade.mjs,
+# e sempre com os valores do dia — versao guardada no repositorio so envelheceria.
+perguntas-contabilidade.pdf
 
 # Zip gerado para auditoria externa — recriavel com scripts/conferencia/empacotar-codigo.mjs
 luarys-codigo.zip

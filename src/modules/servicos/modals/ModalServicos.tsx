@@ -26,12 +26,43 @@ import { ModalGerenciarSetores } from "./ModalGerenciarSetores";
 // Conferido em 05/08/2026 contra cinco NFS-e de producao (notas 613, 626, 635,
 // 642 e 644): todas em 060101, inclusive a 626, que e depilacao pura. O
 // municipio classifica pela atividade do salao, nao pelo item da LC 116.
-const TABELA_TRIBUTACAO_SALAO = [
-  { id: 1, label: 'Cabelereiros e Barbeiros', nbs: '126021000', nac: '060101' },
-  { id: 2, label: 'Manicure e Pedicure', nbs: '126022000', nac: '060101' },
-  { id: 3, label: 'Estética, Bem-estar e Depilação', nbs: '126022000', nac: '060101' },
-  { id: 4, label: 'Maquiagem e Outros', nbs: '126029000', nac: '060101' }
+// A lista de verdade vem da tabela `nbs_catalogo`, alimentada com a NBS oficial
+// do MDIC (Portaria Conjunta 1.820/2013) — ver a migration 20260807a. Fica no
+// banco, e não aqui, porque corrigir um código no bundle exige deploy e nenhum
+// salão tem como saber que a linha está errada.
+//
+// Esta cópia é só o socorro para quando a tabela ainda não existe (migration não
+// aplicada) — a tela não pode ficar sem opção nenhuma. Estava assim antes, com
+// dois códigos trocados: bem-estar é 126023000 e depilação é 126029000, mas os
+// dois vinham como 126022000, e 126023000 nem aparecia.
+type ItemNbs = { id: string; label: string; nbs: string; nac: string; exemplos?: string; exibe?: string };
+
+const TABELA_TRIBUTACAO_FALLBACK: ItemNbs[] = [
+  { id: '126021000', label: 'Cabeleireiros e Barbeiros', nbs: '126021000', nac: '060101' },
+  { id: '126022000', label: 'Manicure, Pedicure e Tratamento Cosmético', nbs: '126022000', nac: '060101' },
+  { id: '126023000', label: 'Bem-estar (spa, sauna, massagem)', nbs: '126023000', nac: '060101' },
+  { id: '126029000', label: 'Depilação e Outros Tratamentos de Beleza', nbs: '126029000', nac: '060101' },
 ];
+
+function useCatalogoNbs(): ItemNbs[] {
+  const [itens, setItens] = useState<ItemNbs[]>(TABELA_TRIBUTACAO_FALLBACK);
+  useEffect(() => {
+    supabase.from('nbs_catalogo')
+      .select('codigo, codigo_exibe, rotulo, exemplos, ctribnac')
+      .eq('ativo', true).order('ordem')
+      .then(({ data, error }) => {
+        // Sem a tabela (migration ainda não aplicada) fica o fallback: uma lista
+        // curta e correta vale mais do que um select vazio.
+        if (error || !data?.length) return;
+        setItens(data.map((r: any) => ({
+          id: r.codigo, label: r.rotulo, nbs: r.codigo,
+          nac: r.ctribnac ?? '', exemplos: r.exemplos ?? undefined,
+          exibe: r.codigo_exibe ?? undefined,
+        })));
+      });
+  }, []);
+  return itens;
+}
 
 const formVazio = { 
   nome_servico: '', categoria: '', setor: '', descricao: '', 
@@ -43,6 +74,7 @@ const formVazio = {
 };
 
 export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, categoriasUnicas }: any) {
+  const catalogoNbs = useCatalogoNbs();
   const toast = useToast();
     const [form, setForm] = useState(formVazio);
   const [insumos, setInsumos] = useState<any[]>([]);
@@ -374,22 +406,30 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Seleção Inteligente de Tributação</label>
               <select
-                // Indexado por id, nao por nbs: tipos diferentes podem compartilhar
-                // o mesmo NBS (manicure e estetica sao os dois 126022000), e o
-                // select nao conseguiria distingui-los.
-                value={String(TABELA_TRIBUTACAO_SALAO.find(t => t.nbs === form.nbs)?.id ?? '')}
+                // Indexado pelo proprio codigo NBS: um item por codigo oficial,
+                // entao nao ha mais dois rotulos disputando o mesmo valor — era
+                // isso que obrigava um id artificial antes.
+                value={catalogoNbs.find(t => t.nbs === form.nbs)?.id ?? ''}
                 style={{ ...inputStyle, cursor: "pointer", border: `1px solid ${C.sidebarBg}`, color: C.sidebarBg, fontWeight: 700 }}
                 onChange={(e) => {
-                  const selecionado = TABELA_TRIBUTACAO_SALAO.find(t => String(t.id) === e.target.value);
+                  const selecionado = catalogoNbs.find(t => t.id === e.target.value);
                   if (selecionado) {
-                    setForm({...form, nbs: selecionado.nbs, codigo_tributacao_nacional: selecionado.nac});
-                    buscarCodigoMunicipal(selecionado.nac);
+                    setForm({...form, nbs: selecionado.nbs, codigo_tributacao_nacional: selecionado.nac || form.codigo_tributacao_nacional});
+                    if (selecionado.nac) buscarCodigoMunicipal(selecionado.nac);
                   }
                 }}
               >
                 <option value="">-- Selecione o tipo de serviço para auto-preencher --</option>
-                {TABELA_TRIBUTACAO_SALAO.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                {catalogoNbs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
+              {(() => {
+                const sel = catalogoNbs.find(t => t.nbs === form.nbs);
+                return sel?.exemplos ? (
+                  <p style={{ margin: '6px 0 0', fontSize: 10, color: C.textLight, lineHeight: 1.5 }}>
+                    <strong>{sel.exibe ?? sel.nbs}</strong> — {sel.exemplos}
+                  </p>
+                ) : null;
+              })()}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr", gap: 16 }}>
               <div>
@@ -398,6 +438,11 @@ export function ModalServicos({ perfil, onClose, editandoId, produtosEstoque, ca
                   <IconeAjuda texto={"Nomenclatura Brasileira de Serviços — necessário para emitir NFS-e (nota fiscal de serviço).\nUse a seleção inteligente acima para preencher automaticamente."} posicao="cima" />
                 </label>
                 <input list="nbs-lista-completa" style={inputStyle} value={form.nbs} onChange={e=>setForm({...form, nbs: e.target.value.replace(/\D/g, '')})} placeholder="Ex: 126021000" maxLength={9} />
+                {/* O input ja apontava para esta lista, que nunca tinha sido
+                    criada — o campo nunca sugeriu nada. */}
+                <datalist id="nbs-lista-completa">
+                  {catalogoNbs.map(t => <option key={t.id} value={t.nbs}>{t.exibe ? `${t.exibe} — ${t.label}` : t.label}</option>)}
+                </datalist>
               </div>
               <div>
                 <label style={labelStyle}>Código Municipal</label>
