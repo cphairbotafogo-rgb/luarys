@@ -1,8 +1,8 @@
 'use client'
 import { C } from '@/lib/constants';
 import { cardAdmin, RAIO_XL, RAIO_MD } from '@/lib/estiloGlobal';
-import { useState } from 'react';
-import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiLock, FiEye, FiEyeOff, FiCheckCircle } from 'react-icons/fi';
 import { S, CRT_OPCOES, API, getAuthToken } from './tipos';
 
 export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any) {
@@ -10,6 +10,19 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
   // conferir antes de salvar evita descobrir o erro so quando a nota e recusada.
   // Comeca oculto porque a tela fica aberta em balcao de salao.
   const [verCsc, setVerCsc] = useState<Record<string, boolean>>({});
+
+  // Situacao do CSC vem do PROVEDOR, nao do nosso banco: como o codigo nao e
+  // guardado aqui, olhar para ca diria "vazio" com tudo funcionando — foi a
+  // impressao que a tela deu quando o campo esvaziou depois de salvar.
+  const [statusCsc, setStatusCsc] = useState<{ homologacao: boolean; producao: boolean; id_homologacao?: string; id_producao?: string } | null>(null);
+
+  async function carregarStatusCsc() {
+    try {
+      const r = await fetch('/api/nfce/csc', { headers: { Authorization: `Bearer ${await getAuthToken()}` } });
+      if (r.ok) setStatusCsc(await r.json());
+    } catch { /* sem status e melhor que status errado */ }
+  }
+  useEffect(() => { carregarStatusCsc(); }, [salaoId]);
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
@@ -47,6 +60,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
             if (!r.ok) { toast(j?.erro || 'Não foi possível enviar o CSC.', 'erro'); return; }
             // Limpa da tela depois de enviado — nao fica em memoria nem em tela.
             dispatch({ type: 'CFG', p: { csc_homologacao: '', csc_producao: '' } });
+            await carregarStatusCsc();
             toast('CSC enviado ao provedor. Parâmetros salvos.', 'sucesso');
             return;
           }
@@ -145,11 +159,19 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
           </p>
 
           {[
-            { rot: 'Homologação (teste)', idK: 'csc_id_homologacao', tokK: 'csc_homologacao' },
-            { rot: 'Produção',            idK: 'csc_id_producao',    tokK: 'csc_producao'    },
+            { rot: 'Homologação (teste)', idK: 'csc_id_homologacao', tokK: 'csc_homologacao', st: 'homologacao', idSt: 'id_homologacao' },
+            { rot: 'Produção',            idK: 'csc_id_producao',    tokK: 'csc_producao',    st: 'producao',    idSt: 'id_producao'    },
           ].map(a => (
             <div key={a.idK} style={{ marginBottom: 14 }}>
-              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: C.textMain }}>{a.rot}</p>
+              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: C.textMain, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {a.rot}
+                {statusCsc?.[a.st as 'homologacao' | 'producao'] && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700, fontSize: 10, color: '#15803D', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 20, padding: '2px 8px' }}>
+                    <FiCheckCircle size={11} /> configurado no provedor
+                    {statusCsc?.[a.idSt as 'id_homologacao' | 'id_producao'] ? ` · ID ${statusCsc[a.idSt as 'id_homologacao' | 'id_producao']}` : ''}
+                  </span>
+                )}
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12 }}>
                 <div>
                   <label style={S.label}>ID</label>
@@ -162,7 +184,7 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
                   <div style={{ position: 'relative' }}>
                     <input style={{ ...S.input, paddingRight: 38, fontFamily: verCsc[a.tokK] ? 'ui-monospace, Consolas, monospace' : undefined }}
                       type={verCsc[a.tokK] ? 'text' : 'password'} autoComplete="off" spellCheck={false}
-                      placeholder="Cole o código da SEFAZ"
+                      placeholder={statusCsc?.[a.st as 'homologacao' | 'producao'] ? 'já configurado — cole para substituir' : 'Cole o código da SEFAZ'}
                       value={state.config?.[a.tokK] || ''}
                       onChange={e => dispatch({ type: 'CFG', p: { [a.tokK]: e.target.value.trim() } })} />
                     <button type="button"
