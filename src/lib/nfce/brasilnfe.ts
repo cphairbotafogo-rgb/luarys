@@ -99,6 +99,16 @@ async function emitir(referencia: string, payload: PayloadNFCe, companyToken?: s
           ICMS: { CodSituacaoTributaria: it.icms_csosn },
           PIS: { CodSituacaoTributaria: it.pis_modalidade },
           COFINS: { CodSituacaoTributaria: it.cofins_modalidade },
+          // Reforma Tributaria. A SEFAZ-RJ avisou em 09/07/2026 que a partir de
+          // 03/08 rejeita documento fiscal eletronico sem IBS/CBS — vale para
+          // NF-e, NFC-e e CT-e; NFS-e e municipal e nao entra.
+          //
+          // O cClassTrib depende do que a mercadoria e e de qual anexo ou
+          // beneficio se aplica; cosmetico nao e alimento nem medicamento. Quem
+          // responde e a contabilidade do salao. Sem valor cadastrado vai o
+          // padrao documentado pelo provedor, que preenche as reducoes pela
+          // tabela oficial quando os percentuais vem nulos.
+          IBSCBS: { CodClassificacaoTributaria: String(it.cclasstrib ?? '').trim() || '000001' },
         },
       })),
       Pagamentos: payload.pagamentos.map(p => ({

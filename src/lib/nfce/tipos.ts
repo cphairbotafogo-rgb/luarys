@@ -29,6 +29,12 @@ export interface ItemNFCe {
   descricao: string;
   ncm: string;
   cfop: string;
+  /**
+   * Codigo de Classificacao Tributaria do IBS/CBS (Reforma Tributaria).
+   * Vazio = usa o padrao "000001" do provedor. Depende do que a mercadoria e e
+   * de qual anexo se aplica — quem define e a contabilidade do salao.
+   */
+  cclasstrib?: string;
   unidade_comercial: string;
   quantidade_comercial: number;
   valor_unitario_comercial: number;

@@ -102,6 +102,8 @@ export function buildPayloadNFCe(opts: {
       descricao: it.xProd,
       ncm: (it.NCM || '33049900').replace(/[.\-\/\s]/g, '').toUpperCase(),
       cfop: it.CFOP || '5102',
+      // Reforma Tributaria: vazio deixa o adaptador usar o padrao do provedor.
+      cclasstrib: (it as any).cClassTrib || undefined,
       unidade_comercial: it.uCom || 'UN',
       quantidade_comercial: qtd,
       valor_unitario_comercial: vUnit,
