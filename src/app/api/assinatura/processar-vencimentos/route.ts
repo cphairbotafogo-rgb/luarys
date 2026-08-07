@@ -29,8 +29,73 @@ const supabaseAdmin = createClient(
 
 const HORAS_PARA_SEGUNDO_AVISO = 7 * 24;   // 168h = D+7
 const HORAS_GRACA_SEGUNDO_AVISO = 74;       // 74h após o 2º aviso = D+10
-const DIAS_LEMBRETE_MENSAL = 3;
-const DIAS_LEMBRETE_ANUAL = 30;
+// Dois lembretes antecipados, nao um. O objetivo nao e cobrar — e dar tempo de
+// conferir se o cartao ainda vale ou se o Pix vai sair. Um aviso so, tres dias
+// antes, chega quando ninguem esta pensando nisso.
+const DIAS_LEMBRETE_MENSAL = [2, 1];
+const DIAS_LEMBRETE_ANUAL  = [30, 2, 1];
+
+/**
+ * Quem recebe: donos e gerentes do salao, nunca a equipe.
+ *
+ * Cobranca e assunto de quem responde pelo pagamento. Manicure e recepcionista
+ * receberem "seu modulo sera suspenso" e constrangimento sem utilidade — nao
+ * podem resolver e nao deviam saber.
+ *
+ * Cai para saloes.email_contato so quando nenhum usuario de gestao tem e-mail,
+ * senao o salao ficaria sem aviso nenhum.
+ */
+const NIVEIS_GESTAO = ['dono', 'admin', 'gerente'];
+
+/** Dispara a mesma notificacao para cada responsavel. */
+async function avisarGestao(
+  base: Omit<NotificacaoCobranca, 'evento' | 'email'>,
+  evento: NotificacaoCobranca['evento'],
+  emails: string[],
+): Promise<void> {
+  for (const email of emails) {
+    await notificarCobranca({ ...base, email, evento });
+  }
+}
+
+/**
+ * Qual lembrete antecipado cabe hoje: devolve a chave ('d2') do primeiro que
+ * ainda nao foi enviado e cujo dia ja chegou. Sem isso, um lembrete apagaria o
+ * outro e so o primeiro sairia.
+ */
+function lembretePendente(
+  diasAteVencer: number,
+  dias: number[],
+  jaEnviados: Record<string, unknown> | null,
+): string | null {
+  for (const d of [...dias].sort((a, b) => a - b)) {
+    const chave = `d${d}`;
+    if (diasAteVencer <= d && !jaEnviados?.[chave]) return chave;
+  }
+  return null;
+}
+
+async function emailsDaGestao(salaoId: string, fallback: string | null): Promise<string[]> {
+  const { data: perfis } = await supabaseAdmin
+    .from('perfis_usuarios')
+    .select('id, regra, nivel_acesso')
+    .eq('salao_id', salaoId);
+
+  const idsGestao = (perfis ?? [])
+    .filter(p => NIVEIS_GESTAO.includes(String(p.nivel_acesso ?? '').toLowerCase())
+              || NIVEIS_GESTAO.includes(String(p.regra ?? '').toLowerCase()))
+    .map(p => p.id);
+
+  const emails: string[] = [];
+  for (const id of idsGestao) {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+    const email = data?.user?.email;
+    if (email && !emails.includes(email)) emails.push(email);
+  }
+
+  if (emails.length === 0 && fallback) emails.push(fallback);
+  return emails;
+}
 
 
 export async function POST(req: NextRequest) {
@@ -75,14 +140,17 @@ export async function POST(req: NextRequest) {
       url_renovacao: urlRenovacao,
     };
 
+    const destinatarios = await emailsDaGestao(s.id, s.email_contato);
+    if (destinatarios.length === 0) continue;
+
     if (jaExpirou) {
       await supabaseAdmin.from('saloes')
         .update({ status_assinatura: 'suspenso' })
         .eq('id', s.id);
-      await notificarCobranca({ ...basePayload, evento: 'acesso_bloqueado' });
+      await avisarGestao(basePayload, 'acesso_bloqueado', destinatarios);
       resultado.trials.bloqueados++;
     } else if (diasAteVencer <= 2 && diasAteVencer > 0) {
-      await notificarCobranca({ ...basePayload, evento: 'lembrete_vencimento' });
+      await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios);
       resultado.trials.lembretes++;
     }
   }
@@ -130,6 +198,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const destinatarios = await emailsDaGestao(s.id, s.email_contato);
+      if (destinatarios.length === 0) continue;
+
       const basePayload: Omit<NotificacaoCobranca, 'evento'> = {
         salao_id: s.id,
         salao_nome: s.nome_fantasia || s.razao_social || s.id,
@@ -149,7 +220,7 @@ export async function POST(req: NextRequest) {
             status_assinatura: 'suspenso',
             plano_renovacao_em: null,
           }).eq('id', s.id);
-          await notificarCobranca({ ...basePayload, evento: 'acesso_bloqueado' });
+          await avisarGestao(basePayload, 'acesso_bloqueado', destinatarios);
           resultado.planos.bloqueados++;
           continue;
         }
@@ -160,7 +231,7 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('saloes').update({
           plano_segundo_aviso_enviado_em: agora.toISOString(),
         }).eq('id', s.id);
-        await notificarCobranca({ ...basePayload, evento: 'segundo_aviso_atraso' });
+        await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios);
         resultado.planos.segundos_avisos++;
         continue;
       }
@@ -170,18 +241,22 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('saloes').update({
           plano_aviso_enviado_em: agora.toISOString(),
         }).eq('id', s.id);
-        await notificarCobranca({ ...basePayload, evento: 'pagamento_atrasado' });
+        await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.planos.primeiros_avisos++;
         continue;
       }
 
-      // 1. Lembrete antecipado
+      // 1. Lembrete antecipado — nao grava plano_aviso_enviado_em, que e do
+      // aviso de D+0. Marcar aqui apagava o aviso do dia do vencimento.
       const diasLembretePlano = s.plano_periodo === 'anual' ? DIAS_LEMBRETE_ANUAL : DIAS_LEMBRETE_MENSAL;
-      if (diasAteVencer <= diasLembretePlano && diasAteVencer > 0 && !s.plano_aviso_enviado_em) {
+      const chavePlano = diasAteVencer > 0
+        ? lembretePendente(diasAteVencer, diasLembretePlano, (s as any).lembretes_enviados)
+        : null;
+      if (chavePlano) {
         await supabaseAdmin.from('saloes').update({
-          plano_aviso_enviado_em: agora.toISOString(),
+          lembretes_enviados: { ...((s as any).lembretes_enviados ?? {}), [chavePlano]: agora.toISOString() },
         }).eq('id', s.id);
-        await notificarCobranca({ ...basePayload, evento: 'lembrete_vencimento' });
+        await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios);
         resultado.planos.lembretes++;
       }
     }
@@ -191,7 +266,7 @@ export async function POST(req: NextRequest) {
 
   const { data: modulos } = await supabaseAdmin
     .from('salao_modulos')
-    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo, cancelamento_agendado')
+    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo, cancelamento_agendado, lembretes_enviados')
     .not('renovacao_em', 'is', null)
     .eq('ativo', true);
 
@@ -230,6 +305,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const destinatarios = await emailsDaGestao(mod.salao_id, salao.email_contato);
+      if (destinatarios.length === 0) continue;
+
       const basePayload: Omit<NotificacaoCobranca, 'evento'> = {
         salao_id: mod.salao_id,
         salao_nome: salao.nome_fantasia || salao.razao_social || mod.salao_id,
@@ -248,7 +326,7 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin.from('salao_modulos').update({ ativo: false })
             .eq('salao_id', mod.salao_id)
             .eq('modulo_chave', mod.modulo_chave);
-          await notificarCobranca({ ...basePayload, evento: 'acesso_bloqueado' });
+          await avisarGestao(basePayload, 'acesso_bloqueado', destinatarios);
           resultado.modulos.bloqueados++;
           continue;
         }
@@ -259,7 +337,7 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('salao_modulos').update({
           segundo_aviso_enviado_em: agora.toISOString(),
         }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await notificarCobranca({ ...basePayload, evento: 'segundo_aviso_atraso' });
+        await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios);
         resultado.modulos.segundos_avisos++;
         continue;
       }
@@ -269,18 +347,21 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('salao_modulos').update({
           aviso_enviado_em: agora.toISOString(),
         }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await notificarCobranca({ ...basePayload, evento: 'pagamento_atrasado' });
+        await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.modulos.primeiros_avisos++;
         continue;
       }
 
-      // 1. Lembrete antecipado
+      // 1. Lembrete antecipado — ver comentario no bloco do plano.
       const diasLembreteModulo = mod.periodo === 'anual' ? DIAS_LEMBRETE_ANUAL : DIAS_LEMBRETE_MENSAL;
-      if (diasAteVencer <= diasLembreteModulo && diasAteVencer > 0 && !mod.aviso_enviado_em) {
+      const chaveMod = diasAteVencer > 0
+        ? lembretePendente(diasAteVencer, diasLembreteModulo, (mod as any).lembretes_enviados)
+        : null;
+      if (chaveMod) {
         await supabaseAdmin.from('salao_modulos').update({
-          aviso_enviado_em: agora.toISOString(),
+          lembretes_enviados: { ...((mod as any).lembretes_enviados ?? {}), [chaveMod]: agora.toISOString() },
         }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await notificarCobranca({ ...basePayload, evento: 'lembrete_vencimento' });
+        await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios);
         resultado.modulos.lembretes++;
       }
     }
