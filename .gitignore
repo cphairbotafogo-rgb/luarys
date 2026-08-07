@@ -48,6 +48,7 @@ next-env.d.ts
 scripts/conferencia/backup-limpeza-*.json
 scripts/conferencia/pareamento-*.json
 scripts/conferencia/backup-nbs-*.json
+scripts/conferencia/backup-precos-*.json
 
 # Documento gerado para a contabilidade do salao: leva CNPJ, inscricao estadual
 # e municipal dentro. Recriavel com scripts/conferencia/gerar-pdf-contabilidade.mjs,
