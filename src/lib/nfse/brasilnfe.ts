@@ -543,3 +543,75 @@ export async function sincronizarEmpresaLuarys(
     return { sucesso: false, erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
   }
 }
+
+/**
+ * Exclui a empresa do salão na Brasil NFe, para parar a cobrança daquele CNPJ.
+ *
+ * A Brasil NFe confirmou em 07/08/2026 que **não existe suspender**: a única
+ * forma de deixar de pagar por um CNPJ é deletar a empresa. Reativar depois é
+ * recadastrar. Sem esta chamada, salão que cancela o módulo fiscal continua
+ * sendo cobrado de nós todo mês, para sempre — o Asaas para de cobrar o salão e
+ * a conta fica com a Luarys.
+ *
+ * Duas garantias que eles deram e que este código depende:
+ *  · os XML ficam guardados 5 anos e continuam consultáveis depois da exclusão,
+ *    então não é preciso arquivar nada antes;
+ *  · cancelando **antes do próximo ciclo** o boleto nem chega a ser gerado — por
+ *    isso a chamada acontece no fim do período pago, junto com o desligamento do
+ *    módulo, e não no clique de cancelar.
+ *
+ * O `brasilnfe_company_token` é PRESERVADO. Apagá-lo, como esta função fazia
+ * antes, cegava a consulta das notas já emitidas: `consultar()` e `cancelar()`
+ * recebem justamente esse token. A Brasil NFe guarda os XML por 5 anos, mas de
+ * nada adianta se perdermos a chave para perguntar — e guarda fiscal de 5 anos
+ * é obrigação do salão, não conveniência nossa.
+ *
+ * Quem passa a barrar a emissão é `brasilnfe_excluido_em`: enquanto estiver
+ * preenchido, o CNPJ não está mais habilitado do lado deles, e tentar emitir só
+ * produziria erro do provedor sem explicação para o salão.
+ */
+export async function excluirEmpresaLuarys(
+  salaoId: string,
+): Promise<{ sucesso: boolean; erro?: string; jaEstavaFora?: boolean }> {
+  const { data: salao } = await supabaseAdmin
+    .from('saloes').select('cnpj, config_fiscal').eq('id', salaoId).maybeSingle();
+
+  const companyToken = salao?.config_fiscal?.brasilnfe_company_token;
+  // Sem token não há o que excluir — e isso não é falha: é o estado de quem
+  // nunca ativou o módulo fiscal, ou de quem já foi excluído antes.
+  if (!companyToken) return { sucesso: true, jaEstavaFora: true };
+
+  const { data: cfg } = await supabaseAdmin
+    .from('plataforma_nfse_config').select('token_brasilnfe').eq('id', 1).maybeSingle();
+  const userToken = process.env.BRASIL_NFE_USER_TOKEN || cfg?.token_brasilnfe || '';
+  if (!userToken) return { sucesso: false, erro: 'UserToken Brasil NFe não configurado.' };
+
+  try {
+    const bnfe = new BrasilNFe(companyToken, userToken);
+    const resp = await bnfe.empresa.deletarEmpresa();
+    if (!resp?.status) {
+      return { sucesso: false, erro: resp?.Error || 'A Brasil NFe recusou a exclusão.' };
+    }
+  } catch (e: any) {
+    // Erro de rede não pode virar "excluído": apagar o token aqui deixaria a
+    // empresa viva lá, cobrando, e sem nenhuma referência nossa para excluir
+    // depois. Melhor falhar e tentar de novo no próximo ciclo da régua.
+    return { sucesso: false, erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
+  }
+
+  // O CSC sai: ele vivia do lado deles e foi embora com a empresa. O token fica,
+  // para consultar o que já foi emitido.
+  const { csc_enviado_em, ...resto } = (salao!.config_fiscal ?? {}) as Record<string, any>;
+  await supabaseAdmin.from('saloes')
+    .update({
+      config_fiscal: { ...resto, brasilnfe_excluido_em: new Date().toISOString() },
+      // Sem isto o módulo fiscal continuaria visível na tela: derivarModulos faz
+      // `... || legacyFiscal`, e legacyFiscal é esta coluna. O salão abriria a
+      // gaveta de notas de um CNPJ que não está mais habilitado a emitir.
+      modulo_fiscal_liberado: false,
+    })
+    .eq('id', salaoId);
+
+  console.warn(`[brasilnfe] empresa excluída — salão ${salaoId} · CNPJ ${salao!.cnpj} · cobrança encerrada`);
+  return { sucesso: true };
+}

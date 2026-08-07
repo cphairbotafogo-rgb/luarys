@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { excluirEmpresaLuarys } from '@/lib/nfse/brasilnfe';
 import { notificarCobranca, RODAPE_COBRANCA } from '@/lib/notificacoes';
 import type { NotificacaoCobranca } from '@/lib/notificacoes';
 
@@ -143,6 +144,43 @@ async function emailsDaGestao(salaoId: string, fallback: string | null): Promise
   return emails;
 }
 
+
+/**
+ * Encerra o cadastro do CNPJ na Brasil NFe quando o salão deixa de ter QUALQUER
+ * módulo de nota.
+ *
+ * A Brasil NFe não tem "suspender": só deletar a empresa para a cobrança
+ * (confirmado por eles em 07/08/2026). Sem isto, salão que cancela continua
+ * custando R$ 49,90/mês à Luarys para sempre.
+ *
+ * O cadastro é UM SÓ para NFS-e e NFC-e — `registrarPagamentoAssinatura` cria a
+ * empresa quando qualquer um dos dois é pago. Por isso a exclusão só acontece
+ * quando não sobrou nenhum dos dois ativo: cancelar só a NFC-e não pode derrubar
+ * a emissão de NFS-e junto.
+ */
+async function encerrarCadastroFiscalSeSobrou(
+  salaoId: string,
+  moduloChave: string,
+  resultado: any,
+) {
+  if (moduloChave !== 'nfse' && moduloChave !== 'nfce') return;
+
+  const { data: aindaAtivos } = await supabaseAdmin
+    .from('salao_modulos').select('modulo_chave')
+    .eq('salao_id', salaoId).eq('ativo', true).in('modulo_chave', ['nfse', 'nfce']);
+  if (aindaAtivos?.length) return;
+
+  const r = await excluirEmpresaLuarys(salaoId);
+  if (r.jaEstavaFora) return;
+  if (!r.sucesso) {
+    // Não desiste: sem token apagado, a próxima passada da régua tenta de novo.
+    // Falhar em silêncio aqui é dinheiro saindo todo mês sem ninguém ver.
+    console.error(`[processar-vencimentos] falha ao excluir empresa na Brasil NFe — salão ${salaoId}: ${r.erro}`);
+    resultado.fiscal = { ...(resultado.fiscal ?? {}), falhas: (resultado.fiscal?.falhas ?? 0) + 1 };
+    return;
+  }
+  resultado.fiscal = { ...(resultado.fiscal ?? {}), excluidos: (resultado.fiscal?.excluidos ?? 0) + 1 };
+}
 
 export async function POST(req: NextRequest) {
   // Aceita os DOIS formatos de propósito:
@@ -376,6 +414,7 @@ export async function POST(req: NextRequest) {
             .eq('salao_id', mod.salao_id)
             .eq('modulo_chave', mod.modulo_chave);
           resultado.modulos.bloqueados++;
+          await encerrarCadastroFiscalSeSobrou(mod.salao_id, mod.modulo_chave, resultado);
         }
         continue;
       }

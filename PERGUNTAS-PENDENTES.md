@@ -7,29 +7,33 @@ das respostas está no fim.
 
 ## Brasil NFe
 
-**As três primeiras vieram da resposta de hoje ("para parar a cobrança, deletar
-a empresa"). A primeira é a mais importante da página.**
+**Todas respondidas em 07/08/2026.** Sobraram duas em análise do lado deles.
 
-1. **As notas já emitidas continuam consultáveis depois de deletar a empresa? Os
-   XML continuam disponíveis?**
-   Guarda fiscal é de 5 anos. Se a exclusão levar o histórico junto, o sistema
-   precisa **baixar e arquivar todos os XML antes** de excluir — é uma
-   implementação bem diferente, e não dá para programar a exclusão sem isso.
-2. **Ao reativar um CNPJ, a numeração das notas recomeça?** Numeração repetida é
-   rejeição na prefeitura.
-3. **A cobrança é proporcional ou por mês cheio? Existe data de corte** no mês
-   para deletar e não entrar no ciclo seguinte?
-4. A assinatura de NFS-e e a de NF-e/NFC-e são **mesmo separadas**, ou existe
-   pacote fechado?
-5. Enviamos `ValorDeducoes` em `Valores` e o XML sai **sem `vDedRed`**. Como se
-   informa a dedução da cota-parte do salão-parceiro (Lei 13.352)?
-6. Dá para **liberar NF-e/NFC-e só em homologação**, sem assinar? Nem a
-   pré-visualização passa hoje, e ela não toca a SEFAZ.
-7. O **`CodVerificacao` volta vazio** para o Rio — é do município ou falta
-   configurar algo do nosso lado?
-8. **Vocês avisam do vencimento do certificado A1?** Com quanta antecedência?
+| # | Pergunta | Resposta |
+|---|---|---|
+| 1 | XML sobrevivem à exclusão da empresa? | **Sim** — por lei guardam 5 anos, e a consulta continua funcionando |
+| 2 | Numeração recomeça ao reativar? | **Não** — volta a mesma série e numeração cadastradas |
+| 3 | Cobrança proporcional? Data de corte? | Primeira ativação valor cheio, as seguintes **proporcionais**. **Cancelando antes do próximo ciclo, o boleto não é gerado** |
+| 4 | NFS-e e NF-e/NFC-e são planos separados? | **Sim** — NF-e e NFC-e no mesmo plano; NFS-e em outro |
+| 6 | Homologação sem assinar? | **Sim**, mas o ambiente deles vai direto para a homologação da SEFAZ: exige CNPJ válido e habilitado, Inscrição Estadual, certificado digital e, para NFC-e, **CSC de homologação** |
+| 8 | Avisam do vencimento do A1? | **Sim**, por e-mail, para o endereço do cadastro da empresa |
 
----
+**Em análise — mandar o CNPJ 17.326.293/0001-02 para eles:**
+
+5. `ValorDeducoes` sai sem `vDedRed` no XML — *"Temos que analisar. Nos passe o
+   CNPJ da empresa para análise aqui."*
+7. `CodVerificacao` volta vazio para o Rio — mesma resposta: precisa do CNPJ.
+
+**O que essas respostas mudam no sistema**
+
+- A resposta 1 **destrava a exclusão automática**: não é preciso baixar e
+  arquivar os XML antes de deletar a empresa. O `deletarEmpresa()` pode ser
+  chamado direto.
+- A resposta 3 diz **quando** chamar: assim que o período pago acabar, antes do
+  ciclo seguinte. É exatamente o momento em que a régua já desativa o módulo.
+- A resposta 8 tem uma consequência: cadastramos o `email_fiscal` **do salão**
+  como contato, então o aviso de certificado vencendo vai para ele e **não para
+  a Luarys**. Se quisermos saber antes do salão, precisa de outro caminho.
 
 ## Contabilidade
 

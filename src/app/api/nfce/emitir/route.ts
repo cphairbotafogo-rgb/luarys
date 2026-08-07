@@ -52,6 +52,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Salão não registrado na Brasil NFe. Solicite ao administrador do Luarys que faça o cadastro do CNPJ.' }, { status: 422 });
   }
 
+  // Empresa excluida na Brasil NFe (modulo fiscal cancelado): o token continua
+  // guardado para consultar o que ja foi emitido, mas o CNPJ nao esta mais
+  // habilitado a emitir. Sem esta trava a tentativa iria ate o provedor e
+  // voltaria um erro sem explicacao para o salao.
+  if (salao?.config_fiscal?.brasilnfe_excluido_em) {
+    return NextResponse.json({
+      erro: 'A emissao de notas foi encerrada quando o modulo fiscal foi cancelado. Contrate o modulo novamente para voltar a emitir — as notas ja emitidas continuam consultaveis.',
+    }, { status: 409 });
+  }
+
+
   // ── Config NFC-e ─────────────────────────────────────────────────────────────
   const { data: configNfce } = await supabaseAdmin
     .from('configuracoes_nfce_produtos')

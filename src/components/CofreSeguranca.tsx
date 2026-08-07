@@ -40,7 +40,12 @@ export function CofreSeguranca({
 
   function confirmar() {
     if (!senha || processando) return;
-    onConfirmar(senha);
+    const informada = senha;
+    // Limpa antes de devolver: a caixa continua aberta quando a acao falha, e
+    // deixar a senha no campo a expoe a quem passar pela recepcao — alem de
+    // fazer o proximo item herdar o que foi digitado para o anterior.
+    setSenha('');
+    onConfirmar(informada);
   }
 
   return (

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const { user, perfil, erro } = await autenticarRota(req, 'POST /api/assinatura/contratar-com-cartao-salvo');
   if (erro) return erro;
 
-  const { modulo_chave, periodo = 'mensal', confirmo, senha } = await req.json().catch(() => ({}));
+  const { modulo_chave, periodo = 'mensal', confirmo, senha, cartao_ultimos4 } = await req.json().catch(() => ({}));
   if (!modulo_chave) return NextResponse.json({ erro: 'modulo_chave obrigatório.' }, { status: 400 });
   if (confirmo !== true) {
     return NextResponse.json({ erro: 'Confirme a cobrança antes de prosseguir.' }, { status: 428 });
@@ -82,6 +82,15 @@ export async function POST(req: NextRequest) {
     email: user.email,
     password: senha,
   });
+  // signInWithPassword emite um refresh token de verdade. Sem encerrar, cada
+  // compra deixava uma sessao viva no Supabase para sempre — so para conferir
+  // uma senha.
+  //
+  // `scope: 'local'` NAO e detalhe: o padrao do signOut e 'global', que revoga
+  // TODAS as sessoes do usuario. Sem o escopo, conferir a senha aqui derrubava
+  // o login do proprio dono no navegador, e a compra seguinte voltava "Sessao
+  // invalida". Aqui so a sessao recem-criada precisa morrer.
+  await anon.auth.signOut({ scope: 'local' }).catch(() => {});
   if (erroSenha) {
     console.warn(`[cartao-salvo] senha incorreta ao contratar ${modulo_chave} — salão ${salaoId}`);
     return NextResponse.json({ erro: 'Senha incorreta. Nada foi cobrado.' }, { status: 401 });
@@ -102,6 +111,16 @@ export async function POST(req: NextRequest) {
   const cartao = await cartaoSalvoDoSalao(salaoId);
   if (!cartao) {
     return NextResponse.json({ erro: 'Nenhum cartão salvo. Use o fluxo normal de contratação.' }, { status: 409 });
+  }
+
+  // O aceite foi dado para UM cartao — o que apareceu na caixa de confirmacao.
+  // Com mais de um cartao no salao, uma assinatura cancelada noutra aba entre a
+  // abertura da caixa e o "confirmar" mudaria qual vem primeiro, e a cobranca
+  // sairia num cartao que o dono nao autorizou.
+  if (cartao_ultimos4 && String(cartao_ultimos4) !== cartao.ultimos4) {
+    return NextResponse.json({
+      erro: 'O cartão mudou desde que você abriu a confirmação. Feche e tente de novo para conferir qual será cobrado.',
+    }, { status: 409 });
   }
 
   // Preço vem do catálogo, nunca do cliente: aceitar valor do corpo deixaria
@@ -127,11 +146,35 @@ export async function POST(req: NextRequest) {
   const cab = { access_token: chaveApi, 'Content-Type': 'application/json' };
 
   const { data: salao } = await supabaseAdmin
-    .from('saloes').select('email_contato').eq('id', salaoId).maybeSingle();
-  const busca = await fetch(`${base}/customers?email=${encodeURIComponent(salao?.email_contato ?? '')}`, { headers: cab });
-  const clienteId = (await busca.json().catch(() => ({})))?.data?.[0]?.id;
+    .from('saloes').select('email_contato, cnpj').eq('id', salaoId).maybeSingle();
+
+  // Sem e-mail NÃO se pesquisa. `?email=` vazio faz o Asaas ignorar o filtro e
+  // devolver a lista inteira de clientes — o `data[0]` seria outro salão, e a
+  // cobrança sairia na conta dele. Confirmado contra a API em 07/08/2026. O
+  // criar-checkout já tinha essa guarda; esta rota tinha nascido sem.
+  const emailSalao = String(salao?.email_contato ?? '').trim();
+  if (!emailSalao) {
+    return NextResponse.json({
+      erro: 'O salão está sem e-mail de contato cadastrado. Preencha em Configurações antes de contratar.',
+    }, { status: 409 });
+  }
+
+  const busca = await fetch(`${base}/customers?email=${encodeURIComponent(emailSalao)}`, { headers: cab });
+  const achados = (await busca.json().catch(() => ({})))?.data ?? [];
+
+  // Confere que o cliente devolvido é mesmo deste salão. O filtro por e-mail é
+  // do lado deles: se mudar de comportamento, ou se dois salões dividirem um
+  // e-mail, o CNPJ desempata em vez de a cobrança cair no primeiro da lista.
+  const soDigitos = (v: any) => String(v ?? '').replace(/\D/g, '');
+  const cnpjSalao = soDigitos(salao?.cnpj);
+  const cliente = achados.find((c: any) =>
+    String(c?.email ?? '').trim().toLowerCase() === emailSalao.toLowerCase()
+    && (!cnpjSalao || !c?.cpfCnpj || soDigitos(c.cpfCnpj) === cnpjSalao));
+  const clienteId = cliente?.id;
   if (!clienteId) {
-    return NextResponse.json({ erro: 'Cliente não encontrado no gateway. Use o fluxo normal de contratação.' }, { status: 409 });
+    return NextResponse.json({
+      erro: 'Cliente não encontrado no gateway com o e-mail e o CNPJ deste salão. Use o fluxo normal de contratação.',
+    }, { status: 409 });
   }
 
   const hoje = new Date().toISOString().slice(0, 10);
@@ -157,8 +200,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: 'Falha ao criar a assinatura: ' + (sub?.errors?.[0]?.description || 'erro desconhecido') }, { status: 502 });
   }
 
-  const desfazer = async () => {
+  /**
+   * Desfaz o que der para desfazer — e nunca afirma "nada foi cobrado" sem
+   * antes perguntar ao Asaas.
+   *
+   * Cancelar a assinatura NÃO estorna cobrança já confirmada. A versão anterior
+   * só fazia o DELETE e devolvia "nada foi cobrado": se a cobrança tivesse
+   * passado e a resposta viesse ilegível ou fora de tempo, o salão pagava e
+   * lia que não tinha pago. Agora, cobrança confirmada é estornada de verdade,
+   * e se o estorno falhar a mensagem diz a verdade em vez de tranquilizar.
+   */
+  const desfazer = async (faturaId?: string): Promise<{ estornado: boolean; cobrancaPresa: boolean }> => {
+    let estornado = false;
+    let cobrancaPresa = false;
+
+    if (faturaId) {
+      try {
+        const atual = await (await fetch(`${base}/payments/${faturaId}`, { headers: cab })).json();
+        if (['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(atual?.status))) {
+          const r = await fetch(`${base}/payments/${faturaId}/refund`, {
+            method: 'POST', headers: cab,
+            body: JSON.stringify({ description: 'Contratacao nao concluida' }),
+          });
+          const j = await r.json().catch(() => ({}));
+          estornado = r.ok && String(j?.status) === 'REFUNDED';
+          cobrancaPresa = !estornado;
+          if (!estornado) {
+            console.error(`[cartao-salvo] COBRANCA CONFIRMADA SEM ESTORNO — salão ${salaoId} · fatura ${faturaId} · ${j?.errors?.[0]?.description ?? r.status}`);
+          }
+        }
+      } catch (e: any) {
+        // Não sabemos o estado: tratar como presa é o lado seguro do erro.
+        cobrancaPresa = true;
+        console.error(`[cartao-salvo] falha ao conferir/estornar fatura ${faturaId} — salão ${salaoId}: ${e?.message}`);
+      }
+    }
+
     await fetch(`${base}/subscriptions/${sub.id}`, { method: 'DELETE', headers: cab }).catch(() => {});
+    return { estornado, cobrancaPresa };
   };
 
   const faturas = await (await fetch(`${base}/payments?subscription=${sub.id}`, { headers: cab })).json().catch(() => ({}));
@@ -166,6 +245,26 @@ export async function POST(req: NextRequest) {
   if (!faturaId) {
     await desfazer();
     return NextResponse.json({ erro: 'A assinatura não gerou cobrança. Nada foi alterado.' }, { status: 502 });
+  }
+
+  // Segunda trava de duplicidade, agora do lado do Asaas. A primeira olha o
+  // nosso banco, e entre ela e este ponto cabe um clique duplo: as duas
+  // requisicoes leriam "sem assinatura" e criariam duas. O externalReference e
+  // o mesmo para o par salao+modulo+periodo, entao serve de chave de
+  // idempotencia — se ja existe outra, a nossa e a sobrando e volta atras.
+  const irmas = await (await fetch(
+    `${base}/subscriptions?externalReference=${encodeURIComponent(referencia)}`, { headers: cab },
+  )).json().catch(() => ({}));
+  const outras = (irmas?.data ?? []).filter((x: any) => x?.id && x.id !== sub.id
+    && String(x?.status ?? '').toUpperCase() !== 'INACTIVE');
+  if (outras.length) {
+    const r = await desfazer(faturaId);
+    console.warn(`[cartao-salvo] assinatura duplicada evitada — salão ${salaoId} · ${modulo_chave} · ja existia ${outras[0].id}`);
+    return NextResponse.json({
+      erro: r.cobrancaPresa
+        ? 'Já existe assinatura para este item e a cobrança desta tentativa não pôde ser estornada automaticamente. Fale com o suporte.'
+        : 'Já existe assinatura ativa para este item. Nada foi cobrado.',
+    }, { status: 409 });
   }
 
   // Cobrar na hora, mas SÓ se ainda não estiver cobrada.
@@ -187,29 +286,49 @@ export async function POST(req: NextRequest) {
       })).json().catch(() => ({}));
 
   if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(pago?.status))) {
-    // Cartao recusado: desfaz a assinatura para nao deixar cobranca pendente de
-    // algo que o salao nao contratou de fato.
-    await desfazer();
+    // Cartao recusado — ou resposta que nao deu para ler. `desfazer` confere o
+    // estado real da fatura antes de qualquer afirmacao: se tiver sido cobrada,
+    // estorna; se nem isso der certo, a mensagem diz que o dinheiro saiu, em vez
+    // de dizer que nao saiu.
+    const r = await desfazer(faturaId);
+    if (r.cobrancaPresa) {
+      return NextResponse.json({
+        erro: 'A cobrança foi feita mas a contratação não se completou, e o estorno automático falhou. Fale com o suporte — o pagamento está registrado.',
+      }, { status: 502 });
+    }
     return NextResponse.json({
-      erro: pago?.errors?.[0]?.description || 'O cartão não autorizou a cobrança. Nada foi cobrado.',
+      erro: (pago?.errors?.[0]?.description || 'O cartão não autorizou a cobrança.')
+        + (r.estornado ? ' O valor cobrado foi estornado.' : ' Nada foi cobrado.'),
     }, { status: 402 });
   }
 
-  await registrarPagamentoAssinatura({
-    salaoId,
-    moduloChave: modulo_chave,
-    valor: Number(valor),
-    status: 'approved',
-    gateway: 'asaas',
-    pagamentoExternoId: faturaId,
-    periodo,
-    asaasSubscriptionId: sub.id,
-  });
+  // A partir daqui o dinheiro JA SAIU. Se a ativacao falhar, nao se devolve erro
+  // ao salao — ele pagou, e ver "falhou" o faria tentar de novo e pagar duas
+  // vezes. Registra alto no log e devolve sucesso com aviso, para o suporte
+  // ativar a mao.
+  let ativado = true;
+  try {
+    await registrarPagamentoAssinatura({
+      salaoId,
+      moduloChave: modulo_chave,
+      valor: Number(valor),
+      status: 'approved',
+      gateway: 'asaas',
+      pagamentoExternoId: faturaId,
+      periodo,
+      asaasSubscriptionId: sub.id,
+    });
+  } catch (e: any) {
+    ativado = false;
+    console.error(`[cartao-salvo] PAGO MAS NAO ATIVADO — salão ${salaoId} · ${modulo_chave} · fatura ${faturaId} · assinatura ${sub.id} · ${e?.message}`);
+  }
 
   console.warn(`[cartao-salvo] salão ${salaoId} contratou ${modulo_chave} (${periodo}) no cartão •${cartao.ultimos4} — R$ ${valor}`);
 
   return NextResponse.json({
     sucesso: true,
+    ativado,
+    aviso: ativado ? undefined : 'O pagamento foi aprovado, mas a liberação automática falhou. Nosso suporte já foi avisado — não pague de novo.',
     item: item.nome,
     valor: Number(valor),
     cartao: `${cartao.bandeira} •${cartao.ultimos4}`,

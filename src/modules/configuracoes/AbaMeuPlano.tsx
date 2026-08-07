@@ -274,14 +274,6 @@ export function AbaMeuPlano({ perfil }: any) {
     carregarDados();
   }
 
-  /**
-   * Troca o cartao sem perder dia pago.
-   *
-   * Abre o checkout hospedado do Asaas — o numero do cartao nunca passa pelo
-   * Luarys. A rota cria uma assinatura nova com a MESMA data de vencimento e
-   * cancela a antiga; se algo falhar no meio, nada muda. Ver comentario em
-   * /api/assinatura/trocar-cartao.
-   */
   // Compra no cartao ja salvo. Fica pendente ate o dono digitar a senha no
   // Cofre — a cobranca acontece sem ele ver o checkout, entao o aceite tem que
   // ser explicito e conferido no servidor.
@@ -306,7 +298,10 @@ export function AbaMeuPlano({ perfil }: any) {
       const r = await fetch('/api/assinatura/contratar-com-cartao-salvo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ modulo_chave: compraPendente.chave, periodo, confirmo: true, senha }),
+        // Manda os ultimos 4 que a caixa mostrou. Se entre abrir a caixa e
+        // confirmar o cartao de referencia mudar (assinatura cancelada noutra
+        // aba), o servidor recusa em vez de cobrar num cartao que o dono nao viu.
+        body: JSON.stringify({ modulo_chave: compraPendente.chave, periodo, confirmo: true, senha, cartao_ultimos4: cartaoSalvo?.ultimos4 }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast.erro(j?.erro || 'Não foi possível concluir.', 10000); return; }
@@ -320,6 +315,14 @@ export function AbaMeuPlano({ perfil }: any) {
     }
   }
 
+  /**
+   * Troca o cartao sem perder dia pago.
+   *
+   * Abre o checkout hospedado do Asaas — o numero do cartao nunca passa pelo
+   * Luarys. A rota cria uma assinatura nova com a MESMA data de vencimento e
+   * cancela a antiga; se algo falhar no meio, nada muda. Ver comentario em
+   * /api/assinatura/trocar-cartao.
+   */
   async function trocarCartao(moduloChave: string, rotulo: string) {
     if (!window.confirm(
       `Trocar o cartão de ${rotulo}?

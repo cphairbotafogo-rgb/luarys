@@ -88,6 +88,16 @@ x = await post(H, { modulo_chave: M, confirmo: true, senha: 'senha-errada' });
 console.log(`Senha errada                   -> ${x.status} ${ok(x.status === 401)}  ${x.corpo.erro ?? ''}`);
 x = await post(HR, { modulo_chave: M, confirmo: true, senha: SENHA });
 console.log(`Recepção com a senha certa     -> ${x.status} ${ok(x.status === 403)}  ${x.corpo.erro ?? ''}`);
+x = await post(H, { modulo_chave: M, confirmo: true, senha: SENHA, cartao_ultimos4: '0000' });
+console.log(`Cartão diferente do confirmado -> ${x.status} ${ok(x.status === 409)}  ${x.corpo.erro ?? ''}`);
+
+// Salao sem e-mail de contato nao pode ser pesquisado no Asaas: `?email=` vazio
+// faz a API devolver a lista inteira e a cobranca cairia em outro salao.
+const { data: antes } = await admin.from('saloes').select('email_contato').eq('id', SALAO).maybeSingle();
+await admin.from('saloes').update({ email_contato: null }).eq('id', SALAO);
+x = await post(H, { modulo_chave: M, confirmo: true, senha: SENHA });
+console.log(`Salão sem e-mail de contato    -> ${x.status} ${ok(x.status === 409 && /e-mail/i.test(x.corpo.erro ?? ''))}  ${x.corpo.erro ?? ''}`);
+await admin.from('saloes').update({ email_contato: antes.email_contato }).eq('id', SALAO);
 
 console.log('\n=== COMPRA VÁLIDA (dono, senha certa) ===');
 x = await post(H, { modulo_chave: M, periodo: 'mensal', confirmo: true, senha: SENHA });
