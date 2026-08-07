@@ -71,7 +71,17 @@ export interface ResultadoEmissao {
   chave_acesso?: string;
   rps_numero?: string;
   protocolo_sefaz?: string;
+  /**
+   * Não existe no padrão nacional — é campo da Nota Carioca. Mantido só para
+   * nota antiga que ainda o tenha; quem faz esse papel hoje é a chave de acesso.
+   */
   codigo_verificacao?: string;
+  /**
+   * `dhProc` do XML: quando a prefeitura processou de verdade. Diferente do
+   * momento em que descobrimos — lote que fica dias em processamento seria
+   * gravado na competência errada se usássemos a hora da consulta.
+   */
+  data_autorizacao?: string;
   /** Valores que a PREFEITURA apurou — comparar com o que enviamos revela enquadramento errado. */
   base_calculo?: number;
   valor_iss?: number;

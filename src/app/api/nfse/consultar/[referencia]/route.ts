@@ -14,6 +14,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
   const { perfil, erro } = await autenticarRota(req, 'GET /api/nfse/consultar');
   if (erro) return erro;
 
+  // A nota tem que ser deste salão ANTES de qualquer chamada ao provedor. Sem
+  // isto, bastava passar o id de uma nota de outro salão na URL: a consulta ia
+  // ao provedor com o CodLote alheio e o resultado voltava inteiro na resposta.
+  // O cancelar já conferia; esta rota não. Mesma resposta para "não existe" e
+  // "não é sua" — dizer qual dos dois confirmaria a existência do id.
+  const { data: dona } = await supabaseAdmin
+    .from('notas_fiscais').select('salao_id').eq('id', referencia).maybeSingle();
+  if (!dona || dona.salao_id !== perfil!.salao_id) {
+    return NextResponse.json({ erro: 'Nota não encontrada.' }, { status: 404 });
+  }
+
   const { data: salao } = await supabaseAdmin.from('saloes').select('config_fiscal').eq('id', perfil!.salao_id).single();
   const tokenNFSe = salao?.config_fiscal?.brasilnfe_company_token || undefined;
 
@@ -25,7 +36,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
       numero_nota: resultado.numero_nota ?? null,
       storage_path_pdf: resultado.storage_path_pdf ?? null,
       storage_path_xml: resultado.storage_path_xml ?? null,
-      data_emissao: new Date().toISOString(),
+      // dhProc do XML — a nota confirmada aqui foi autorizada antes, e pode ter
+      // sido em outro mês. Gravar a hora da consulta joga a competência para a
+      // frente.
+      data_emissao: resultado.data_autorizacao ?? new Date().toISOString(),
       mensagem_erro: null,
       // Mesma gravação da rota de emissão: a nota que só se confirma aqui (lote
       // que ficou em processamento) precisa guardar a chave igual às outras.

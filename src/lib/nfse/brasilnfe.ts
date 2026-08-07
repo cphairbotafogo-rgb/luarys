@@ -161,7 +161,21 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
       ...retornoDaPrefeitura(nota, resp.Protocolo),
     };
   } catch (e: any) {
-    return { sucesso: false, status: 'erro', mensagem_erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
+    // NAO e 'erro'. Excecao aqui e falha de comunicacao — timeout, conexao
+    // caida, resposta ilegivel — e nenhuma delas diz se a Brasil NFe recebeu.
+    // Marcar 'erro' liberava o reenvio (a rota aceita reemitir nota em 'Erro'),
+    // e se a nota tinha sido aceita, o reenvio emite uma SEGUNDA nota do mesmo
+    // servico. Duplicidade em nota fiscal e problema com a prefeitura, nao com
+    // a tela.
+    //
+    // 'processando' obriga a passar pela consulta antes de reenviar, que e
+    // exatamente o que resolve a duvida.
+    console.error(`[brasilnfe] emissao ${referencia} sem resposta conclusiva: ${e?.message}`);
+    return {
+      sucesso: true,
+      status: 'processando',
+      mensagem_erro: 'Sem resposta da Brasil NFe. A nota pode ter sido emitida — consulte antes de tentar de novo.',
+    };
   }
 }
 
@@ -173,15 +187,71 @@ async function emitir(referencia: string, payload: PayloadNFSe, companyToken?: s
  * o que enviamos e a unica forma de perceber enquadramento errado sem abrir nota
  * por nota (uma aliquota devolvida diferente da enviada e o sintoma).
  */
+/**
+ * Lê o que a prefeitura devolveu direto do XML autorizado.
+ *
+ * A versão anterior procurava `nota.Chave`, `nota.CodVerificacao` e
+ * `nota.Valores.*` no JSON da Brasil NFe. Esses nomes não existem na resposta:
+ * de 486 notas emitidas, 486 guardaram o XML e apenas **uma** guardou a chave.
+ * Todas as outras ficaram sem chave, sem protocolo e sem valor de ISS — e a
+ * chave é o que prova a emissão fora do nosso banco.
+ *
+ * O XML é o padrão nacional (`sped.fazenda.gov.br/nfse`) e tem tudo:
+ *
+ *   infNFSe/@Id      NFS + 50 caracteres da chave de acesso
+ *   nNFSe            número da NFS-e
+ *   dhProc           data/hora em que a prefeitura processou — a emissão REAL
+ *   nDFSe            número do documento no ambiente nacional (faz de protocolo)
+ *   cStat            100 = autorizado
+ *   infDPS/nDPS      número do DPS, equivalente ao RPS
+ *   vServPrest/vServ base de cálculo
+ *   vTotTribMun      ISS
+ *
+ * `codigo_verificacao` NÃO é preenchido de propósito: não existe no padrão
+ * nacional. É campo da Nota Carioca, e quem faz esse papel aqui é a chave.
+ *
+ * Extração por expressão regular, não por parser de XML: a estrutura é fixa e
+ * definida por leiaute, e não vale trazer dependência nova para ler sete campos.
+ */
+export function lerXmlNFSe(xml: string) {
+  const tag = (nome: string) => {
+    const m = xml.match(new RegExp(`<${nome}>([^<]*)</${nome}>`));
+    return m?.[1]?.trim() || undefined;
+  };
+  const num = (v?: string) => (v === undefined || v === '' ? undefined : Number(v));
+
+  // `NFS` + 50 dígitos. O prefixo é do atributo Id, não faz parte da chave.
+  const chave = xml.match(/<infNFSe[^>]*\bId="NFS(\d{50})"/)?.[1];
+
+  return {
+    chave_acesso: chave,
+    numero_nota: tag('nNFSe'),
+    // Primeiro <nDPS> do documento está dentro do infDPS — é o nosso RPS.
+    rps_numero: tag('nDPS'),
+    protocolo_sefaz: tag('nDFSe'),
+    autorizado: tag('cStat') === '100',
+    data_autorizacao: tag('dhProc'),
+    base_calculo: num(tag('vServ')),
+    valor_iss: num(tag('vTotTribMun')),
+  };
+}
+
 function retornoDaPrefeitura(nota: any, protocolo?: string) {
   const num = (v: any) => (v === null || v === undefined || v === '' ? undefined : Number(v));
+
+  // O XML manda: é o documento assinado que vale, e é o único lugar onde a
+  // chave aparece. O JSON só completa o que ele não trouxer.
+  const doXml = nota?.Base64Xml
+    ? lerXmlNFSe(Buffer.from(nota.Base64Xml, 'base64').toString('utf8'))
+    : undefined;
+
   return {
-    chave_acesso: nota?.Chave || undefined,
-    rps_numero: nota?.NumeroRPS != null ? String(nota.NumeroRPS) : undefined,
-    codigo_verificacao: nota?.CodVerificacao || undefined,
-    protocolo_sefaz: protocolo || undefined,
-    base_calculo: num(nota?.Valores?.BaseCalculo),
-    valor_iss: num(nota?.Valores?.ValorISS),
+    chave_acesso: doXml?.chave_acesso || nota?.Chave || undefined,
+    rps_numero: doXml?.rps_numero ?? (nota?.NumeroRPS != null ? String(nota.NumeroRPS) : undefined),
+    protocolo_sefaz: doXml?.protocolo_sefaz || protocolo || undefined,
+    data_autorizacao: doXml?.data_autorizacao,
+    base_calculo: doXml?.base_calculo ?? num(nota?.Valores?.BaseCalculo),
+    valor_iss: doXml?.valor_iss ?? num(nota?.Valores?.ValorISS),
     aliquota_apurada: num(nota?.Valores?.Aliquota),
   };
 }

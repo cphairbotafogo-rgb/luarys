@@ -62,3 +62,4 @@ perguntas-contabilidade.pdf
 
 # Zip gerado para auditoria externa — recriavel com scripts/conferencia/empacotar-codigo.mjs
 luarys-codigo.zip
+scripts/conferencia/backup-notas-*.json

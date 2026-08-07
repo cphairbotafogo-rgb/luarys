@@ -78,16 +78,34 @@ export async function POST(req: NextRequest) {
 
   // Trava de cota mensal: 150 notas/mês incluídas no módulo (acesso_total isenta)
   if (!salao?.acesso_total) {
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0, 0, 0, 0);
+    // Início do mês em horário de Brasília, não do servidor. A Vercel roda em
+    // UTC: `setHours(0,0,0,0)` ali é 21h do dia 30 ou 31 aqui, e as notas
+    // dessas três horas caíam na cota do mês seguinte.
+    const agora = new Date();
+    const brasilia = new Date(agora.getTime() - 3 * 3_600_000);
+    const inicioMes = new Date(Date.UTC(brasilia.getUTCFullYear(), brasilia.getUTCMonth(), 1, 3, 0, 0));
 
-    const { count: notasMes } = await supabaseAdmin
-      .from('notas_fiscais')
-      .select('id', { count: 'exact', head: true })
-      .eq('salao_id', perfil.salao_id)
-      .eq('status', 'Emitida')
-      .gte('data_emissao', inicioMes.toISOString());
+    // Duas contagens porque as datas são de campos diferentes: a nota emitida
+    // tem `data_emissao`, a pendente ainda não tem — ela só é preenchida na
+    // autorização. Filtrar as duas por `data_emissao` deixaria toda pendente de
+    // fora, que é justamente o furo.
+    //
+    // 'Pendente' consome cota: já foi para a prefeitura e está em processamento.
+    // Contando só 'Emitida', bastava mandar lotes em sequência para passar do
+    // limite — nenhum tinha voltado ainda.
+    const [{ count: emitidas }, { count: pendentes }] = await Promise.all([
+      supabaseAdmin.from('notas_fiscais')
+        .select('id', { count: 'exact', head: true })
+        .eq('salao_id', perfil.salao_id)
+        .eq('status', 'Emitida')
+        .gte('data_emissao', inicioMes.toISOString()),
+      supabaseAdmin.from('notas_fiscais')
+        .select('id', { count: 'exact', head: true })
+        .eq('salao_id', perfil.salao_id)
+        .eq('status', 'Pendente')
+        .gte('data_criacao', inicioMes.toISOString()),
+    ]);
+    const notasMes = (emitidas ?? 0) + (pendentes ?? 0);
 
     const LIMITE_MENSAL = salao?.limite_notas_mes ?? 150;
     if ((notasMes ?? 0) + nota_ids.length > LIMITE_MENSAL) {
@@ -144,7 +162,12 @@ export async function POST(req: NextRequest) {
       storage_path_pdf: resultado.storage_path_pdf ?? null,
       storage_path_xml: resultado.storage_path_xml ?? null,
       mensagem_erro: resultado.mensagem_erro ?? null,
-      data_emissao: resultado.status === 'autorizado' ? new Date().toISOString() : null,
+      // Data em que a PREFEITURA processou (dhProc do XML), não a hora em que
+      // rodamos. Lote que fica dias em processamento seria gravado na
+      // competência errada, e o ISS é devido no mês da prestação.
+      data_emissao: resultado.status === 'autorizado'
+        ? (resultado.data_autorizacao ?? new Date().toISOString())
+        : null,
       // O que a prefeitura devolve junto e antes era descartado. A chave e a que
       // abre a nota no portal nacional; sem ela o salao nao tem como provar a
       // emissao fora do nosso banco.
