@@ -360,7 +360,7 @@ function crtDoRegime(regime?: string | null): number {
 export async function cadastrarEmpresaLuarys(salaoId: string): Promise<ResultadoCadastroEmpresa> {
   const { data: salao, error: salaoErr } = await supabaseAdmin
     .from('saloes')
-    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')
+    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, inscricao_estadual, cnae, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')
     .eq('id', salaoId)
     .single();
 
@@ -383,6 +383,12 @@ export async function cadastrarEmpresaLuarys(salaoId: string): Promise<Resultado
     RzSocial: salao.razao_social || salao.nome_fantasia || '',
     NmFantasia: salao.nome_fantasia || undefined,
     IM: salao.inscricao_municipal || undefined,
+    // IE e CNAE nao eram enviados, e a Brasil NFe guardava IE:"" e CNAE:null.
+    // Para NFS-e nao fazia falta; para NFC-e faz: e documento ESTADUAL, e sem
+    // inscricao estadual a SEFAZ nao autoriza. O dado ja estava no nosso
+    // cadastro — so nunca chegava la.
+    IE: String(salao.inscricao_estadual ?? '').replace(/\D/g, '') || undefined,
+    CNAE: String(salao.cnae ?? '').replace(/\D/g, '') || undefined,
     CRT: crtDoRegime(salao.regime_tributario),
     CodigoInterno: salaoId,
     Contato: salao.email_fiscal ? { Email: salao.email_fiscal } : undefined,
@@ -414,4 +420,126 @@ export async function cadastrarEmpresaLuarys(salaoId: string): Promise<Resultado
   if (updateErr) return { erro: 'Cadastrado na Brasil NFe, mas falhou ao salvar o token: ' + updateErr.message };
 
   return { token: resultado.token };
+}
+
+// ─── CSC da NFC-e ───────────────────────────────────────────────────────────
+//
+// O CSC (Código de Segurança do Contribuinte) é emitido pela SEFAZ do estado e
+// assina o QR Code do DANFE NFC-e. Sem ele a NFC-e não é autorizada.
+//
+// Ele mora na CONFIGURAÇÃO DA EMPRESA na Brasil NFe, não no payload da nota —
+// foi por ler o payload e não achar campo que eu concluí, errado, que "a Brasil
+// NFe não usa CSC". Usa: Configuracao.NFCe.{IdCSC,CSC}{Homologacao,Producao}.
+//
+// Não guardamos o CSC no nosso banco, mesma regra do certificado A1: credencial
+// de cliente atravessa o sistema e fica com o provedor. O que o salão digita vai
+// direto para lá e não volta.
+//
+// editarEmpresa substitui o cadastro inteiro, então lê o atual antes de mesclar
+// — mandar só o bloco NFCe apagaria endereço, IE e contato.
+export async function submeterCscNFCe(
+  companyToken: string,
+  userToken: string,
+  csc: { idHomologacao?: string; cscHomologacao?: string; idProducao?: string; cscProducao?: string },
+): Promise<{ sucesso: boolean; erro?: string }> {
+  if (!companyToken || !userToken) return { sucesso: false, erro: 'Salão não registrado na Brasil NFe.' };
+
+  const informado = [csc.idHomologacao, csc.cscHomologacao, csc.idProducao, csc.cscProducao].some(v => String(v ?? '').trim());
+  if (!informado) return { sucesso: false, erro: 'Informe ao menos um par de ID e código CSC.' };
+
+  try {
+    const bnfe = new BrasilNFe(companyToken, userToken);
+    const atual = await bnfe.empresa.buscarEmpresa();
+    if (!atual?.CNPJ) return { sucesso: false, erro: 'Não foi possível ler o cadastro na Brasil NFe.' };
+
+    const limpo = (v?: string) => { const t = String(v ?? '').trim(); return t || undefined; };
+
+    const resp = await bnfe.empresa.editarEmpresa({
+      ...atual,
+      Configuracao: {
+        ...(atual.Configuracao ?? {}),
+        NFCe: {
+          ...(atual.Configuracao?.NFCe ?? {}),
+          IdCSCHomologacao: limpo(csc.idHomologacao) ?? atual.Configuracao?.NFCe?.IdCSCHomologacao,
+          CSCHomologacao:   limpo(csc.cscHomologacao) ?? atual.Configuracao?.NFCe?.CSCHomologacao,
+          IdCSCProducao:    limpo(csc.idProducao) ?? atual.Configuracao?.NFCe?.IdCSCProducao,
+          CSCProducao:      limpo(csc.cscProducao) ?? atual.Configuracao?.NFCe?.CSCProducao,
+        },
+      },
+    });
+
+    if (!resp?.status) return { sucesso: false, erro: resp?.Error || 'A Brasil NFe recusou a alteração.' };
+    return { sucesso: true };
+  } catch (e: any) {
+    return { sucesso: false, erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
+  }
+}
+
+// ─── Sincronizar cadastro já existente ──────────────────────────────────────
+//
+// cadastrarEmpresaLuarys só roda uma vez, na criação. Se um dado do salão muda
+// depois — ou se, como aconteceu, o código nunca enviou um campo — a empresa na
+// Brasil NFe fica desatualizada e ninguém percebe: a NFS-e continua saindo, e o
+// buraco só aparece na NFC-e, que exige IE.
+//
+// Esta função lê o cadastro atual lá, mescla o que temos aqui e devolve. Mescla
+// em vez de substituir porque editarEmpresa troca o registro inteiro — e o CSC,
+// que fica só do lado deles, seria apagado.
+export async function sincronizarEmpresaLuarys(
+  salaoId: string,
+): Promise<{ sucesso: boolean; erro?: string; alterados?: string[] }> {
+  const { data: salao } = await supabaseAdmin
+    .from('saloes')
+    .select('cnpj, razao_social, nome_fantasia, inscricao_municipal, inscricao_estadual, cnae, codigo_ibge, email_fiscal, regime_tributario, config_fiscal, cep, logradouro, numero, complemento, bairro, cidade, estado')
+    .eq('id', salaoId)
+    .maybeSingle();
+
+  const companyToken = salao?.config_fiscal?.brasilnfe_company_token;
+  if (!companyToken) return { sucesso: false, erro: 'Salão não cadastrado na Brasil NFe.' };
+
+  const { data: cfg } = await supabaseAdmin
+    .from('plataforma_nfse_config').select('token_brasilnfe').eq('id', 1).maybeSingle();
+  const userToken = process.env.BRASIL_NFE_USER_TOKEN || cfg?.token_brasilnfe || '';
+  if (!userToken) return { sucesso: false, erro: 'UserToken Brasil NFe não configurado.' };
+
+  const soDigitos = (v: any) => String(v ?? '').replace(/\D/g, '') || undefined;
+
+  try {
+    const bnfe = new BrasilNFe(companyToken, userToken);
+    const atual = await bnfe.empresa.buscarEmpresa();
+    if (!atual?.CNPJ) return { sucesso: false, erro: 'Não foi possível ler o cadastro na Brasil NFe.' };
+
+    const novo = {
+      ...atual,
+      RzSocial:  salao!.razao_social || atual.RzSocial,
+      NmFantasia: salao!.nome_fantasia || atual.NmFantasia,
+      IM: soDigitos(salao!.inscricao_municipal) ?? atual.IM,
+      IE: soDigitos(salao!.inscricao_estadual) ?? atual.IE,
+      CNAE: soDigitos(salao!.cnae) ?? atual.CNAE,
+      CRT: crtDoRegime(salao!.regime_tributario) ?? atual.CRT,
+      Endereco: {
+        ...(atual.Endereco ?? {}),
+        Cep: soDigitos(salao!.cep) ?? atual.Endereco?.Cep,
+        Logradouro: salao!.logradouro || atual.Endereco?.Logradouro,
+        Numero: salao!.numero || atual.Endereco?.Numero,
+        Complemento: salao!.complemento || atual.Endereco?.Complemento,
+        Bairro: salao!.bairro || atual.Endereco?.Bairro,
+        CodMunicipio: soDigitos(salao!.codigo_ibge) ?? atual.Endereco?.CodMunicipio,
+        Municipio: salao!.cidade || atual.Endereco?.Municipio,
+        Uf: salao!.estado || atual.Endereco?.Uf,
+      },
+    };
+
+    const alterados = (['IE', 'IM', 'CNAE', 'CRT'] as const)
+      .filter(k => String(atual[k] ?? '') !== String(novo[k] ?? ''))
+      .map(String);
+    if (String(atual.Endereco?.Uf ?? '') !== String(novo.Endereco.Uf ?? '')) alterados.push('UF');
+
+    const resp = await bnfe.empresa.editarEmpresa(novo);
+    if (!resp?.status) return { sucesso: false, erro: resp?.Error || 'A Brasil NFe recusou a atualização.' };
+
+    return { sucesso: true, alterados };
+  } catch (e: any) {
+    return { sucesso: false, erro: e?.message || 'Erro ao comunicar com a Brasil NFe.' };
+  }
 }
