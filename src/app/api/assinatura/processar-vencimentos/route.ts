@@ -145,8 +145,24 @@ async function emailsDaGestao(salaoId: string, fallback: string | null): Promise
 
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret');
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  // Aceita os DOIS formatos de propósito:
+  //  - "Authorization: Bearer <CRON_SECRET>" é o que o Vercel injeta sozinho
+  //    no cron agendado em vercel.json;
+  //  - "x-cron-secret" é o que /api/admin/rodar-cron usa no disparo manual.
+  //
+  // Esta rota só olhava o segundo. Ou seja: o cron do Vercel batia aqui todo
+  // dia às 11h e levava 401 — a régua nunca rodou em produção. Efeito prático:
+  // módulo cancelado nunca era desligado no fim do período pago, e ninguém era
+  // avisado nem suspenso por falta de pagamento. Só o disparo manual do admin
+  // funcionava, e por isso o defeito passou despercebido.
+  const esperado = process.env.CRON_SECRET;
+  if (!esperado) {
+    console.error('[processar-vencimentos] CRON_SECRET não configurado — requisição bloqueada.');
+    return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
+  }
+  const viaHeader = req.headers.get('x-cron-secret');
+  const viaBearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
+  if (viaHeader !== esperado && viaBearer !== esperado) {
     return NextResponse.json({ erro: 'Não autorizado.' }, { status: 401 });
   }
 
