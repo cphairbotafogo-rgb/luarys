@@ -41,10 +41,18 @@ Perguntas secas, sem contexto de negócio.
 
 ### Sobre a LUARYS SOFTWARE E SISTEMAS LTDA (68.176.336/0001-43)
 
-1. Em **qual anexo do Simples** a empresa está enquadrada hoje, III ou V? Qual o
-   **Fator R** apurado no último período?
-2. O que precisaria mudar na **folha ou no pró-labore** para o Fator R ficar
-   acima de 28%?
+1. ~~Em qual anexo do Simples a empresa está enquadrada hoje?~~ **RESPONDIDO:
+   Anexo V.**
+2. ~~O que precisaria mudar para o Fator R ficar acima de 28%?~~ **RESPONDIDO
+   em parte:** *"Fator R não há no período, não tem folha de pagamento e nem
+   pró-labore."*
+
+   **Repergunta, que agora vale dinheiro:** o Anexo V não é um destino, é o
+   padrão de quem não tem folha. Considerando que a receita começa agora, **qual
+   pró-labore mensal levaria o Fator R acima de 28%, e compensa?** A diferença
+   entre o Anexo V e o III é de **9,5 pontos sobre toda a receita** — contra um
+   INSS de 11% sobre o pró-labore, que dá cerca de 3 pontos. E o pró-labore não é
+   gasto: é dinheiro que sai da empresa para o sócio.
 3. A empresa passa a **revender a terceiros um serviço contratado de outro
    fornecedor**, cobrado dentro da mensalidade do sistema. Isso muda o
    enquadramento no **item 01.07** ou exige outro código de serviço?
