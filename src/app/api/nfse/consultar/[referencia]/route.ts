@@ -53,5 +53,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ refe
     }).eq('id', referencia).eq('salao_id', perfil!.salao_id);
   }
 
+  // Nota pendente que a consulta provou não existir na Brasil NFe volta para
+  // 'Não Emitido', para poder ser reemitida.
+  //
+  // Sem isto ela ficaria pendente para sempre: a emissão só aceita 'Não Emitido'
+  // e 'Erro'. É a outra metade da proteção contra duplicidade — o `catch` da
+  // emissão manda a dúvida para cá, e é aqui que a dúvida vira resposta.
+  if (resultado.status === 'erro' && /não chegou|não há nota/i.test(resultado.mensagem_erro ?? '')) {
+    await supabaseAdmin.from('notas_fiscais').update({
+      status: 'Não Emitido',
+      mensagem_erro: resultado.mensagem_erro,
+    }).eq('id', referencia).eq('salao_id', perfil!.salao_id).eq('status', 'Pendente');
+  }
+
   return NextResponse.json(resultado);
 }

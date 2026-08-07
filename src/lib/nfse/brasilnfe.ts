@@ -256,7 +256,65 @@ function retornoDaPrefeitura(nota: any, protocolo?: string) {
   };
 }
 
-async function consultar(referencia: string, companyToken?: string): Promise<ResultadoEmissao> {
+/**
+ * Procura a nota pelo identificador interno que mandamos na emissão.
+ *
+ * Serve para desatolar nota que ficou sem CodLote — comunicação caiu depois do
+ * envio e antes da resposta. Descobre as três respostas possíveis:
+ *
+ *  · não existe lá     → nunca chegou, pode reemitir sem duplicar
+ *  · existe e autorizada → grava o lote e segue pelo caminho normal
+ *  · existe e cancelada  → não é para reemitir
+ *
+ * Atenção ao nome do campo: o SDK escreve `IndentificadorInterno`, com o "n" a
+ * mais. Não é engano de digitação aqui — é a grafia deles, e corrigir quebra.
+ */
+async function consultarPorIdentificador(referencia: string, companyToken: string, jaVoltou = false): Promise<ResultadoEmissao> {
+  try {
+    const bnfe = new BrasilNFe(companyToken);
+    const resp = await bnfe.consultas.obterNotasFiscais({
+      TipoDocumentoFiscal: 1,          // saídas
+      IndentificadorInterno: referencia,
+    });
+
+    const achada = (resp?.Notas ?? []).find((n: any) => n?.ModeloDocumento === 10 || n?.CodLote);
+    if (!achada) {
+      return {
+        sucesso: false,
+        status: 'erro',
+        mensagem_erro: 'Não há nota com esta referência na Brasil NFe — o envio não chegou. Pode emitir novamente.',
+      };
+    }
+
+    if (achada.Status === 2) {
+      return { sucesso: false, status: 'erro', mensagem_erro: 'Esta nota consta como CANCELADA na Brasil NFe.' };
+    }
+
+    // Achou: grava o lote para que a próxima consulta siga o caminho normal, que
+    // é o que traz o XML.
+    //
+    // `jaVoltou` corta a recursão. `consultar` chama esta função quando não há
+    // lote gravado; se a gravação falhar (ela só loga o erro, não lança), a
+    // consulta voltaria para cá e as duas se chamariam sem parar.
+    if (achada.CodLote && !jaVoltou) {
+      await persistirCodLote(referencia, achada.CodLote);
+      return await consultar(referencia, companyToken, true);
+    }
+    if (achada.CodLote) {
+      console.error(`[brasilnfe] lote ${achada.CodLote} achado para ${referencia}, mas não ficou gravado.`);
+    }
+
+    return { sucesso: true, status: 'processando' };
+  } catch (e: any) {
+    return {
+      sucesso: true,
+      status: 'processando',
+      mensagem_erro: 'Não foi possível confirmar na Brasil NFe agora. Tente consultar de novo antes de reemitir.',
+    };
+  }
+}
+
+async function consultar(referencia: string, companyToken?: string, jaVoltou = false): Promise<ResultadoEmissao> {
   if (!companyToken) return { sucesso: false, status: 'erro', mensagem_erro: 'Salão não registrado na Brasil NFe.' };
 
   const { data: nota } = await supabaseAdmin
@@ -265,8 +323,16 @@ async function consultar(referencia: string, companyToken?: string): Promise<Res
     .eq('id', referencia)
     .maybeSingle();
 
+  // Sem lote gravado, a busca por lote não serve — mas a emissão manda
+  // `IdentificadorInterno: referencia`, e a Brasil NFe deixa procurar por ele.
+  //
+  // Este caminho existe justamente para o caso que o `catch` da emissão passou a
+  // produzir: comunicação que caiu antes de sabermos o CodLote. Sem ele a nota
+  // ficaria em 'Pendente' para sempre — a consulta não acharia e a emissão não
+  // aceita reenviar nota pendente. Trocar risco de duplicidade por nota travada
+  // não seria conserto.
   if (!nota?.cod_lote_brasilnfe) {
-    return { sucesso: false, status: 'erro', mensagem_erro: 'Nota sem lote registrado — emita novamente antes de consultar.' };
+    return await consultarPorIdentificador(referencia, companyToken, jaVoltou);
   }
 
   const tipoAmbiente = await resolverTipoAmbiente();
