@@ -174,6 +174,26 @@ export function AbaConfiguracoes({ perfil }: any) {
         };
         const { error } = await supabase.from('saloes').update(payloadSalao).eq('id', perfil.salao_id);
         if (error) throw error;
+
+        // Espelha os dados fiscais no cadastro da Brasil NFe. O cadastro la e
+        // criado uma unica vez, na ativacao do modulo: sem isto, tudo que o
+        // salao editar depois fica so aqui, e o provedor segue com o retrato
+        // antigo. Foi assim que a inscricao estadual do piloto chegou como ""
+        // ao provedor estando preenchida na tela desde sempre.
+        //
+        // Best-effort de proposito: o dado do salao ja esta salvo, e salao sem
+        // modulo fiscal ativo nao tem empresa la — silencio e a resposta certa.
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const r = await fetch('/api/fiscal/sincronizar-empresa', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+          });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && j?.alterados?.length) {
+            toast.info(`Cadastro fiscal atualizado no provedor: ${j.alterados.join(', ')}.`, 7000);
+          }
+        } catch { /* nao bloqueia o salvamento */ }
       } else if (gaveta === "perfil") {
         const { error } = await supabase.from('perfis_usuarios').update(formPerfil).eq('id', perfil.id);
         if (error) throw error;
