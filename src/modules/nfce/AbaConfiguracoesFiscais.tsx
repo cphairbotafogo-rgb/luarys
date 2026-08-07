@@ -1,10 +1,16 @@
 'use client'
 import { C } from '@/lib/constants';
 import { cardAdmin, RAIO_XL, RAIO_MD } from '@/lib/estiloGlobal';
-import { FiLock } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { S, CRT_OPCOES, API, getAuthToken } from './tipos';
 
 export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any) {
+  // Ver o CSC digitado e legitimo: e um codigo longo copiado de outra tela, e
+  // conferir antes de salvar evita descobrir o erro so quando a nota e recusada.
+  // Comeca oculto porque a tela fica aberta em balcao de salao.
+  const [verCsc, setVerCsc] = useState<Record<string, boolean>>({});
+
   return (
     <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
       <div style={{ marginBottom: 24 }}>
@@ -153,10 +159,19 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={S.label}>Código</label>
-                  <input style={S.input} type="password" autoComplete="off"
-                    placeholder="Cole o código da SEFAZ"
-                    value={state.config?.[a.tokK] || ''}
-                    onChange={e => dispatch({ type: 'CFG', p: { [a.tokK]: e.target.value.trim() } })} />
+                  <div style={{ position: 'relative' }}>
+                    <input style={{ ...S.input, paddingRight: 38, fontFamily: verCsc[a.tokK] ? 'ui-monospace, Consolas, monospace' : undefined }}
+                      type={verCsc[a.tokK] ? 'text' : 'password'} autoComplete="off" spellCheck={false}
+                      placeholder="Cole o código da SEFAZ"
+                      value={state.config?.[a.tokK] || ''}
+                      onChange={e => dispatch({ type: 'CFG', p: { [a.tokK]: e.target.value.trim() } })} />
+                    <button type="button"
+                      onClick={() => setVerCsc(v => ({ ...v, [a.tokK]: !v[a.tokK] }))}
+                      title={verCsc[a.tokK] ? 'Ocultar' : 'Mostrar para conferir'}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textLight, display: 'flex', padding: 4 }}>
+                      {verCsc[a.tokK] ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
