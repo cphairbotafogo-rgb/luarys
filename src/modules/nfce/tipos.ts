@@ -66,7 +66,11 @@ export const ESTADO0 = {
     cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', codigo_ibge: '',
   },
   config: {
-    crt: '1', serie: '001', ambiente: '2', csc_token: '', csc_id: '',
+    crt: '1', serie: '001', ambiente: '2',
+    // ID nao e segredo (numero de sequencia da SEFAZ) e fica salvo. O codigo vai
+    // ao provedor e nao e persistido aqui — some da tela ao salvar.
+    csc_id_homologacao: '', csc_homologacao: '',
+    csc_id_producao: '', csc_producao: '',
     modo_emissao: 'Lote Manual',
   },
   itens: [novoItem()],

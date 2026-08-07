@@ -2,7 +2,7 @@
 import { C } from '@/lib/constants';
 import { cardAdmin, RAIO_XL, RAIO_MD } from '@/lib/estiloGlobal';
 import { FiLock } from 'react-icons/fi';
-import { S, CRT_OPCOES, API } from './tipos';
+import { S, CRT_OPCOES, API, getAuthToken } from './tipos';
 
 export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any) {
   return (
@@ -17,10 +17,34 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
       </div>
 
       <form
-        onSubmit={e => {
+        onSubmit={async e => {
           e.preventDefault();
-          API.config.salvar(salaoId, state.config)
-            .then(() => toast('Parâmetros fiscais atualizados com sucesso!', 'sucesso'));
+          // O CSC nao e gravado no nosso banco: vai do navegador direto para a
+          // Brasil NFe, que e quem assina o QR Code do DANFE. Mesma regra do
+          // certificado A1 — credencial de cliente nao mora aqui. Guardamos so
+          // o ID, que e um numero de sequencia e nao e segredo.
+          const { csc_homologacao, csc_producao, ...semSegredo } = state.config ?? {};
+          await API.config.salvar(salaoId, semSegredo);
+
+          if (String(csc_homologacao ?? '').trim() || String(csc_producao ?? '').trim()) {
+            const r = await fetch('/api/nfce/csc', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await getAuthToken()}` },
+              body: JSON.stringify({
+                csc_id_homologacao: state.config?.csc_id_homologacao,
+                csc_homologacao,
+                csc_id_producao: state.config?.csc_id_producao,
+                csc_producao,
+              }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) { toast(j?.erro || 'Não foi possível enviar o CSC.', 'erro'); return; }
+            // Limpa da tela depois de enviado — nao fica em memoria nem em tela.
+            dispatch({ type: 'CFG', p: { csc_homologacao: '', csc_producao: '' } });
+            toast('CSC enviado ao provedor. Parâmetros salvos.', 'sucesso');
+            return;
+          }
+          toast('Parâmetros fiscais atualizados com sucesso!', 'sucesso');
         }}
         style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
@@ -104,22 +128,39 @@ export function AbaConfiguracoesFiscais({ state, dispatch, salaoId, toast }: any
           <h4 style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 800, color: C.sidebarBg, textTransform: 'uppercase' }}>
             2. Credenciais NFC-e (Token CSC)
           </h4>
-          <p style={{ margin: '0 0 16px', fontSize: 11, color: C.textMuted }}>
-            O Código de Segurança do Contribuinte (CSC) é fornecido pelo portal da SEFAZ do seu estado.
+          <p style={{ margin: '0 0 6px', fontSize: 11, color: C.textMuted, lineHeight: 1.6 }}>
+            O Código de Segurança do Contribuinte (CSC) é gerado no portal da SEFAZ do seu estado
+            e assina o QR Code do DANFE — sem ele a NFC-e não é autorizada. A SEFAZ entrega um par
+            por ambiente: cada <strong>ID</strong> vai com o código da <strong>mesma linha</strong>.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16 }}>
-            <div>
-              <label style={S.label}>ID do Token (CSC) *</label>
-              <input style={S.input} placeholder="Ex: 000001" maxLength={6} value={state.config?.csc_id || ''}
-                onChange={e => dispatch({ type: 'CFG', p: { csc_id: e.target.value } })} />
+          <p style={{ margin: '0 0 16px', fontSize: 11, color: C.textLight, lineHeight: 1.6 }}>
+            O código é enviado direto ao provedor que emite a nota e <strong>não fica guardado no
+            Luarys</strong> — some da tela assim que você salva. Para trocar, basta colar o novo.
+          </p>
+
+          {[
+            { rot: 'Homologação (teste)', idK: 'csc_id_homologacao', tokK: 'csc_homologacao' },
+            { rot: 'Produção',            idK: 'csc_id_producao',    tokK: 'csc_producao'    },
+          ].map(a => (
+            <div key={a.idK} style={{ marginBottom: 14 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, color: C.textMain }}>{a.rot}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12 }}>
+                <div>
+                  <label style={S.label}>ID</label>
+                  <input style={S.input} placeholder="000001" maxLength={6}
+                    value={state.config?.[a.idK] || ''}
+                    onChange={e => dispatch({ type: 'CFG', p: { [a.idK]: e.target.value.replace(/\D/g, '').slice(0, 6) } })} />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={S.label}>Código</label>
+                  <input style={S.input} type="password" autoComplete="off"
+                    placeholder="Cole o código da SEFAZ"
+                    value={state.config?.[a.tokK] || ''}
+                    onChange={e => dispatch({ type: 'CFG', p: { [a.tokK]: e.target.value.trim() } })} />
+                </div>
+              </div>
             </div>
-            <div>
-              <label style={S.label}>Código Alfanumérico (Token) *</label>
-              <input style={S.input} placeholder="Cole o código gerado pela SEFAZ" type="password"
-                value={state.config?.csc_token || ''}
-                onChange={e => dispatch({ type: 'CFG', p: { csc_token: e.target.value } })} />
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* 3. ENDEREÇO ESPELHADO */}
