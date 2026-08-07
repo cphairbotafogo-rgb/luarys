@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { notificarCobranca } from '@/lib/notificacoes';
+import { notificarCobranca, RODAPE_COBRANCA } from '@/lib/notificacoes';
 import type { NotificacaoCobranca } from '@/lib/notificacoes';
 
 const supabaseAdmin = createClient(
@@ -47,6 +47,52 @@ const DIAS_LEMBRETE_ANUAL  = [30, 2, 1];
  */
 const NIVEIS_GESTAO = ['dono', 'admin', 'gerente'];
 
+/**
+ * Confirma no Asaas se a cobranca daquela assinatura ja foi paga.
+ *
+ * A regua trabalha sobre `renovacao_em` do nosso banco, que so avanca quando o
+ * webhook chega. Webhook perdido, fora do ar ou atrasado faz o salao adimplente
+ * receber cobranca — e, dez dias depois, perder o modulo tendo pago. Antes de
+ * dizer "atrasado", pergunta a quem recebeu o dinheiro.
+ *
+ * Na duvida (sem assinatura registrada, sem chave, API fora), devolve `false` e
+ * a regua segue: nao da para presumir pagamento que ninguem confirmou. Mas erro
+ * de rede nunca vira acusacao de atraso silenciosa — fica no log.
+ */
+async function pagamentoConfirmadoNoAsaas(subscriptionId: string | null | undefined): Promise<boolean> {
+  if (!subscriptionId) return false;
+
+  const chave = process.env.ASAAS_API_KEY;
+  if (!chave) return false;
+
+  const base = (process.env.ASAAS_ENVIRONMENT || 'production') === 'sandbox'
+    ? 'https://api-sandbox.asaas.com/v3'
+    : 'https://api.asaas.com/v3';
+
+  try {
+    const resp = await fetch(`${base}/payments?subscription=${subscriptionId}&limit=5`, {
+      headers: { access_token: chave },
+    });
+    if (!resp.ok) return false;
+    const json = await resp.json().catch(() => ({}));
+    const pagos = (json?.data ?? []).filter((p: any) =>
+      ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(String(p?.status)));
+    if (pagos.length === 0) return false;
+
+    // Pagamento de ATE 40 dias atras cobre o ciclo mensal corrente. Mais antigo
+    // que isso e do ciclo passado e nao prova nada sobre este.
+    const maisRecente = pagos
+      .map((p: any) => new Date(p.paymentDate || p.confirmedDate || p.dateCreated).getTime())
+      .filter((t: number) => Number.isFinite(t))
+      .sort((a: number, b: number) => b - a)[0];
+    if (!maisRecente) return false;
+    return (Date.now() - maisRecente) / 86_400_000 <= 40;
+  } catch (e: any) {
+    console.error('[vencimentos] falha ao conferir pagamento no Asaas:', e?.message || e);
+    return false;
+  }
+}
+
 /** Dispara a mesma notificacao para cada responsavel. */
 async function avisarGestao(
   base: Omit<NotificacaoCobranca, 'evento' | 'email'>,
@@ -54,7 +100,7 @@ async function avisarGestao(
   emails: string[],
 ): Promise<void> {
   for (const email of emails) {
-    await notificarCobranca({ ...base, email, evento });
+    await notificarCobranca({ ...base, email, evento, nota_rodape: RODAPE_COBRANCA });
   }
 }
 
@@ -161,7 +207,8 @@ export async function POST(req: NextRequest) {
     .from('saloes')
     .select(`id, nome_fantasia, razao_social, email_contato, plano_chave, plano_periodo,
              plano_renovacao_em, plano_aviso_enviado_em, plano_segundo_aviso_enviado_em,
-             status_assinatura, acesso_total, cancelamento_agendado`)
+             status_assinatura, acesso_total, cancelamento_agendado,
+             asaas_subscription_id, lembretes_enviados`)
     .not('plano_renovacao_em', 'is', null)
     .eq('acesso_total', false)
     .neq('status_assinatura', 'suspenso');
@@ -236,11 +283,23 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // 2. Primeiro aviso: D+0 a D+6
-      if (horasAposVencer > 0 && !s.plano_aviso_enviado_em) {
-        await supabaseAdmin.from('saloes').update({
-          plano_aviso_enviado_em: agora.toISOString(),
-        }).eq('id', s.id);
+      // 2. Dia do vencimento (D+0) e atraso (D+1 em diante).
+      //
+      // Sao mensagens diferentes de proposito: quem tem ate hoje para pagar nao
+      // esta atrasado, e chamar de atraso e cobrar antes da hora. Ja o aviso de
+      // atraso so sai depois de PERGUNTAR AO ASAAS — a regua le `renovacao_em`,
+      // que so avanca quando o webhook chega, e webhook perdido faria o salao
+      // adimplente ser cobrado e perder o modulo dez dias depois tendo pago.
+      if (horasAposVencer > 0 && horasAposVencer < 24 && !s.plano_aviso_enviado_em) {
+        await supabaseAdmin.from('saloes').update({ plano_aviso_enviado_em: agora.toISOString() }).eq('id', s.id);
+        await avisarGestao(basePayload, 'vence_hoje', destinatarios);
+        resultado.planos.primeiros_avisos++;
+        continue;
+      }
+
+      if (horasAposVencer >= 24 && !s.plano_aviso_enviado_em) {
+        if (await pagamentoConfirmadoNoAsaas((s as any).asaas_subscription_id)) continue;
+        await supabaseAdmin.from('saloes').update({ plano_aviso_enviado_em: agora.toISOString() }).eq('id', s.id);
         await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.planos.primeiros_avisos++;
         continue;
@@ -266,7 +325,7 @@ export async function POST(req: NextRequest) {
 
   const { data: modulos } = await supabaseAdmin
     .from('salao_modulos')
-    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo, cancelamento_agendado, lembretes_enviados')
+    .select('salao_id, modulo_chave, renovacao_em, aviso_enviado_em, segundo_aviso_enviado_em, ativo, periodo, cancelamento_agendado, lembretes_enviados, asaas_subscription_id')
     .not('renovacao_em', 'is', null)
     .eq('ativo', true);
 
@@ -342,11 +401,17 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // 2. Primeiro aviso: D+0 a D+6
-      if (horasAposVencer > 0 && !mod.aviso_enviado_em) {
-        await supabaseAdmin.from('salao_modulos').update({
-          aviso_enviado_em: agora.toISOString(),
-        }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
+      // 2. Dia do vencimento e atraso — ver comentario no bloco do plano.
+      if (horasAposVencer > 0 && horasAposVencer < 24 && !mod.aviso_enviado_em) {
+        await supabaseAdmin.from('salao_modulos').update({ aviso_enviado_em: agora.toISOString() }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
+        await avisarGestao(basePayload, 'vence_hoje', destinatarios);
+        resultado.modulos.primeiros_avisos++;
+        continue;
+      }
+
+      if (horasAposVencer >= 24 && !mod.aviso_enviado_em) {
+        if (await pagamentoConfirmadoNoAsaas((mod as any).asaas_subscription_id)) continue;
+        await supabaseAdmin.from('salao_modulos').update({ aviso_enviado_em: agora.toISOString() }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
         await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.modulos.primeiros_avisos++;
         continue;
