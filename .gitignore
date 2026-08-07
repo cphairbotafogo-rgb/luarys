@@ -49,6 +49,11 @@ scripts/conferencia/backup-limpeza-*.json
 scripts/conferencia/pareamento-*.json
 scripts/conferencia/backup-nbs-*.json
 scripts/conferencia/backup-precos-*.json
+# Estes dois levam dado de cliente e login dentro (salao inteiro, cadastro de
+# clientes, e-mail de usuario). Sao a unica volta de uma exclusao, e por isso
+# devem ficar na maquina de quem executou — nunca no repositorio.
+scripts/conferencia/backup-saloes-*.json
+scripts/conferencia/backup-logins-*.json
 
 # Documento gerado para a contabilidade do salao: leva CNPJ, inscricao estadual
 # e municipal dentro. Recriavel com scripts/conferencia/gerar-pdf-contabilidade.mjs,
