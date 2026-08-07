@@ -63,11 +63,24 @@ const NIVEIS_GESTAO = ['dono', 'admin', 'gerente'];
 async function pagamentoConfirmadoNoAsaas(subscriptionId: string | null | undefined): Promise<boolean> {
   if (!subscriptionId) return false;
 
-  const chave = process.env.ASAAS_API_KEY;
-  if (!chave) return false;
+  // A chave vem da TABELA, como em todas as outras rotas do sistema. Esta
+  // função lia só `process.env.ASAAS_API_KEY` — que não existe nem no Vercel
+  // nem no .env.local, porque a conta de recebimento é cadastrada pelo painel.
+  // Resultado: caía no `return false` da linha seguinte em toda execução, e a
+  // proteção nunca funcionou. Quem pagou e teve o webhook perdido recebia
+  // "pagamento atrasado" e, dez dias depois, perdia o módulo tendo pago.
+  const { data: conta } = await supabaseAdmin
+    .from('plataforma_contas_recebimento')
+    .select('asaas_api_key, asaas_environment').eq('ativa', true).maybeSingle();
+  const chave = conta?.asaas_api_key || process.env.ASAAS_API_KEY;
+  if (!chave) {
+    console.error('[vencimentos] sem chave do Asaas — nao da para confirmar pagamento antes de acusar atraso.');
+    return false;
+  }
 
-  const base = (process.env.ASAAS_ENVIRONMENT || 'production') === 'sandbox'
-    ? 'https://api-sandbox.asaas.com/v3'
+  const ambiente = conta?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production';
+  const base = ambiente === 'sandbox'
+    ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3';
 
   try {

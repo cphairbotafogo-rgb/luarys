@@ -97,6 +97,38 @@ await rodarRegua({ Authorization: `Bearer ${SEGREDO}` });
 p = (await admin.from('saloes').select('status_assinatura').eq('id', SALAO).maybeSingle()).data;
 console.log(`Cancelado, período vencido   -> status=${p.status_assinatura}  ${ok(p.status_assinatura === 'suspenso')}`);
 
+// A protecao que impede acusar de atraso quem pagou: aponta um modulo vencido
+// para uma assinatura REAL do sandbox que tem cobranca confirmada. Se a regua
+// conseguir confirmar no Asaas, ela nao marca aviso de atraso.
+console.log('\n=== NAO ACUSAR ATRASO DE QUEM PAGOU ===');
+const { data: conta } = await admin.from('plataforma_contas_recebimento')
+  .select('asaas_api_key, asaas_environment').eq('ativa', true).maybeSingle();
+const baseAsaas = conta.asaas_environment === 'sandbox'
+  ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
+const { data: comSub } = await admin.from('salao_modulos')
+  .select('asaas_subscription_id').not('asaas_subscription_id', 'is', null).limit(1).maybeSingle();
+const SUB = comSub?.asaas_subscription_id;
+const pg = SUB
+  ? await (await fetch(`${baseAsaas}/payments?subscription=${SUB}`, { headers: { access_token: conta.asaas_api_key } })).json()
+  : {};
+const temPago = (pg?.data ?? []).some(x => ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(x.status)));
+console.log(`Assinatura de referência     -> ${SUB ?? '(nenhuma)'} · cobrança confirmada: ${temPago}`);
+
+if (SUB && temPago) {
+  const MOD = 'garantia_reserva';
+  await admin.from('salao_modulos').delete().eq('salao_id', SALAO).eq('modulo_chave', MOD);
+  await admin.from('salao_modulos').insert({
+    salao_id: SALAO, modulo_chave: MOD, ativo: true, cancelamento_agendado: false,
+    renovacao_em: dias(-1), periodo: 'mensal', asaas_subscription_id: SUB,
+  });
+  await rodarRegua({ Authorization: `Bearer ${SEGREDO}` });
+  const { data: dep } = await admin.from('salao_modulos')
+    .select('aviso_enviado_em, ativo').eq('salao_id', SALAO).eq('modulo_chave', MOD).maybeSingle();
+  console.log(`Pagou, mas venceu ontem      -> aviso=${dep?.aviso_enviado_em ?? 'nenhum'}  ${ok(!dep?.aviso_enviado_em)}  (não pode acusar atraso)`);
+} else {
+  console.log('  (sem assinatura paga no sandbox para comparar — cenário não exercitado)');
+}
+
 console.log('\n=== LIMPEZA ===');
 await admin.from('salao_modulos').delete().eq('salao_id', SALAO);
 await admin.from('saloes').delete().eq('id', SALAO);
