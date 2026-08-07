@@ -347,3 +347,59 @@ export async function registrarPagamentoAssinatura({
 
   return { registrado: true, ativado: true, tipo: 'modulo', periodo };
 }
+
+/**
+ * Cartão que o salão já tem salvo no Asaas, se houver.
+ *
+ * O Asaas NÃO compartilha cartão entre assinaturas do mesmo cliente — cada
+ * subscription guarda o seu (verificado em sandbox em 06/08/2026). Mas devolve
+ * um `creditCardToken`, e esse token sozinho basta para vincular o cartão a
+ * outra assinatura e até para cobrar.
+ *
+ * Token não é dado de cartão: é referência opaca. Trafegar por aqui não coloca
+ * o Luarys em escopo PCI — o número, a validade e o CVV continuam só com eles.
+ *
+ * Procura em qualquer assinatura ativa do salão (plano ou módulo); a primeira
+ * que tiver cartão serve, porque é o mesmo cliente no Asaas.
+ */
+export async function cartaoSalvoDoSalao(salaoId: string): Promise<{
+  token: string;
+  ultimos4: string;
+  bandeira: string;
+} | null> {
+  const { data: conta } = await supabaseAdmin
+    .from('plataforma_contas_recebimento')
+    .select('asaas_api_key, asaas_environment')
+    .eq('ativa', true).maybeSingle();
+  const chave = conta?.asaas_api_key || process.env.ASAAS_API_KEY;
+  if (!chave) return null;
+
+  const base = (conta?.asaas_environment || process.env.ASAAS_ENVIRONMENT || 'production') === 'sandbox'
+    ? 'https://sandbox.asaas.com/api/v3'
+    : 'https://api.asaas.com/v3';
+
+  const [{ data: salao }, { data: modulos }] = await Promise.all([
+    supabaseAdmin.from('saloes').select('asaas_subscription_id').eq('id', salaoId).maybeSingle(),
+    supabaseAdmin.from('salao_modulos').select('asaas_subscription_id').eq('salao_id', salaoId).eq('ativo', true),
+  ]);
+
+  const ids = [salao?.asaas_subscription_id, ...(modulos ?? []).map(m => m.asaas_subscription_id)]
+    .filter(Boolean) as string[];
+
+  for (const id of ids) {
+    try {
+      const resp = await fetch(`${base}/subscriptions/${id}`, { headers: { access_token: chave } });
+      if (!resp.ok) continue;
+      const sub = await resp.json();
+      const cc = sub?.creditCard;
+      if (cc?.creditCardToken) {
+        return {
+          token: cc.creditCardToken,
+          ultimos4: String(cc.creditCardNumber ?? '').slice(-4),
+          bandeira: String(cc.creditCardBrand ?? ''),
+        };
+      }
+    } catch { /* assinatura ilegível não invalida as outras */ }
+  }
+  return null;
+}

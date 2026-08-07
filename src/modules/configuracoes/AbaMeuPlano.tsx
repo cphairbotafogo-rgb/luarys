@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { C, brl } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, RAIO_2XL } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
+import { CofreSeguranca } from "@/components/CofreSeguranca";
 import { confirmarAcaoGlobal } from '@/components/ConfirmacaoGlobal';
 import { Card } from "@/components/ui";
 import { FiCheckCircle, FiUsers, FiPackage, FiShield, FiLoader, FiArrowRight, FiLock } from "react-icons/fi";
@@ -72,6 +73,15 @@ export function AbaMeuPlano({ perfil }: any) {
 
   async function assinar(moduloChave: string, nomeItem: string, precoItem: number) {
     if (!perfil?.salao_id) return;
+
+    // Ja tem cartao salvo: cobra nele em vez de mandar digitar tudo de novo.
+    // Como o salao nao passa por checkout nenhum, o aceite tem que ser
+    // explicito — item, valor, cartao e a senha de quem esta autorizando.
+    if (cartaoSalvo?.tem) {
+      setCompraPendente({ chave: moduloChave, nome: nomeItem, preco: precoItem });
+      return;
+    }
+
     const labelPeriodo = periodo === 'anual' ? 'por ano' : 'por mês';
     const confirmou = await confirmarAcaoGlobal({
       titulo: `Assinar ${nomeItem}?`,
@@ -272,6 +282,44 @@ export function AbaMeuPlano({ perfil }: any) {
    * cancela a antiga; se algo falhar no meio, nada muda. Ver comentario em
    * /api/assinatura/trocar-cartao.
    */
+  // Compra no cartao ja salvo. Fica pendente ate o dono digitar a senha no
+  // Cofre — a cobranca acontece sem ele ver o checkout, entao o aceite tem que
+  // ser explicito e conferido no servidor.
+  const [compraPendente, setCompraPendente] = useState<{ chave: string; nome: string; preco: number } | null>(null);
+  const [cartaoSalvo, setCartaoSalvo] = useState<{ tem: boolean; ultimos4?: string; bandeira?: string } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const r = await fetch('/api/assinatura/cartao-salvo', { headers: { Authorization: `Bearer ${session?.access_token}` } });
+        if (r.ok) setCartaoSalvo(await r.json());
+      } catch { /* sem cartao salvo cai no checkout normal */ }
+    })();
+  }, [perfil?.salao_id]);
+
+  async function confirmarCompraComCartao(senha: string) {
+    if (!compraPendente) return;
+    setProcessandoChave(compraPendente.chave);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/assinatura/contratar-com-cartao-salvo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ modulo_chave: compraPendente.chave, periodo, confirmo: true, senha }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { toast.erro(j?.erro || 'Não foi possível concluir.', 10000); return; }
+      toast.sucesso(`${j.item} ativado. Cobrado R$ ${Number(j.valor).toFixed(2)} no ${j.cartao}.`, 10000);
+      setCompraPendente(null);
+      carregarDados();
+    } catch (e: any) {
+      toast.erro('Erro de conexão: ' + e.message);
+    } finally {
+      setProcessandoChave(null);
+    }
+  }
+
   async function trocarCartao(moduloChave: string, rotulo: string) {
     if (!window.confirm(
       `Trocar o cartão de ${rotulo}?
@@ -602,6 +650,34 @@ export function AbaMeuPlano({ perfil }: any) {
           {addons.length === 0 && <p style={{ color: C.textLight, fontStyle: "italic", fontSize: 13 }}>Nenhum módulo disponível no momento.</p>}
         </div>
       </div>
+
+      {compraPendente && (
+        <CofreSeguranca
+          titulo="Confirmar contratação"
+          descricao={`Você está autorizando esta cobrança no cartão já cadastrado. Digite a senha do seu login (dono ou gerente) para confirmar.`}
+          rotuloConfirmar="Autorizar cobrança"
+          processando={processandoChave === compraPendente.chave}
+          detalhe={
+            <div style={{ background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: 16, marginBottom: 20, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: C.textMuted }}>Item</span>
+                <strong style={{ color: C.textMain }}>{compraPendente.nome}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: C.textMuted }}>Valor</span>
+                <strong style={{ color: C.textMain }}>{brl(compraPendente.preco)} {periodo === 'anual' ? 'por ano' : 'por mês'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: C.textMuted }}>Cartão</span>
+                <strong style={{ color: C.textMain }}>{cartaoSalvo?.bandeira} •{cartaoSalvo?.ultimos4}</strong>
+              </div>
+            </div>
+          }
+          onConfirmar={(senha: string) => confirmarCompraComCartao(senha)}
+          onCancelar={() => setCompraPendente(null)}
+        />
+      )}
+
     </div>
   );
 }

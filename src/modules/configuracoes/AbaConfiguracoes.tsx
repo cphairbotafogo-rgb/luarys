@@ -5,6 +5,7 @@ import { regimePermiteSalaoParceiro } from "@/lib/salaoParceiro";
 import { C } from "@/lib/constants";
 import { RAIO_MD, RAIO_XL, overlayModal, containerModal, inputAdmin, labelPadrao } from "@/lib/estiloGlobal";
 import { useToast } from "@/components/Toast";
+import { CofreSeguranca } from "@/components/CofreSeguranca";
 import { Card } from "@/components/ui";
 import { ConfiguracaoFinanceira } from "./ConfiguracaoFinanceira";
 import { ExportacaoContabil } from "./ExportacaoContabil";
@@ -124,14 +125,15 @@ export function AbaConfiguracoes({ perfil }: any) {
     setSenhaConfirmacao(""); setModalSenhaAberto(true);
   }
 
-  async function confirmarSenhaESalvar() {
-    if (!senhaConfirmacao) { toast.aviso("Digite sua senha para confirmar."); return; }
+  async function confirmarSenhaESalvar(senhaInformada?: string) {
+    const senhaUsar = senhaInformada ?? senhaConfirmacao;
+    if (!senhaUsar) { toast.aviso("Digite sua senha para confirmar."); return; }
     setVerificandoSenha(true); setSalvando(true);
     try {
       // Verifica a senha real antes de qualquer alteração
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) { toast.erro("Sessão expirada. Faça login novamente."); setVerificandoSenha(false); setSalvando(false); return; }
-      const { error: erroAuth } = await supabase.auth.signInWithPassword({ email: user.email, password: senhaConfirmacao });
+      const { error: erroAuth } = await supabase.auth.signInWithPassword({ email: user.email, password: senhaUsar });
       if (erroAuth) { toast.erro("Senha incorreta — configurações não salvas."); setVerificandoSenha(false); setSalvando(false); return; }
 
       if (["empresa", "horarios", "financeiro"].includes(gaveta)) {
@@ -456,25 +458,12 @@ export function AbaConfiguracoes({ perfil }: any) {
       </div>
 
       {modalSenhaAberto && (
-        <div style={{ ...overlayModal, zIndex: 9999 }}>
-          <div style={{ ...containerModal, padding: 32, width: "100%", maxWidth: 400 }}>
-            <h3 className="font-title uppercase tracking-widest" style={{ margin: "0 0 8px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13, color: C.sidebarBg, fontWeight: 700 }}>
-              <FiLock size={16} /> Cofre de Segurança
-            </h3>
-            <p style={{ margin: "0 0 20px", fontSize: 12, color: C.textMuted, textAlign: "center", fontWeight: 500 }}>Confirme a sua credencial administrativa para gravar as alterações.</p>
-            
-            <input type="password" style={{ ...inputStyle, padding: "14px", marginBottom: 20 }} placeholder="••••••••" value={senhaConfirmacao} onChange={e => setSenhaConfirmacao(e.target.value)} autoFocus onKeyDown={e => { if(e.key === 'Enter') confirmarSenhaESalvar(); }}/>
-            
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={confirmarSenhaESalvar} disabled={salvando} className="font-title uppercase tracking-wider transition-all hover:opacity-90" style={{ flex: 2, background: C.sidebarBg, color: "#fff", border: "none", borderRadius: RAIO_MD, fontSize: 11, fontWeight: 700, cursor: salvando ? "not-allowed" : "pointer", opacity: salvando ? 0.7 : 1 }}>
-                {verificandoSenha ? "A validar..." : "Confirmar"}
-              </button>
-              <button onClick={() => setModalSenhaAberto(false)} className="transition-all hover:bg-slate-50" style={{ flex: 1, padding: "12px 0", background: "transparent", color: C.textMain, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <CofreSeguranca
+          descricao="Confirme a sua credencial administrativa para gravar as alterações."
+          processando={verificandoSenha}
+          onConfirmar={(senha: string) => { setSenhaConfirmacao(senha); confirmarSenhaESalvar(senha); }}
+          onCancelar={() => setModalSenhaAberto(false)}
+        />
       )}
 
     </div>
