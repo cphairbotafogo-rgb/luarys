@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/constants';
 import { RAIO_MD, RAIO_XL, RAIO_2XL } from '@/lib/estiloGlobal';
 import { useToast } from '@/components/Toast';
-import { FiLock, FiCheckCircle, FiArrowRight, FiLoader } from 'react-icons/fi';
+import { FiLock, FiCheckCircle, FiArrowRight, FiLoader, FiAlertTriangle } from 'react-icons/fi';
+import { useStatusModulo } from '@/lib/useGuardModulo';
 
 interface Props {
   salaoId: string;
@@ -18,6 +19,10 @@ interface Props {
 export function BloqueioModulo({ salaoId, moduloChave, nome, descricao, preco, itens }: Props) {
   const [processando, setProcessando] = useState(false);
   const toast = useToast();
+  // Modulo cortado por falta de pagamento nao e a mesma coisa que modulo nunca
+  // contratado. Quem ja pagava precisa saber que PERDEU o acesso e por que —
+  // convidar para "conhecer o modulo" quem usava ontem parece defeito.
+  const suspenso = useStatusModulo(salaoId, moduloChave) === 'suspenso';
 
   async function contratar() {
     setProcessando(true);
@@ -44,18 +49,27 @@ export function BloqueioModulo({ salaoId, moduloChave, nome, descricao, preco, i
       <div style={{ maxWidth: 480, width: '100%', background: C.bgCard, borderRadius: RAIO_2XL, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
 
         {/* Header escuro */}
-        <div style={{ background: 'linear-gradient(135deg, #1e2d3d 0%, #2C3643 100%)', padding: '28px 32px' }}>
-          <div style={{ width: 48, height: 48, borderRadius: RAIO_XL, background: 'rgba(212,175,55,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <FiLock size={22} color="#D4AF37" />
+        <div style={{ background: suspenso ? 'linear-gradient(135deg, #7F1D1D 0%, #9A3412 100%)' : 'linear-gradient(135deg, #1e2d3d 0%, #2C3643 100%)', padding: '28px 32px' }}>
+          <div style={{ width: 48, height: 48, borderRadius: RAIO_XL, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            {suspenso ? <FiAlertTriangle size={22} color="#FDE68A" /> : <FiLock size={22} color="#D4AF37" />}
           </div>
+          {suspenso && (
+            <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 800, color: '#FDE68A', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+              Módulo suspenso
+            </p>
+          )}
           <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#fff' }}>{nome}</h3>
-          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>{descricao}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6 }}>
+            {suspenso
+              ? 'O acesso a este módulo foi suspenso porque não identificamos o pagamento. O restante do sistema continua funcionando normalmente — regularize para voltar a usar.'
+              : descricao}
+          </p>
         </div>
 
         {/* Body */}
         <div style={{ padding: '28px 32px' }}>
           <p style={{ margin: '0 0 14px', fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            O que está incluído
+            {suspenso ? 'O que você volta a ter' : 'O que está incluído'}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
@@ -89,12 +103,14 @@ export function BloqueioModulo({ salaoId, moduloChave, nome, descricao, preco, i
           >
             {processando
               ? <><FiLoader className="animate-spin" size={15} /> Aguarde...</>
-              : <>Contratar Agora <FiArrowRight size={15} /></>
+              : <>{suspenso ? 'Regularizar Pagamento' : 'Contratar Agora'} <FiArrowRight size={15} /></>
             }
           </button>
 
           <p style={{ margin: '12px 0 0', fontSize: 11, color: C.textLight, textAlign: 'center' }}>
-            Cancele a qualquer momento. Sem fidelidade mínima.
+            {suspenso
+              ? 'Assim que o pagamento for confirmado, o módulo volta automaticamente.'
+              : 'Cancele a qualquer momento. Sem fidelidade mínima.'}
           </p>
         </div>
       </div>
