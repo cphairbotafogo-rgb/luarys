@@ -3,7 +3,7 @@
  *
  * Substitui a chamada direta do client à RPC `comprar_pacote_whatsapp`, que foi
  * revogada de authenticated/anon em
- * supabase/migrations/20260717_c3_revoke_admin_rpcs.sql (ela creditava saldo
+ * supabase/migrations-historico/20260717_c3_revoke_admin_rpcs.sql (ela creditava saldo
  * sem confirmar pagamento real — qualquer usuário logado podia chamá-la pelo
  * console do navegador e ganhar créditos de graça).
  *
@@ -15,7 +15,7 @@
  *   - Exige sessão válida (autenticarRota) — salao_id vem do perfil do
  *     usuário autenticado no servidor, nunca do body do cliente.
  *   - Rate limit por IP.
- *   - Credita via supabase/migrations/20260722_c5_whatsapp_creditar_service.sql
+ *   - Credita via supabase/migrations-historico/20260722_c5_whatsapp_creditar_service.sql
  *     (creditar_pacote_whatsapp_service), que só service_role pode executar.
  */
 import { NextRequest, NextResponse } from 'next/server';

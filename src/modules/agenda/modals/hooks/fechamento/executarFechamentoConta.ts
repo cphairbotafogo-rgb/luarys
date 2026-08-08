@@ -302,13 +302,37 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
       ? Math.max(0, Number(dadosCaixa.recebido || 0) - Number(dadosCaixa.total || 0))
       : 0;
 
+    // Taxa PRÓPRIA da gorjeta — não reaproveita `taxaOperadoraPercent`.
+    //
+    // Aquela só é calculada quando `config_comissao_taxa_op_modo` é diferente de
+    // 'nao_descontar', que é o padrão. Num salão no padrão ela fica em zero, e a
+    // gorjeta sairia 100% bruta com o salão pagando a maquininha do próprio
+    // bolso — o oposto da regra. E a tela calcula sozinha, então mostraria o
+    // desconto que o registro não teria: o profissional veria um número e
+    // receberia outro.
+    //
+    // São duas decisões diferentes: repartir a taxa da COMISSÃO é escolha do
+    // salão; a taxa da GORJETA sai da gorjeta sempre, porque o dinheiro é do
+    // profissional e quem passou a maquininha foi o salão.
+    let taxaGorjetaPercent = 0;
+    if (gorjetaBruta > 0) {
+      if (formaFin.includes('Crédito')) {
+        const parcelas = (dadosCaixa.pagamentos as any).parcelas_credito || 1;
+        taxaGorjetaPercent = Number(taxasCartoes[bandeiraCaixa || '']?.[`cred_${parcelas}`]) || taxaMedia(`cred_${parcelas}`, taxasCartoes);
+      } else if (formaFin.includes('Débito')) {
+        taxaGorjetaPercent = Number(taxasCartoes[bandeiraCaixa || '']?.debito) || taxaMedia('debito', taxasCartoes);
+      } else if (formaFin === 'PIX') {
+        taxaGorjetaPercent = taxaPixRate;
+      }
+    }
+
     if (gorjetaBruta > 0) {
       try {
         const beneficiarioId = calc.comissoes[0]?.profissional_id || null;
         if (!beneficiarioId) {
           console.warn('[fechamento] gorjeta de', gorjetaBruta, 'sem profissional para receber — não lançada.');
         } else {
-          const taxaGorjeta = gorjetaBruta * (Number(taxaOperadoraPercent) || 0) / 100;
+          const taxaGorjeta = gorjetaBruta * taxaGorjetaPercent / 100;
           const liquido = Math.round((gorjetaBruta - taxaGorjeta) * 100) / 100;
           const formaTxt = String(formaFin || '').trim() || 'pagamento';
           await supabase.from('comissao_extras').insert([{
@@ -316,7 +340,7 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
             profissional_id: beneficiarioId,
             tipo: 'recebivel',
             descricao: taxaGorjeta > 0
-              ? `Gorjeta ${brl(gorjetaBruta)} em ${formaTxt} — taxa da operadora ${Number(taxaOperadoraPercent).toFixed(2)}% (${brl(taxaGorjeta)})`
+              ? `Gorjeta ${brl(gorjetaBruta)} em ${formaTxt} — taxa da operadora ${taxaGorjetaPercent.toFixed(2)}% (${brl(taxaGorjeta)})`
               : `Gorjeta ${brl(gorjetaBruta)} em ${formaTxt} — sem taxa`,
             valor: liquido,
           }]);

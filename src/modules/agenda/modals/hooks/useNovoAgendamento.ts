@@ -225,7 +225,7 @@ export function useNovoAgendamento({ perfil, dadosIniciais, agendamentosExistent
 
   // Traduz o erro cru do Postgres numa ação. 23505 em agendamentos_slot_unique =
   // já existe agendamento ativo nesse profissional, data e horário (ver
-  // supabase/migrations/20260708_agendamentos_slot_unique_parcial.sql). Mostra um
+  // supabase/migrations-historico/20260708_agendamentos_slot_unique_parcial.sql). Mostra um
   // modal central (não toast, fácil de passar despercebido) com botão "Encaixe"
   // que marca os itens e tenta salvar de novo — não só avisa, resolve.
   async function tratarErroSalvar(e: any, tentarComoEncaixe?: () => void | Promise<void>) {

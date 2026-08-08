@@ -34,9 +34,14 @@ export function PainelPagamentoFechamento({ dadosCaixa, setDadosCaixa, ui, fidCh
   /**
    * Taxa que a maquininha vai cobrar sobre a gorjeta.
    *
-   * Mesma regra do fechamento (executarFechamentoConta): a forma com maior valor
-   * define a taxa, porque é nela que o troco entrou. Dinheiro e cheque não têm
-   * taxa; no Pix ela costuma ser zero.
+   * Mesma regra do fechamento (executarFechamentoConta → taxaGorjetaPercent): a
+   * forma com maior valor define a taxa, porque é nela que o troco entrou.
+   * Dinheiro e cheque não têm taxa; no Pix ela costuma ser zero.
+   *
+   * Independe de `config_comissao_taxa_op_modo` nos dois lados, de propósito —
+   * aquilo decide como repartir a taxa da COMISSÃO, e não tem a ver com a
+   * gorjeta. Se um lado olhasse essa configuração e o outro não, a tela mostraria
+   * um valor e o profissional receberia outro.
    */
   const taxaGorjetaPercent = (() => {
     const pags = dadosCaixa.pagamentos || {};

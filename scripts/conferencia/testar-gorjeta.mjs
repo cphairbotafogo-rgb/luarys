@@ -77,4 +77,26 @@ console.log(`Parcela sem taxa configurada     -> ${ok(taxaDe('credito', 'Masterc
 console.log(`Líquido nunca negativo           -> ${ok(liquidoDe(1, 99) >= 0)}`);
 console.log(`Arredonda em centavos            -> ${ok(String(liquidoDe(33.33, 3.15)).split('.')[1]?.length <= 2)}  ${liquidoDe(33.33, 3.15)}`);
 
+// A taxa da gorjeta NAO pode depender de config_comissao_taxa_op_modo. Esse
+// campo decide como repartir a taxa da COMISSAO; se a gorjeta olhasse para ele,
+// salao no padrao ('nao_descontar') pagaria a maquininha do proprio bolso — e a
+// tela, que calcula sozinha, mostraria um desconto que o registro nao teria.
+console.log('\n=== A TAXA DA GORJETA INDEPENDE DO MODO DE COMISSAO ===');
+const { data: saloes } = await admin.from('saloes')
+  .select('nome_fantasia, config_comissao_taxa_op_modo').eq('id', cfg.salao_id);
+console.log(`  modo de comissao deste salao : ${saloes?.[0]?.config_comissao_taxa_op_modo ?? '(nulo -> nao_descontar)'}`);
+
+const fonte = fs.readFileSync('src/modules/agenda/modals/hooks/fechamento/executarFechamentoConta.ts', 'utf8');
+const i = fonte.indexOf('let taxaGorjetaPercent');
+const bloco = fonte.slice(i, fonte.indexOf('const beneficiarioId', i));
+console.log(`  fechamento nao consulta modoTaxaOp -> ${ok(i > 0 && !/modoTaxaOp/.test(bloco))}`);
+
+const painel = fs.readFileSync('src/modules/agenda/modals/fechamento/PainelPagamentoFechamento.tsx', 'utf8');
+const j = painel.indexOf('const taxaGorjetaPercent');
+const blocoP = painel.slice(j, painel.indexOf('})();', j));
+console.log(`  tela tambem nao consulta           -> ${ok(j > 0 && !/modoTaxaOp|taxa_op_modo/.test(blocoP))}`);
+
+const usaParcela = t => t.includes('cred_${parcelas}');
+console.log(`  os dois usam a taxa da PARCELA     -> ${ok(usaParcela(bloco) && usaParcela(blocoP))}  (cred_1 fixo pagaria a menos)`);
+
 console.log(todosOk ? '\nCálculo conferido.' : '\n*** divergência acima ***');
