@@ -18,7 +18,7 @@ export function PainelPagamentoFechamento({ dadosCaixa, setDadosCaixa, ui, fidCh
   const {
     bandeiraCredito, setBandeiraCredito, bandeiraDebito, setBandeiraDebito, maxParcelas,
     handlePagamento, preencherComFalta, handleParcelasChange, handleDataParcelaChange,
-    troco, totalIssRetido, imprimirAoFechar, setImprimirAoFechar, taxasCartoes,
+    troco, totalIssRetido, imprimirAoFechar, setImprimirAoFechar, taxasCartoes, taxaPix,
   } = ui;
 
   const temBandeiras = Object.keys(taxasCartoes || {}).length > 0;
@@ -30,6 +30,31 @@ export function PainelPagamentoFechamento({ dadosCaixa, setDadosCaixa, ui, fidCh
     : BANDEIRAS_DEBITO;
 
   const [pontosInput, setPontosInput] = useState('');
+
+  /**
+   * Taxa que a maquininha vai cobrar sobre a gorjeta.
+   *
+   * Mesma regra do fechamento (executarFechamentoConta): a forma com maior valor
+   * define a taxa, porque é nela que o troco entrou. Dinheiro e cheque não têm
+   * taxa; no Pix ela costuma ser zero.
+   */
+  const taxaGorjetaPercent = (() => {
+    const pags = dadosCaixa.pagamentos || {};
+    const formas: [string, number][] = Object.entries(pags)
+      .filter(([, v]) => typeof v === 'number' && (v as number) > 0) as [string, number][];
+    if (!formas.length) return 0;
+    const [formaMaior] = formas.sort((a, b) => b[1] - a[1])[0];
+    const f = formaMaior.toLowerCase();
+    if (f.includes('credito') || f.includes('crédito')) {
+      const parcelas = Number(pags.parcelas_credito) || 1;
+      return Number(taxasCartoes?.[bandeiraCredito]?.[`cred_${parcelas}`]) || 0;
+    }
+    if (f.includes('debito') || f.includes('débito')) {
+      return Number(taxasCartoes?.[bandeiraDebito]?.debito) || 0;
+    }
+    if (f.includes('pix')) return Number(taxaPix) || 0;
+    return 0;
+  })();
 
   // Calcula valor elegível (excluindo serviços bloqueados para desconto de fidelidade)
   const valorElegivel = fidCheckout
@@ -297,6 +322,39 @@ export function PainelPagamentoFechamento({ dadosCaixa, setDadosCaixa, ui, fidCh
           <input type="checkbox" checked={dadosCaixa.deixarComoGorjeta} onChange={e => setDadosCaixa({...dadosCaixa, deixarComoGorjeta: e.target.checked})} style={{ accentColor: C.sidebarBg, width: 16, height: 16 }} />
           Deixar troco como gorjeta
         </label>
+
+        {/* Quem paga e quem recebe têm que ver a conta antes de confirmar. A
+            gorjeta vai 100% para o profissional, mas quem recebeu no cartão foi
+            o salão — e a maquininha cobra. Sem mostrar aqui, o profissional
+            descobre a diferença só no acerto, e o cliente nunca sabe que a
+            gorjeta dele não chegou inteira. */}
+        {dadosCaixa.deixarComoGorjeta && troco > 0 && (() => {
+          const taxa = troco * (Number(taxaGorjetaPercent) || 0) / 100;
+          const liquido = troco - taxa;
+          return (
+            <div style={{ background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: RAIO_MD, padding: 12, fontSize: 11, lineHeight: 1.7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: C.textMuted }}>Gorjeta</span>
+                <strong style={{ color: C.textMain }}>{brl(troco)}</strong>
+              </div>
+              {taxa > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: C.textMuted }}>Taxa da maquininha ({Number(taxaGorjetaPercent).toFixed(2)}%)</span>
+                  <span style={{ color: C.textMuted }}>− {brl(taxa)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.borderMid}`, marginTop: 6, paddingTop: 6 }}>
+                <span style={{ color: C.textMain, fontWeight: 700 }}>O profissional recebe</span>
+                <strong style={{ color: C.sidebarBg, fontWeight: 800 }}>{brl(liquido)}</strong>
+              </div>
+              <p style={{ margin: '8px 0 0', color: C.textLight, fontSize: 10 }}>
+                {taxa > 0
+                  ? 'A gorjeta vai integralmente ao profissional. A taxa é descontada porque o valor entrou pela maquininha do salão.'
+                  : 'Sem taxa nesta forma de pagamento — o profissional recebe o valor cheio.'}
+              </p>
+            </div>
+          );
+        })()}
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, color: C.textMain }}>
           <input type="checkbox" checked={imprimirAoFechar} onChange={e => setImprimirAoFechar(e.target.checked)} style={{ accentColor: C.sidebarBg, width: 16, height: 16 }} />
           Imprimir fechamento após salvar

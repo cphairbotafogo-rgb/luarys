@@ -58,7 +58,7 @@ export function useFechamentoUI({
   // Fonte única de taxas/max_parcelas: DadosGlobaisContext quando disponível,
   // fetch próprio como fallback (useTaxasConfig cuida dos dois casos) — evita
   // um segundo fetch de config_taxas dentro do mesmo fluxo de fechamento.
-  const { taxasCartoes, maxParcelas } = useTaxasConfig(perfil);
+  const { taxasCartoes, taxaPix, maxParcelas } = useTaxasConfig(perfil);
   const [dadosSalao, setDadosSalao] = useState<any>(null);
 
   const [buscas, setBuscas] = useState<Record<string, { item: string; prof: string }>>({});
@@ -263,7 +263,7 @@ export function useFechamentoUI({
     salvando, senhaDesconto, setSenhaDesconto, descontoLiberado, precoLiberado,
     imprimirAoFechar, setImprimirAoFechar,
     bandeiraCredito, setBandeiraCredito, bandeiraDebito, setBandeiraDebito,
-    maxParcelas, taxasCartoes,
+    maxParcelas, taxasCartoes, taxaPix,
     buscas, setBuscas, dropdownAtivo, setDropdownAtivo, dropdownRef,
     clienteReal,
     ...itens,

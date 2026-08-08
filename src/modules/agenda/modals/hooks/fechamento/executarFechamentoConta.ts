@@ -283,6 +283,49 @@ export async function executarFechamentoConta(ctx: Ctx): Promise<string | null> 
       }
     }
 
+    // ── Gorjeta: 100% do profissional, líquida da taxa da maquininha ───────────
+    //
+    // Fica FORA da nota e fora da receita do salão, de propósito. Gorjeta
+    // repassada integralmente ao profissional não é faturamento — se entrasse na
+    // NFS-e, inflaria a receita do salão, empurraria a faixa do Simples para cima
+    // e distorceria o denominador do Fator R. O salão só passa o dinheiro
+    // adiante.
+    //
+    // A taxa é descontada porque quem recebeu no cartão foi o salão, e ele não
+    // deve pagar do próprio bolso para intermediar a gorjeta de outra pessoa.
+    // No Pix a taxa configurada é zero, então o profissional recebe os 100%.
+    //
+    // Lançada como recebível em `comissao_extras`, que é o caminho que o
+    // relatório de comissões já lê. Best-effort: gorjeta não pode derrubar o
+    // fechamento de uma venda que já foi paga.
+    const gorjetaBruta = dadosCaixa.deixarComoGorjeta
+      ? Math.max(0, Number(dadosCaixa.recebido || 0) - Number(dadosCaixa.total || 0))
+      : 0;
+
+    if (gorjetaBruta > 0) {
+      try {
+        const beneficiarioId = calc.comissoes[0]?.profissional_id || null;
+        if (!beneficiarioId) {
+          console.warn('[fechamento] gorjeta de', gorjetaBruta, 'sem profissional para receber — não lançada.');
+        } else {
+          const taxaGorjeta = gorjetaBruta * (Number(taxaOperadoraPercent) || 0) / 100;
+          const liquido = Math.round((gorjetaBruta - taxaGorjeta) * 100) / 100;
+          const formaTxt = String(formaFin || '').trim() || 'pagamento';
+          await supabase.from('comissao_extras').insert([{
+            salao_id: perfil.salao_id,
+            profissional_id: beneficiarioId,
+            tipo: 'recebivel',
+            descricao: taxaGorjeta > 0
+              ? `Gorjeta ${brl(gorjetaBruta)} em ${formaTxt} — taxa da operadora ${Number(taxaOperadoraPercent).toFixed(2)}% (${brl(taxaGorjeta)})`
+              : `Gorjeta ${brl(gorjetaBruta)} em ${formaTxt} — sem taxa`,
+            valor: liquido,
+          }]);
+        }
+      } catch (e: any) {
+        console.error('[fechamento] falha ao lançar gorjeta (venda concluída normalmente):', e?.message || e);
+      }
+    }
+
     // ── FASE 4: nota fiscal de SERVIÇO (NFS-e) — não se aplica a venda só de produto,
     // que é NFC-e (fluxo próprio). Por isso pulamos quando somenteProdutos.
     // Servico sem receita nao gera nota: a propria prefeitura recusa com "O

@@ -127,8 +127,26 @@ export function buildPayloadNFSe(opts: {
       regime,
     );
   }
-  const valorDeducoes = ehParceiroComCnpj && Number(nota.valor_cota_profissional) > 0
-    ? centavos(nota.valor_cota_profissional)
+  // A dedução NUNCA pode passar do valor do serviço.
+  //
+  // Clampar só a nossa `base_calculo` não bastava: quem recalcula é a
+  // prefeitura, a partir de ValorServico e ValorDeducoes que enviamos. Nota 469
+  // do piloto saiu com serviço de R$ 79,01 e dedução de R$ 206,60 — base
+  // negativa do lado deles, declarando repasse maior que a receita.
+  //
+  // Vem de dado ruim na origem (a importação trouxe cotas de 0% a 261% do valor).
+  // Aqui é a última barreira antes do XML, e barrar em silêncio esconderia o
+  // problema: o aviso nomeia a nota para dar para corrigir o cadastro.
+  const cotaBruta = Number(nota.valor_cota_profissional) || 0;
+  const valorServico = Number(nota.valor) || 0;
+  if (ehParceiroComCnpj && cotaBruta > valorServico && valorServico > 0) {
+    console.error(
+      '[nfse] cota-parte (%s) maior que o valor do serviço (%s) — deduzindo apenas o valor do serviço. Confira a comissão desta venda.',
+      cotaBruta, valorServico,
+    );
+  }
+  const valorDeducoes = ehParceiroComCnpj && cotaBruta > 0
+    ? centavos(Math.min(cotaBruta, valorServico))
     : 0;
 
   if (nota.tipo_parceiro === 'parceiro_cnpj' && !cnpjParceiroValido && Number(nota.valor_cota_profissional) > 0) {
