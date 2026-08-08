@@ -257,13 +257,20 @@ Não trate como verdade.
   na Brasil NFe (CNPJ enviado).
 - **O `06.01.20` da contabilidade** — não se sabe se substitui o nacional
   `060101` ou o municipal `005`. Ver `PERGUNTAS-PENDENTES.md`.
-- **A cota-parte nunca foi calculada pelo nosso sistema.** As 366 notas que
-  geram dedução herdaram a cota da importação — de 0% a 261% do valor, sem
-  relação com comissão. A tabela `comissoes` está **vazia** para o piloto:
-  nenhum fechamento rodou aqui. O caminho que vai gerar as deduções de produção
-  nunca foi exercido com dado real. **Antes de emitir em produção**, fechar uma
-  conta de verdade com profissional-parceiro e conferir se a cota que chega na
-  nota bate com a comissão contratada.
+- **A cota-parte na nota é a comissão, e os percentuais baixos são propositais.**
+  A dedução (`gDed`) vem de `notas_fiscais.valor_cota_profissional`, que espelha
+  `comissoes.valor_comissao`. No piloto, 205 comissões estão em 1% e 202 em 0% —
+  **definido pelo Ari**, não é erro. Então a dedução ser pequena está certa.
+
+  > Eu já errei duas vezes aqui: primeiro afirmei que a tabela `comissoes` estava
+  > vazia (a consulta pedia a coluna `percentual`, que não existe — a real é
+  > `porcentagem_comissao` — e falhou em silêncio), depois classifiquei os 1%
+  > como dado ruim da importação. Antes de chamar um percentual de errado,
+  > perguntar: a regra de comissão é do dono do salão.
+
+  O que continua valendo conferir antes da produção: se o repasse real ao
+  profissional-parceiro for maior que a comissão lançada, a nota deduz menos do
+  que poderia — isso não é risco com o fisco, é imposto pago a mais pelo salão.
 - **Gorjeta paga à parte** não tem como ser registrada — o fluxo só cobre "o
   cliente pagou a mais e deixou o troco". Pix separado para gorjeta exigiria
   outra tela.
