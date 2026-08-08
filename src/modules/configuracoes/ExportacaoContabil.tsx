@@ -135,6 +135,23 @@ const inp = {
 };
 const lbl = { margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: C.textMuted, display: 'block' as const };
 
+/**
+ * Envio pelo servidor: oculto até o domínio ser verificado no Resend.
+ *
+ * A função `enviar-relatorio-contabil` funciona de ponta a ponta — autentica,
+ * confere o salão, gera os CSVs — e falha só no último passo, porque o Resend
+ * recusa remetente de domínio não verificado (`relatorios@luarys.com.br`).
+ * Botão que sempre dá erro é pior que botão ausente: o salão tenta, não
+ * entende, e conclui que o sistema está quebrado.
+ *
+ * "Abrir no meu e-mail" cobre o caso hoje, e sai do endereço do próprio salão.
+ *
+ * PARA REATIVAR: verificar luarys.com.br em resend.com/domains (é grátis, o
+ * plano free inclui 1 domínio) e garantir RESEND_API_KEY nas variáveis da Edge
+ * Function. Depois é só trocar para `true` — o código do botão está inteiro.
+ */
+const ENVIO_PELO_SERVIDOR_ATIVO = false;
+
 export function ExportacaoContabil({ perfil }: { perfil?: any }) {
   const toast = useToast();
   const [mes, setMes] = useState('');
@@ -408,7 +425,7 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#fff' }}>Relatório Consolidado</p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
             {emailContador
-              ? `Para ${emailContador}. "Abrir no meu e-mail" manda do seu próprio endereço — o anexo você arrasta, porque o e-mail não carrega arquivo sozinho.`
+              ? `Para ${emailContador}. Abre no seu próprio e-mail com a mensagem pronta — o anexo você arrasta, porque o e-mail não carrega arquivo sozinho.`
               : 'Baixar localmente ou configure o e-mail do contador para enviar direto.'}
           </p>
         </div>
@@ -435,7 +452,7 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
                 <FiMail size={15} />
                 {carregando === 'todos' ? 'Preparando...' : 'Abrir no meu e-mail'}
               </button>
-              <button
+              {ENVIO_PELO_SERVIDOR_ATIVO && <button
                 onClick={enviarParaContador}
                 disabled={!!carregando}
                 title="O Luarys envia direto, sem abrir seu programa de e-mail"
@@ -443,7 +460,7 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
               >
                 <FiMail size={15} />
                 {carregando === 'enviar' ? 'Enviando...' : 'Enviar pelo Luarys'}
-              </button>
+              </button>}
             </>
           )}
         </div>
