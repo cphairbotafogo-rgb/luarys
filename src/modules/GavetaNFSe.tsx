@@ -25,9 +25,28 @@ export function GavetaNFSe({ perfil }: any) {
   const buscarNotasPendentesRef = useRef<() => void>(() => {});
 
   // Filtros
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('');
+  //
+  // A tela abre no MÊS VIGENTE e só no que falta emitir. Sem isso ela nascia
+  // mostrando tudo — no piloto, 530 notas, quase todas 'Histórico' de
+  // competências antigas que nunca serão transmitidas. O que interessa ao abrir
+  // é o que ainda não foi lançado; ver emitidas, rejeitadas ou o histórico é
+  // consulta, e o salão escolhe quando quiser.
+  //
+  // Data em horário local, não `toISOString()`: no fuso do Brasil o ISO devolve
+  // o dia seguinte a partir das 21h, e o mês viraria antes da hora.
+  const mesVigente = (() => {
+    const h = new Date();
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return {
+      inicio: iso(new Date(h.getFullYear(), h.getMonth(), 1)),
+      fim: iso(new Date(h.getFullYear(), h.getMonth() + 1, 0)),
+    };
+  })();
+
+  const [dataInicio, setDataInicio] = useState(mesVigente.inicio);
+  const [dataFim, setDataFim] = useState(mesVigente.fim);
+  const [filtroStatus, setFiltroStatus] = useState('Não Emitido');
   // '' = todas | 'sem' = sem código LC 116 | 'invalido' = código fora do formato
   const [filtroCodigo, setFiltroCodigo] = useState<'' | 'sem' | 'invalido'>('');
   const [busca, setBusca] = useState('');
@@ -59,7 +78,7 @@ export function GavetaNFSe({ perfil }: any) {
     if (!perfil?.salao_id) return;
     const { data, error } = await supabase
       .from('notas_fiscais')
-      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, storage_path_xml, mensagem_erro, data_emissao, data_movimentacao, item_lista_servico, chave_acesso, profissional_nome, aliquota_apurada, aliquota_iss')
+      .select('id, cliente_nome, cliente_cpf, descricao_servico, valor, status, numero_nota, storage_path_pdf, storage_path_xml, mensagem_erro, data_emissao, data_movimentacao, data_criacao, item_lista_servico, chave_acesso, profissional_nome, aliquota_apurada, aliquota_iss')
       .eq('salao_id', perfil.salao_id)
       // 'Emitida' entra na lista para a nota nao sumir depois de transmitida —
       // era o unico caminho para o PDF e o XML dela, e o usuario ficava sem.
@@ -180,8 +199,18 @@ export function GavetaNFSe({ perfil }: any) {
       const b = normalizar(busca);
       if (!normalizar(n.cliente_nome).includes(b) && !normalizar(n.descricao_servico).includes(b)) return false;
     }
-    if (dataInicio && n.data_emissao && n.data_emissao.slice(0, 10) < dataInicio) return false;
-    if (dataFim && n.data_emissao && n.data_emissao.slice(0, 10) > dataFim) return false;
+    // A data do filtro NÃO pode ser só `data_emissao`: ela só é preenchida
+    // quando a prefeitura autoriza. Nota por emitir tem esse campo nulo, e a
+    // condição `&& n.data_emissao` a deixava passar por qualquer período — ou
+    // seja, o filtro de mês não filtrava justamente o que interessa filtrar.
+    //
+    // A ordem é a fiscal: vale a data da prestação do serviço
+    // (`data_movimentacao`), que é o que define a competência do ISS. Só quando
+    // ela falta é que se usa a emissão ou, por último, a criação do registro —
+    // `data_criacao` é a única preenchida em 100% das notas.
+    const dataDaNota = (n.data_movimentacao || n.data_emissao || n.data_criacao || '').slice(0, 10);
+    if (dataInicio && dataDaNota && dataDaNota < dataInicio) return false;
+    if (dataFim && dataDaNota && dataDaNota > dataFim) return false;
     return true;
   });
 
@@ -684,12 +713,20 @@ const inputStyle = { ...inputAdmin };
                       <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: C.textMuted, fontSize: 13, fontWeight: 500 }}>
                         {notasPendentes.length === 0
                           ? "Nenhuma nota pendente de emissão no momento."
-                          : "Nenhuma nota encontrada para os filtros selecionados."}
+                          : (dataInicio === mesVigente.inicio && dataFim === mesVigente.fim && filtroStatus === 'Não Emitido')
+                            // A tela abre com estes filtros, entao vazio aqui e o
+                            // caso comum — e precisa dizer que e filtro, nao falha.
+                            ? `Nada a emitir em ${new Date(mesVigente.inicio + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Mude o período ou o status acima para ver as emitidas, rejeitadas e o histórico.`
+                            : "Nenhuma nota encontrada para os filtros selecionados."}
                       </td>
                     </tr>
                   ) : notasFiltradas.map((nota) => {
-                    const dataMovimentacao = nota.data_emissao
-                      ? new Date(nota.data_emissao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+                    // A coluna chama-se MOVIMENTAÇÃO e mostrava `data_emissao` —
+                    // por isso ficava "—" em toda nota ainda não emitida, que é
+                    // justamente a que o salão precisa ver. Mesma ordem do filtro.
+                    const dataRef = nota.data_movimentacao || nota.data_emissao || nota.data_criacao;
+                    const dataMovimentacao = dataRef
+                      ? new Date(dataRef).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
                       : '—';
                     const temCodigoFiscal = !!nota.item_lista_servico;
                     return (
