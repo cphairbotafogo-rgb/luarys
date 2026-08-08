@@ -218,6 +218,15 @@ passando.
 códigos. Nunca gerou nota, mas é o caminho que a transformaria em receita se
 alguém puser preço nele.
 
+**Em pausa, decidido depois (08/08/2026): a gorjeta não entra no caixa.** O
+lançamento financeiro usa `valorAPagar`, o total da venda. Cliente que paga
+R$ 110 numa venda de R$ 100 deixa o caixa registrando R$ 100, e os R$ 10
+aparecem só como recebível do profissional — a gaveta fica com dinheiro a mais
+que o registrado, ou a maquininha repassa mais que a venda. É o mesmo descompasso
+que existe do lado da nota. As duas saídas: lançar entrada e saída (o caixa bate
+e o trânsito fica visível) ou deixar fora (mais simples, mas o conferente acha
+diferença).
+
 ---
 
 ## 6. Como consertar quando quebrar
