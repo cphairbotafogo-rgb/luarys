@@ -22,31 +22,24 @@ falham, porque não há em que aplicá-las.
 
 ---
 
-## Preparação, uma vez só
+## Feito em 08/08/2026
 
-O `supabase/config.toml` já está no repositório. Falta o que depende das suas
-credenciais:
+O baseline existe: `supabase/migrations/20260101000000_baseline_producao.sql`,
+tirado com `supabase db dump --linked`. São 93 tabelas, 173 políticas RLS e 66
+índices — só esquema, sem nenhum dado de cliente.
 
-```bash
-npx supabase login                        # abre o navegador
-npx supabase link --project-ref yojtfrgoosapnsvyzgpw   # pede a senha do banco
-npx supabase db pull                      # captura o esquema atual como baseline
-```
+As 105 migrations antigas foram para `supabase/migrations-historico/`. Elas
+**não rodam mais**: o baseline já contém tudo que fizeram, e executá-las depois
+quebraria. Ficaram guardadas porque explicam *por que* cada mudança foi feita.
 
-O `db pull` gera uma migration nova com **tudo que existe hoje na produção** —
-tabelas, políticas RLS, funções, triggers. É o baseline que faltava. A partir
-dela, o banco passa a ser reconstruível.
+Provado: `supabase start` aplicou o baseline e o banco local subiu com as 96
+tabelas. Reconstruir o banco a partir do repositório passou a funcionar.
 
-> A senha do banco é a do projeto no Supabase, em Settings → Database. Não é a
-> mesma da sua conta. Dá para gerar uma nova ali, mas isso invalida conexões
-> diretas que usem a antiga — as chaves de API do `.env.local` não são afetadas.
-
-> O `project-ref` é o subdomínio da URL do projeto, e vai **inteiro**: abreviar
-> com reticências faz o CLI recusar com *"Invalid project ref format"*.
-
-**Confira o que o `db pull` gerou antes de commitar.** Ele traz o estado real,
-que pode incluir coisa aplicada à mão e nunca versionada — é justamente o ponto,
-mas vale ler.
+> `supabase db pull` **não** foi o caminho. Ele recusa, porque o histórico de
+> migrations do remoto tem versões de 14 dígitos (`20260624135118`) e os nossos
+> arquivos tinham 8 (`20260621_...`) — nunca casariam. O CLI sugere doze
+> `migration repair`, que reescreveriam um histórico que já não descrevia a
+> realidade. O `db dump` é só leitura e resolve sem tocar em nada.
 
 ---
 
