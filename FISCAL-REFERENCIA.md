@@ -185,6 +185,39 @@ ainda não tem data de emissão.
 **Numeração da NFC-e** é atômica, por RPC `obter_proximo_numero_nfce`. Nunca ler
 e atualizar em dois passos.
 
+**Dedução nunca passa do valor do serviço.** Havia trava na nossa
+`base_calculo`, mas não no `ValorDeducoes` enviado — e quem refaz a conta é a
+prefeitura. A nota 469 do piloto saiu com serviço de R$ 79,01 e dedução de
+R$ 206,60: base negativa do lado deles, declarando repasse maior que a receita.
+
+---
+
+## 5-A. Gorjeta
+
+**100% do profissional, líquida da taxa da maquininha** (Ari, 07/08/2026). Quem
+recebeu no cartão foi o salão, e ele não paga do próprio bolso para intermediar
+gorjeta de outra pessoa. No Pix a taxa é zero, então vai o valor cheio.
+
+**Fica fora da NFS-e**, tratada como repasse: gorjeta integralmente repassada
+não é receita do salão. Se entrasse na nota, inflaria o faturamento, empurraria
+a faixa do Simples e distorceria o denominador do Fator R. Lançada como
+recebível em `comissao_extras`.
+
+Por isso **não tem código de serviço** — não é serviço do salão, é dinheiro
+passando.
+
+> **Consequência que precisa de resposta da contabilidade:** o salão recebe
+> R$ 110 no cartão e emite nota de R$ 100. As operadoras reportam as transações
+> ao fisco, e a diferença aparece. Duas saídas legítimas: a gorjeta entra na nota
+> e é deduzida como cota-parte (só vale para **parceiro com CNPJ** — no piloto,
+> 2 dos 3 profissionais), ou fica fora e o repasse é registrado contabilmente. A
+> terceira, mais limpa, é o cliente pagar direto ao profissional: o salão não
+> intermedeia, não paga taxa e não há discrepância.
+
+**Cuidado:** o serviço "Gorjeta" continua cadastrado, com preço zero e sem
+códigos. Nunca gerou nota, mas é o caminho que a transformaria em receita se
+alguém puser preço nele.
+
 ---
 
 ## 6. Como consertar quando quebrar
@@ -224,6 +257,15 @@ Não trate como verdade.
   na Brasil NFe (CNPJ enviado).
 - **O `06.01.20` da contabilidade** — não se sabe se substitui o nacional
   `060101` ou o municipal `005`. Ver `PERGUNTAS-PENDENTES.md`.
-- **A Gorjeta** não tem classificação nenhuma, à espera da contabilidade.
+- **A cota-parte nunca foi calculada pelo nosso sistema.** As 366 notas que
+  geram dedução herdaram a cota da importação — de 0% a 261% do valor, sem
+  relação com comissão. A tabela `comissoes` está **vazia** para o piloto:
+  nenhum fechamento rodou aqui. O caminho que vai gerar as deduções de produção
+  nunca foi exercido com dado real. **Antes de emitir em produção**, fechar uma
+  conta de verdade com profissional-parceiro e conferir se a cota que chega na
+  nota bate com a comissão contratada.
+- **Gorjeta paga à parte** não tem como ser registrada — o fluxo só cobre "o
+  cliente pagou a mais e deixou o troco". Pix separado para gorjeta exigiria
+  outra tela.
 - **Nenhum salão emitiu em produção.** Tudo acima vale para homologação
   (`ambGer: 2` nos XML). Antes de virar a chave, reler esta seção inteira.
