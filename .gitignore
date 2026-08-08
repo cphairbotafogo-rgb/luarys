@@ -62,4 +62,13 @@ perguntas-contabilidade.pdf
 
 # Zip gerado para auditoria externa — recriavel com scripts/conferencia/empacotar-codigo.mjs
 luarys-codigo.zip
+
+# Supabase local (CLI + extensao do VS Code). O config.toml VAI para o
+# repositorio — e ele que define as portas e o comportamento da instancia. O
+# resto e estado da maquina: containers, dump temporario e o vinculo com o
+# projeto da nuvem, que carrega credencial dentro.
+supabase/.branches/
+supabase/.temp/
+.branches/
+.temp/
 scripts/conferencia/backup-notas-*.json
