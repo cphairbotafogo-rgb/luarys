@@ -412,3 +412,19 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# ── Edge Functions ─────────────────────────────────────────────────────────
+#
+# `verify_jwt = false` NÃO significa função aberta: significa que quem valida é
+# a própria função, e não o gateway.
+#
+# Com a validação no gateway, o preflight CORS quebra: o OPTIONS que o navegador
+# manda antes do POST não leva cabeçalho de autorização, o gateway recusa antes
+# de a função rodar, e a recusa sai sem cabeçalho de CORS. O navegador então
+# reporta "No 'Access-Control-Allow-Origin'", escondendo a causa real.
+#
+# A enviar-relatorio-contabil confere o JWT, busca o perfil e recusa com 403 se
+# o salao_id do corpo não for o do usuário logado — mais rigoroso que o gateway,
+# que só sabe dizer "o token é válido" e não "este salão é seu".
+[functions.enviar-relatorio-contabil]
+verify_jwt = false

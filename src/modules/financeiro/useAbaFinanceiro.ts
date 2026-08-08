@@ -45,7 +45,12 @@ export function useAbaFinanceiro(perfil: any) {
         supabase.from('financeiro').select('*').eq('salao_id', perfil.salao_id).gte('data_movimentacao', inicioUTC).lte('data_movimentacao', fimUTC),
         supabase.from('despesas').select('id, descricao, categoria, tipo_custo, valor, data_pagamento, data_vencimento, status, forma_pagamento, observacao').eq('salao_id', perfil.salao_id).gte('data_vencimento', dataInicio).lte('data_vencimento', dataFim),
         supabase.from('despesas').select('id, descricao, categoria, tipo_custo, valor, data_pagamento, data_vencimento, status, forma_pagamento, observacao').eq('salao_id', perfil.salao_id).gte('data_pagamento', dataInicio).lte('data_pagamento', dataFim),
-        supabase.from('comissoes').select('*').eq('salao_id', perfil.salao_id).order('data_criacao', { ascending: false }),
+        // `created_at`, não `data_criacao` — essa coluna não existe em
+        // `comissoes`. O PostgREST devolvia 400 e, como o Supabase não lança
+        // nessa situação, o `Promise.all` resolvia com `data: null`: o
+        // Financeiro ficava SEM as comissões e sem dizer nada. No piloto são
+        // 710 registros que nunca apareceram.
+        supabase.from('comissoes').select('*').eq('salao_id', perfil.salao_id).order('created_at', { ascending: false }),
         supabase.from('profissionais').select('id, nome, ativo').eq('salao_id', perfil.salao_id).order('nome'),
         supabase.from('fornecedores').select('id, nome_empresa').eq('salao_id', perfil.salao_id),
       ]);
