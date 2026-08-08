@@ -29,7 +29,7 @@ credenciais:
 
 ```bash
 npx supabase login                        # abre o navegador
-npx supabase link --project-ref yojtfr…   # pede a senha do banco
+npx supabase link --project-ref yojtfrgoosapnsvyzgpw   # pede a senha do banco
 npx supabase db pull                      # captura o esquema atual como baseline
 ```
 
@@ -38,7 +38,11 @@ tabelas, políticas RLS, funções, triggers. É o baseline que faltava. A parti
 dela, o banco passa a ser reconstruível.
 
 > A senha do banco é a do projeto no Supabase, em Settings → Database. Não é a
-> mesma da sua conta.
+> mesma da sua conta. Dá para gerar uma nova ali, mas isso invalida conexões
+> diretas que usem a antiga — as chaves de API do `.env.local` não são afetadas.
+
+> O `project-ref` é o subdomínio da URL do projeto, e vai **inteiro**: abreviar
+> com reticências faz o CLI recusar com *"Invalid project ref format"*.
 
 **Confira o que o `db pull` gerou antes de commitar.** Ele traz o estado real,
 que pode incluir coisa aplicada à mão e nunca versionada — é justamente o ponto,
