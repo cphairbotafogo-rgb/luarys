@@ -263,11 +263,50 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
       const blob = new Blob([bom + blocos.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = `contabilidade_${mesLabel(mes)}.csv`; a.click();
+      const nomeArquivo = `contabilidade_${mesLabel(mes)}.csv`;
+      a.href = url; a.download = nomeArquivo; a.click();
       URL.revokeObjectURL(url);
       toast.sucesso(`Relatório consolidado gerado: ${fat.length + desp.length + com.length} registros.`);
-    } catch { toast.erro('Erro ao gerar relatório consolidado.'); }
+      return nomeArquivo;
+    } catch { toast.erro('Erro ao gerar relatório consolidado.'); return null; }
     finally { setCarregando(null); }
+  }
+
+  /**
+   * Abre o e-mail do próprio salão com a mensagem pronta, em vez de o Luarys
+   * enviar em nome dele.
+   *
+   * Vantagem sobre o envio pelo servidor: o contador recebe do endereço que já
+   * conhece, a cópia fica na caixa de enviados do salão, e não depende de
+   * domínio verificado nem de serviço de e-mail nenhum.
+   *
+   * O anexo é manual, e não há como ser diferente: `mailto:` não carrega
+   * arquivo — é restrição de segurança de todos os navegadores, não limitação
+   * nossa. Por isso o CSV é baixado ANTES de abrir o e-mail: quando a janela
+   * abre, o arquivo já está na pasta de downloads, pronto para arrastar.
+   */
+  async function abrirNoMeuEmail() {
+    const nomeArquivo = await baixarTodos();
+    if (!nomeArquivo) return;
+
+    const competencia = mesLabel(mes);
+    const assunto = `Relatório contábil — ${competencia}`;
+    const corpo = [
+      'Olá,',
+      '',
+      `Segue em anexo o relatório contábil da competência ${competencia}, com faturamento, despesas e comissões.`,
+      '',
+      `Arquivo: ${nomeArquivo} (baixado agora, na sua pasta de downloads)`,
+      '',
+      'Qualquer dúvida, estou à disposição.',
+    ].join('\n');
+
+    window.location.href =
+      `mailto:${encodeURIComponent(emailContador || '')}`
+      + `?subject=${encodeURIComponent(assunto)}`
+      + `&body=${encodeURIComponent(corpo)}`;
+
+    toast.aviso(`Anexe o arquivo ${nomeArquivo} ao e-mail que acabou de abrir — o mailto não carrega anexo sozinho.`, 12000);
   }
 
   const CARDS = [
@@ -369,7 +408,7 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#fff' }}>Relatório Consolidado</p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
             {emailContador
-              ? `Enviar para ${emailContador} ou baixar localmente.`
+              ? `Para ${emailContador}. "Abrir no meu e-mail" manda do seu próprio endereço — o anexo você arrasta, porque o e-mail não carrega arquivo sozinho.`
               : 'Baixar localmente ou configure o e-mail do contador para enviar direto.'}
           </p>
         </div>
@@ -383,14 +422,29 @@ export function ExportacaoContabil({ perfil }: { perfil?: any }) {
             {carregando === 'todos' ? 'Compilando...' : 'Baixar Todos'}
           </button>
           {emailContador && (
-            <button
-              onClick={enviarParaContador}
-              disabled={!!carregando}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: '#fff', color: C.sidebarBg, border: 'none', borderRadius: RAIO_MD, fontSize: 13, fontWeight: 800, cursor: carregando ? 'not-allowed' : 'pointer', opacity: carregando ? 0.7 : 1, whiteSpace: 'nowrap' }}
-            >
-              <FiMail size={15} />
-              {carregando === 'enviar' ? 'Enviando...' : 'Enviar para Contador'}
-            </button>
+            <>
+              {/* Sai do e-mail do PRÓPRIO salão: o contador recebe do endereço
+                  que já conhece, a cópia fica na caixa de enviados dele, e não
+                  depende de domínio verificado nem de serviço de e-mail. */}
+              <button
+                onClick={abrirNoMeuEmail}
+                disabled={!!carregando}
+                title="Baixa o relatório e abre seu programa de e-mail com a mensagem pronta"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: RAIO_MD, fontSize: 13, fontWeight: 700, cursor: carregando ? 'not-allowed' : 'pointer', opacity: carregando ? 0.6 : 1, whiteSpace: 'nowrap' }}
+              >
+                <FiMail size={15} />
+                {carregando === 'todos' ? 'Preparando...' : 'Abrir no meu e-mail'}
+              </button>
+              <button
+                onClick={enviarParaContador}
+                disabled={!!carregando}
+                title="O Luarys envia direto, sem abrir seu programa de e-mail"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: '#fff', color: C.sidebarBg, border: 'none', borderRadius: RAIO_MD, fontSize: 13, fontWeight: 800, cursor: carregando ? 'not-allowed' : 'pointer', opacity: carregando ? 0.7 : 1, whiteSpace: 'nowrap' }}
+              >
+                <FiMail size={15} />
+                {carregando === 'enviar' ? 'Enviando...' : 'Enviar pelo Luarys'}
+              </button>
+            </>
           )}
         </div>
       </div>
