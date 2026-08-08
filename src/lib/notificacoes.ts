@@ -43,14 +43,26 @@ export interface NotificacaoCobranca {
 export const RODAPE_COBRANCA =
   'Se o pagamento já foi realizado, desconsidere esta mensagem — pode levar algumas horas até a confirmação chegar até nós.';
 
-export async function notificarCobranca(payload: NotificacaoCobranca): Promise<void> {
+/**
+ * Devolve `true` só quando o aviso REALMENTE saiu.
+ *
+ * Antes era `Promise<void>`: falhava em silêncio e quem chamava marcava
+ * `aviso_enviado_em` do mesmo jeito. Sem a variável configurada — que é o estado
+ * do Vercel hoje — o sistema registrava que avisou, ninguém recebia nada, e o
+ * aviso seguinte era pulado porque "já tinha avisado". O salão só descobria ao
+ * ser suspenso, sem ter recebido um único aviso.
+ *
+ * Agora quem chama decide o que fazer com o falso, e a régua só carimba o que
+ * saiu de fato.
+ */
+export async function notificarCobranca(payload: NotificacaoCobranca): Promise<boolean> {
   const url = process.env.N8N_WEBHOOK_COBRANCA;
   if (!url) {
-    console.warn(
-      '[notificacoes] N8N_WEBHOOK_COBRANCA não configurada — notificação ignorada:',
+    console.error(
+      '[notificacoes] N8N_WEBHOOK_COBRANCA não configurada — NENHUM aviso de cobrança está sendo entregue:',
       payload.evento, payload.salao_id
     );
-    return;
+    return false;
   }
   try {
     const res = await fetch(url, {
@@ -60,8 +72,11 @@ export async function notificarCobranca(payload: NotificacaoCobranca): Promise<v
     });
     if (!res.ok) {
       console.error('[notificacoes] N8N retornou erro:', res.status, await res.text());
+      return false;
     }
+    return true;
   } catch (err) {
     console.error('[notificacoes] Falha ao chamar N8N webhook:', err);
+    return false;
   }
 }

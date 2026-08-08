@@ -107,15 +107,25 @@ async function pagamentoConfirmadoNoAsaas(subscriptionId: string | null | undefi
   }
 }
 
-/** Dispara a mesma notificacao para cada responsavel. */
+/**
+ * Dispara a mesma notificacao para cada responsavel.
+ *
+ * Devolve `true` se pelo menos um aviso saiu. Quem chama usa isso para so
+ * carimbar `aviso_enviado_em` quando houve entrega: marcar sem entregar faz o
+ * proximo aviso ser pulado por "ja avisei", e o salao chega na suspensao sem
+ * nunca ter sido avisado.
+ */
 async function avisarGestao(
   base: Omit<NotificacaoCobranca, 'evento' | 'email'>,
   evento: NotificacaoCobranca['evento'],
   emails: string[],
-): Promise<void> {
+): Promise<boolean> {
+  let algumSaiu = false;
   for (const email of emails) {
-    await notificarCobranca({ ...base, email, evento, nota_rodape: RODAPE_COBRANCA });
+    const entregue = await notificarCobranca({ ...base, email, evento, nota_rodape: RODAPE_COBRANCA });
+    algumSaiu = algumSaiu || entregue;
   }
+  return algumSaiu;
 }
 
 /**
@@ -342,10 +352,11 @@ export async function POST(req: NextRequest) {
 
       // 3. Segundo aviso: D+7
       if (horasAposVencer >= HORAS_PARA_SEGUNDO_AVISO && !s.plano_segundo_aviso_enviado_em) {
+        // Carimba só o que saiu — ver avisarGestao.
+        if (!(await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios))) continue;
         await supabaseAdmin.from('saloes').update({
           plano_segundo_aviso_enviado_em: agora.toISOString(),
         }).eq('id', s.id);
-        await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios);
         resultado.planos.segundos_avisos++;
         continue;
       }
@@ -358,16 +369,20 @@ export async function POST(req: NextRequest) {
       // que so avanca quando o webhook chega, e webhook perdido faria o salao
       // adimplente ser cobrado e perder o modulo dez dias depois tendo pago.
       if (horasAposVencer > 0 && horasAposVencer < 24 && !s.plano_aviso_enviado_em) {
+        // Avisa PRIMEIRO, carimba depois — e só se saiu. Marcar antes fazia o
+        // próximo aviso ser pulado por "já avisei" mesmo sem entrega nenhuma.
+        if (!(await avisarGestao(basePayload, 'vence_hoje', destinatarios))) continue;
         await supabaseAdmin.from('saloes').update({ plano_aviso_enviado_em: agora.toISOString() }).eq('id', s.id);
-        await avisarGestao(basePayload, 'vence_hoje', destinatarios);
         resultado.planos.primeiros_avisos++;
         continue;
       }
 
       if (horasAposVencer >= 24 && !s.plano_aviso_enviado_em) {
         if (await pagamentoConfirmadoNoAsaas((s as any).asaas_subscription_id)) continue;
+        // Avisa PRIMEIRO, carimba depois — e só se saiu. Marcar antes fazia o
+        // próximo aviso ser pulado por "já avisei" mesmo sem entrega nenhuma.
+        if (!(await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios))) continue;
         await supabaseAdmin.from('saloes').update({ plano_aviso_enviado_em: agora.toISOString() }).eq('id', s.id);
-        await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.planos.primeiros_avisos++;
         continue;
       }
@@ -379,10 +394,12 @@ export async function POST(req: NextRequest) {
         ? lembretePendente(diasAteVencer, diasLembretePlano, (s as any).lembretes_enviados)
         : null;
       if (chavePlano) {
-        await supabaseAdmin.from('saloes').update({
-          lembretes_enviados: { ...((s as any).lembretes_enviados ?? {}), [chavePlano]: agora.toISOString() },
-        }).eq('id', s.id);
-        await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios);
+        // Carimba só o que saiu — ver avisarGestao.
+        if (await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios)) {
+          await supabaseAdmin.from('saloes').update({
+            lembretes_enviados: { ...((s as any).lembretes_enviados ?? {}), [chavePlano]: agora.toISOString() },
+          }).eq('id', s.id);
+        }
         resultado.planos.lembretes++;
       }
     }
@@ -461,26 +478,29 @@ export async function POST(req: NextRequest) {
 
       // 3. Segundo aviso: D+7
       if (horasAposVencer >= HORAS_PARA_SEGUNDO_AVISO && !mod.segundo_aviso_enviado_em) {
+        // Carimba só o que saiu — ver avisarGestao.
+        if (!(await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios))) continue;
         await supabaseAdmin.from('salao_modulos').update({
           segundo_aviso_enviado_em: agora.toISOString(),
         }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await avisarGestao(basePayload, 'segundo_aviso_atraso', destinatarios);
         resultado.modulos.segundos_avisos++;
         continue;
       }
 
       // 2. Dia do vencimento e atraso — ver comentario no bloco do plano.
       if (horasAposVencer > 0 && horasAposVencer < 24 && !mod.aviso_enviado_em) {
+        // Carimba só o que saiu — ver avisarGestao.
+        if (!(await avisarGestao(basePayload, 'vence_hoje', destinatarios))) continue;
         await supabaseAdmin.from('salao_modulos').update({ aviso_enviado_em: agora.toISOString() }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await avisarGestao(basePayload, 'vence_hoje', destinatarios);
         resultado.modulos.primeiros_avisos++;
         continue;
       }
 
       if (horasAposVencer >= 24 && !mod.aviso_enviado_em) {
         if (await pagamentoConfirmadoNoAsaas((mod as any).asaas_subscription_id)) continue;
+        // Carimba só o que saiu — ver avisarGestao.
+        if (!(await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios))) continue;
         await supabaseAdmin.from('salao_modulos').update({ aviso_enviado_em: agora.toISOString() }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await avisarGestao(basePayload, 'pagamento_atrasado', destinatarios);
         resultado.modulos.primeiros_avisos++;
         continue;
       }
@@ -491,10 +511,12 @@ export async function POST(req: NextRequest) {
         ? lembretePendente(diasAteVencer, diasLembreteModulo, (mod as any).lembretes_enviados)
         : null;
       if (chaveMod) {
-        await supabaseAdmin.from('salao_modulos').update({
-          lembretes_enviados: { ...((mod as any).lembretes_enviados ?? {}), [chaveMod]: agora.toISOString() },
-        }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
-        await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios);
+        // Carimba só o que saiu — ver avisarGestao.
+        if (await avisarGestao(basePayload, 'lembrete_vencimento', destinatarios)) {
+          await supabaseAdmin.from('salao_modulos').update({
+            lembretes_enviados: { ...((mod as any).lembretes_enviados ?? {}), [chaveMod]: agora.toISOString() },
+          }).eq('salao_id', mod.salao_id).eq('modulo_chave', mod.modulo_chave);
+        }
         resultado.modulos.lembretes++;
       }
     }
