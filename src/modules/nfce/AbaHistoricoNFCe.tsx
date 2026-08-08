@@ -47,25 +47,68 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
   const [reconciliando, setReconciliando] = useState(false);
   const [filtro, setFiltro] = useState<'todas' | NotaEmissao['status']>('todas');
 
+  // Mesmo princípio da tela de NFS-e: abre no mês vigente, para não despejar o
+  // histórico inteiro. Aqui o status padrão continua 'todas' de propósito — a
+  // NFC-e é emitida na hora da venda, então não existe fila de "por emitir";
+  // esta tela é consulta, e filtrar por erro esconderia o normal.
+  //
+  // Data em horário local, não toISOString(): no fuso do Brasil o ISO devolve o
+  // dia seguinte a partir das 21h, e o mês viraria antes da hora.
+  const mesVigente = (() => {
+    const h = new Date();
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return {
+      inicio: iso(new Date(h.getFullYear(), h.getMonth(), 1)),
+      fim: iso(new Date(h.getFullYear(), h.getMonth() + 1, 0)),
+    };
+  })();
+  const [dataInicio, setDataInicio] = useState(mesVigente.inicio);
+  const [dataFim, setDataFim] = useState(mesVigente.fim);
+
   const carregar = useCallback(async () => {
     setCarregando(true);
     const { data, error } = await supabase
       .from('nfce_emissoes')
       .select('id, referencia, numero, serie, status, chave_acesso, storage_path_danfe, storage_path_xml, mensagem_erro, valor_total, os_numero, criado_em')
       .eq('salao_id', salaoId)
+      // Filtra no banco, não na tela. O `limit(200)` que existia aqui cortava em
+      // silêncio: salão movimentado perdia o começo do mês sem nenhum aviso, e
+      // não havia como alcançar o que ficou de fora. O teto continua, mas alto o
+      // bastante para um mês inteiro, e agora é o período que manda.
+      .gte('criado_em', `${dataInicio}T00:00:00`)
+      .lte('criado_em', `${dataFim}T23:59:59`)
       .order('criado_em', { ascending: false })
-      .limit(200);
+      .limit(2000);
     if (error) {
       console.error('Erro ao carregar histórico de NFC-e:', error.message);
       toast('Não foi possível carregar o histórico de cupons.', 'erro');
     }
     setNotas(data || []);
     setCarregando(false);
-  }, [salaoId, toast]);
+  }, [salaoId, toast, dataInicio, dataFim]);
 
   useEffect(() => { if (salaoId) carregar(); }, [salaoId, carregar]);
 
-  const pendentes = notas.filter(n => n.status === 'processando').length;
+  // Pendentes contam FORA do período, de propósito.
+  //
+  // Se contasse só o que está na lista, um cupom travado em 'processando' do mês
+  // passado sumiria junto com o filtro — e é justamente o que não pode sumir:
+  // cupom em processamento é venda que a SEFAZ ainda não confirmou. O botão
+  // "Atualizar pendentes" tem de enxergar todos, senão ele mente que está tudo
+  // certo.
+  const [pendentes, setPendentes] = useState(0);
+  const contarPendentes = useCallback(async () => {
+    const { count } = await supabase
+      .from('nfce_emissoes')
+      .select('id', { count: 'exact', head: true })
+      .eq('salao_id', salaoId)
+      .eq('status', 'processando');
+    setPendentes(count || 0);
+  }, [salaoId]);
+  useEffect(() => { if (salaoId) contarPendentes(); }, [salaoId, contarPendentes, notas]);
+
+  const pendentesForaDoPeriodo = Math.max(0, pendentes - notas.filter(n => n.status === 'processando').length);
 
   const reconciliar = async () => {
     setReconciliando(true);
@@ -108,7 +151,24 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
   return (
     <div style={S.card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Período primeiro: é ele que define o volume da lista. Sem isto a
+              tela carregava as últimas 200 e cortava em silêncio. */}
+          <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)}
+            title="Início do período"
+            style={{ padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12, color: C.textMain }} />
+          <span style={{ fontSize: 12, color: C.textMuted }}>até</span>
+          <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)}
+            title="Fim do período"
+            style={{ padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, fontSize: 12, color: C.textMain }} />
+          {(dataInicio !== mesVigente.inicio || dataFim !== mesVigente.fim) && (
+            <button onClick={() => { setDataInicio(mesVigente.inicio); setDataFim(mesVigente.fim); }}
+              title="Voltar ao mês vigente"
+              style={{ padding: '6px 10px', borderRadius: RAIO_MD, border: `1px solid ${C.borderMid}`, background: C.bgCard, color: C.textMuted, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              Mês atual
+            </button>
+          )}
+          <span style={{ width: 1, height: 22, background: C.borderMid, margin: '0 4px' }} />
           {FILTROS.map(f => (
             <button
               key={f.chave}
@@ -138,13 +198,37 @@ export function AbaHistoricoNFCe({ salaoId, toast }: { salaoId: string; toast: (
         </button>
       </div>
 
+      {/* O contador é global, a lista é do período. Sem este aviso o salão veria
+          "Atualizar pendentes (3)" e nenhuma nota em processamento na tela —
+          concluiria que o número está errado, quando o certo é procurar noutro
+          mês. Cupom preso em processamento é venda que a SEFAZ não confirmou. */}
+      {pendentesForaDoPeriodo > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', marginBottom: 16, borderRadius: RAIO_MD, background: '#FFFBEB', border: '1px solid #FCD34D', fontSize: 12, color: '#92400E', fontWeight: 600 }}>
+          <FiAlertCircle size={14} />
+          {pendentesForaDoPeriodo === 1
+            ? 'Há 1 cupom em processamento fora do período mostrado.'
+            : `Há ${pendentesForaDoPeriodo} cupons em processamento fora do período mostrado.`}
+          <button onClick={() => { setFiltro('processando'); setDataInicio('2020-01-01'); setDataFim(mesVigente.fim); }}
+            style={{ background: 'none', border: 'none', padding: 0, color: '#92400E', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>
+            Ver todos
+          </button>
+        </div>
+      )}
+
       {carregando ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 40, color: C.textMuted, fontWeight: 600, fontSize: 13 }}>
           <FiLoader className="animate-spin" size={16} /> Carregando histórico...
         </div>
       ) : visiveis.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.textMuted, fontSize: 13, fontWeight: 500 }}>
-          {filtro === 'todas' ? 'Nenhum cupom emitido ainda. As notas aparecem aqui assim que forem emitidas pelo Caixa.' : 'Nenhuma nota neste filtro.'}
+          {/* "Nenhum cupom emitido ainda" mentiria agora: a lista é do período,
+              e pode haver cupom em outro mês. A mensagem tem de dizer onde
+              procurou, senão o salão conclui que perdeu as notas. */}
+          {filtro !== 'todas'
+            ? 'Nenhuma nota neste filtro. Tente "Todas" ou mude o período.'
+            : (dataInicio === mesVigente.inicio && dataFim === mesVigente.fim)
+              ? `Nenhum cupom em ${new Date(mesVigente.inicio + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Mude o período acima para ver outros meses — os cupons aparecem aqui assim que são emitidos pelo Caixa.`
+              : 'Nenhum cupom no período selecionado.'}
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
